@@ -31,13 +31,13 @@ const PESTANAS: { valor: Pestana; texto: string; pie: string }[] = [
 
 function Cifra({ valor, texto, urgente }: { valor: number; texto: string; urgente?: boolean }) {
   return (
-    <div className="rounded-xl border border-line bg-surface px-4 py-3.5">
+    <div className="rounded-xl border border-line bg-surface px-3.5 py-3 sm:px-4 sm:py-3.5">
       {/* Cifra grande: sans y cifras proporcionales, que a este tamaño las
           tabulares se ven sueltas. */}
-      <p className={`text-3xl font-semibold tracking-tight ${urgente ? 'text-rust' : ''}`}>
+      <p className={`text-2xl font-semibold tracking-tight sm:text-3xl ${urgente ? 'text-rust' : ''}`}>
         {valor.toLocaleString('es-ES')}
       </p>
-      <p className="mt-2 text-sm leading-tight text-balance text-ink-3">{texto}</p>
+      <p className="mt-1.5 text-sm leading-tight text-balance text-ink-3 sm:mt-2">{texto}</p>
     </div>
   );
 }

@@ -37,6 +37,14 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
   const [ancho, setAncho] = useState(760);
   const [encima, setEncima] = useState<number | null>(null);
   const [tabla, setTabla] = useState(false);
+  /**
+   * Plegado. Solo tiene efecto por debajo de `sm`: en un móvil el gráfico
+   * son cuarenta y cinco barras de siete píxeles —acertarle a una con el
+   * dedo es lotería— y se llevaba trescientos de los mil píxeles que había
+   * que recorrer antes de ver la primera plaza. En pantalla grande, donde
+   * las barras miden lo suficiente para apuntar, no cambia nada.
+   */
+  const [desplegado, setDesplegado] = useState(false);
 
   useEffect(() => {
     const el = caja.current;
@@ -89,21 +97,32 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
             Cuándo se cierran los plazos
           </h2>
           <p className="mt-1 max-w-[78ch] text-sm text-ink-3">
-            {total > 0
-              ? `${plural(total, 'convocatoria cierra', 'convocatorias cierran')} en los próximos ${DIAS} días. Pulsa un día para quedarte solo con ese.`
-              : 'Ninguna de las plazas que estás viendo cierra en los próximos 45 días.'}
+            {total > 0 ? (
+              <>
+                {plural(total, 'convocatoria cierra', 'convocatorias cierran')} en los próximos {DIAS} días.
+                {/* La instrucción solo tiene sentido con las barras a la vista. */}
+                <span className={desplegado ? undefined : 'max-sm:hidden'}>
+                  {' '}Pulsa un día para quedarte solo con ese.
+                </span>
+              </>
+            ) : (
+              `Ninguna de las plazas que estás viendo cierra en los próximos ${DIAS} días.`
+            )}
           </p>
         </div>
         <button
           type="button"
           onClick={() => setTabla((v) => !v)}
-          className="hover:border-pine hover:text-pine shrink-0 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink-3 transition-colors"
+          className={`hover:border-pine hover:text-pine shrink-0 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink-3 transition-colors ${
+            desplegado ? '' : 'max-sm:hidden'
+          }`}
           aria-pressed={tabla}
         >
           {tabla ? 'Ver el gráfico' : 'Ver los datos'}
         </button>
       </header>
 
+      <div className={desplegado ? undefined : 'max-sm:hidden'}>
       {tabla ? (
         <div className="scroll-fino max-h-64 overflow-y-auto rounded-lg border border-line-soft">
           <table className="w-full text-sm">
@@ -255,6 +274,27 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
           )}
         </div>
       )}
+      </div>
+
+      {/* El interruptor solo existe en móvil: en pantalla grande el cuerpo
+          nunca se oculta, así que no hay nada que anunciar. */}
+      <button
+        type="button"
+        onClick={() => setDesplegado((v) => !v)}
+        aria-expanded={desplegado}
+        className={`hover:border-pine hover:text-pine flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2.5 text-sm font-semibold text-ink-2 transition-colors sm:hidden ${
+          desplegado ? 'mt-3' : ''
+        }`}
+      >
+        {desplegado ? 'Ocultar el calendario' : 'Ver el calendario'}
+        <svg
+          viewBox="0 0 12 12"
+          className={`size-3 transition-transform ${desplegado ? 'rotate-180' : ''}`}
+          aria-hidden="true"
+        >
+          <path d="M2 4.5L6 8.5L10 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+        </svg>
+      </button>
     </section>
   );
 }

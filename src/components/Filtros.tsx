@@ -42,8 +42,8 @@ function conmuta<T extends string>(lista: T[], v: T): T[] {
 /* -------------------------------------------------------------- desplegable */
 
 function Menu({
-  titulo, activos, children,
-}: { titulo: string; activos: number; children: React.ReactNode }) {
+  titulo, corto, activos, children,
+}: { titulo: string; corto?: string; activos: number; children: React.ReactNode }) {
   const ref = useRef<HTMLDetailsElement>(null);
   const panel = useRef<HTMLDivElement>(null);
   const [desvio, setDesvio] = useState(0);
@@ -85,11 +85,22 @@ function Menu({
       onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) coloca(); }}
     >
       <summary
-        className={`hover:border-pine/50 flex cursor-pointer list-none items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
+        className={`hover:border-pine/50 flex cursor-pointer list-none items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3 ${
           activos > 0 ? 'border-pine/45 bg-pine-soft text-pine-ink' : 'border-line bg-surface text-ink-2'
         }`}
       >
-        {titulo}
+        {/* En móvil manda la versión corta. Con los rótulos largos, los seis
+            filtros se repartían en cuatro renglones; con estos caben en dos
+            y siguen todos a la vista, que es lo que importa en una barra de
+            filtros: si hay que deslizar para descubrirlos, no se usan. */}
+        {corto ? (
+          <>
+            <span className="sm:hidden">{corto}</span>
+            <span className="hidden sm:inline">{titulo}</span>
+          </>
+        ) : (
+          titulo
+        )}
         {activos > 0 && (
           <span className="bg-pine rounded-full px-1.5 text-2xs font-bold text-white tabular-nums">
             {activos}
@@ -242,7 +253,7 @@ export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
           ))}
         </Menu>
 
-        <Menu titulo="Tipo de plaza" activos={f.contratos.length}>
+        <Menu titulo="Tipo de plaza" corto="Tipo" activos={f.contratos.length}>
           {CONTRATOS.map((c) => (
             <Opcion
               key={c.valor}
@@ -254,7 +265,7 @@ export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
           ))}
         </Menu>
 
-        <Menu titulo="Quién convoca" activos={f.ambitos.length}>
+        <Menu titulo="Quién convoca" corto="Convoca" activos={f.ambitos.length}>
           {Object.entries(ETIQUETA_AMBITO).map(([k, texto]) => (
             <Opcion
               key={k}
@@ -308,7 +319,7 @@ export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
         {/* En las ya cerradas no queda tiempo que valga: el menú entero
             marcaba cero y parecía roto. */}
         {f.pestana !== 'cerradas' && (
-          <Menu titulo="Tiempo que queda" activos={f.urgencias.length}>
+          <Menu titulo="Tiempo que queda" corto="Plazo" activos={f.urgencias.length}>
             {URGENCIAS.map((u) => (
               <Opcion
                 key={u.valor}
