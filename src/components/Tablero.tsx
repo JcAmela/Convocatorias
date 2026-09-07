@@ -341,7 +341,12 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                   <span className="sr-only sm:not-sr-only sm:mr-1">Actualizado a las</span>
                   {/* Solo la hora va en monoespaciada: es lo único que cambia
                       cada rato, y así no baila el ancho de la píldora. */}
-                  <span className="font-mono tabular-nums">
+                  {/* Por debajo de 360px ni la hora cabe: a 320 el nombre del
+                      sitio se recortaba a "Convocatoria…", que es lo último
+                      que debería cortarse de esta página. Ahí queda solo el
+                      punto de color, y la hora sigue anunciándose para quien
+                      use lector de pantalla. */}
+                  <span className="font-mono tabular-nums max-[359px]:sr-only">
                     {generado.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </>
