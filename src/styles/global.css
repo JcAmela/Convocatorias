@@ -266,6 +266,19 @@ body {
 /* La estrella de guardar se escondía hasta el hover. En un móvil no hay
    hover, así que la función era invisible: aquí solo desaparece donde
    existe un puntero de verdad que pueda revelarla. */
+/* Donde se pulsa con el dedo, la zona sensible de la estrella se estira
+   hasta los 44px sin que el icono crezca ni un punto: el dibujo mide 30 y
+   apuntar a 30 con el pulgar, en la esquina de una tarjeta y con otras
+   tarjetas alrededor, se falla. En pantallas con puntero fino no hace falta
+   y no se toca. */
+@media (pointer: coarse) {
+  .toque-amplio::after {
+    content: '';
+    position: absolute;
+    inset: -7px;
+  }
+}
+
 .estrella { opacity: 1; transition: opacity 0.15s ease; }
 @media (hover: hover) and (pointer: fine) {
   .estrella { opacity: 0; }

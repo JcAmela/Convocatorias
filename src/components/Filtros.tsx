@@ -193,8 +193,12 @@ export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
   return (
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
-        <div
-          className={`flex w-full items-center gap-2 rounded-lg border bg-surface px-3 py-2 transition-colors sm:w-auto sm:min-w-[220px] sm:flex-1 ${
+        {/* Etiqueta, no `div`: el recuadro mide 40px de alto pero el `input`
+            de dentro solo 22, así que pulsar en el margen —la lupa, el hueco
+            de arriba y abajo— no hacía nada. Siendo `label`, todo el
+            recuadro lleva el foco al campo. */}
+        <label
+          className={`flex w-full cursor-text items-center gap-2 rounded-lg border bg-surface px-3 py-2 transition-colors sm:w-auto sm:min-w-[220px] sm:flex-1 ${
             foco ? 'border-pine' : 'border-line'
           }`}
         >
@@ -215,7 +219,7 @@ export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
           {!f.q && (
             <kbd className="hidden shrink-0 rounded border border-line-soft bg-surface-2 px-1.5 font-mono text-2xs text-ink-3 sm:block">/</kbd>
           )}
-        </div>
+        </label>
 
         <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:flex-none">
           <span className="text-ink-3 max-sm:sr-only">Ordenar</span>

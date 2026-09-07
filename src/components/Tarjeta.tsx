@@ -34,7 +34,7 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
           onClick={() => onGuardar(plaza.id)}
           aria-pressed={guardada}
           aria-label={guardada ? 'Quitar de guardadas' : 'Guardar esta plaza'}
-          className={`relative z-10 -mt-1 -mr-1.5 ml-auto rounded-md p-1.5 transition-colors ${
+          className={`toque-amplio relative z-10 -mt-1 -mr-1.5 ml-auto rounded-md p-1.5 transition-colors ${
             guardada ? 'text-ochre' : 'estrella text-ink-3 hover:text-ink'
           }`}
         >
