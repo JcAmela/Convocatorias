@@ -260,7 +260,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
 
           {activo && (
             <div
-              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg"
+              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-alza-2"
               style={{ left: Math.min(Math.max(78, MARGEN_IZQ + encima! * paso), ancho - 78), top: -6 }}
               aria-hidden="true"
             >

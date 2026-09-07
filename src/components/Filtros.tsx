@@ -113,7 +113,7 @@ function Menu({
       <div
         ref={panel}
         style={{ transform: desvio ? `translateX(${desvio}px)` : undefined }}
-        className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.05),0_16px_40px_-12px_rgba(0,0,0,0.24)]"
+        className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-alza-2"
       >
         {children}
       </div>

@@ -60,6 +60,13 @@
   --text-2xl--line-height: 1.1;
   --text-3xl: 2.125rem;               /* 34px - cifras del resumen */
   --text-3xl--line-height: 1;
+
+  /* Elevacion: tres alturas y ninguna mas. Cada una es una variable, no un
+     negro fijo, porque en oscuro una sombra negra sobre un fondo casi negro
+     no separa nada y el panel flotante se queda pegado al fondo. */
+  --shadow-alza-1: var(--alza-1);
+  --shadow-alza-2: var(--alza-2);
+  --shadow-alza-3: var(--alza-3);
 }
 
 :root {
@@ -84,6 +91,15 @@
   --ochre-soft: #f6eeda;
   --rust: #a6331c;
   --rust-soft: #f8e7e2;
+
+  /* Sombras del tema claro. El negro puro ensucia; se tira del verde de la
+     tinta para que la sombra pertenezca a la misma paleta que todo lo demas.
+     Alza 1: la tarjeta que responde al puntero.
+     Alza 2: lo que se despliega encima (menus de filtro, globo del grafico).
+     Alza 3: el panel lateral, que tapa la pagina entera. */
+  --alza-1: 0 1px 2px rgba(18, 24, 22, 0.05), 0 10px 28px -12px rgba(18, 24, 22, 0.16);
+  --alza-2: 0 4px 10px rgba(18, 24, 22, 0.06), 0 16px 40px -12px rgba(18, 24, 22, 0.24);
+  --alza-3: 0 12px 24px rgba(18, 24, 22, 0.1), 0 32px 64px -16px rgba(18, 24, 22, 0.34);
 
   /* Marca del gráfico: un solo color, validado a >= 3:1 sobre la superficie. */
   --viz-barra: #12705e;
@@ -115,6 +131,13 @@
     --rust: #e58b72;
     --rust-soft: #331d17;
 
+    /* En oscuro la sombra sola no basta: hay que hundirla mucho mas y
+       rematar el canto con un filo claro, que es lo que de verdad despega
+       la superficie del fondo cuando ambos son casi negros. */
+    --alza-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+    --alza-2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.55), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
+    --alza-3: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 18px 36px rgba(0, 0, 0, 0.6), 0 44px 80px -16px rgba(0, 0, 0, 0.9);
+
     --viz-barra: #4fb79b;
     --viz-barra-apagada: #2c4a43;
     --viz-grid: #262b2d;
@@ -143,6 +166,10 @@
   --ochre-soft: #2d2517;
   --rust: #e58b72;
   --rust-soft: #331d17;
+
+  --alza-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 28px -12px rgba(0, 0, 0, 0.7);
+  --alza-2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.55), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
+  --alza-3: 0 0 0 1px rgba(255, 255, 255, 0.07), 0 18px 36px rgba(0, 0, 0, 0.6), 0 44px 80px -16px rgba(0, 0, 0, 0.9);
 
   --viz-barra: #4fb79b;
   --viz-barra-apagada: #2c4a43;

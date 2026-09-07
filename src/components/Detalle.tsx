@@ -89,7 +89,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
       <div
         ref={panel}
         tabIndex={-1}
-        className="anima-panel scroll-fino relative flex h-full w-full max-w-[520px] flex-col overflow-y-auto bg-surface shadow-2xl outline-none"
+        className="anima-panel scroll-fino relative flex h-full w-full max-w-[520px] flex-col overflow-y-auto bg-surface shadow-alza-3 outline-none"
       >
         <header className="sticky top-0 z-10 flex items-start gap-3 border-b border-line bg-surface/95 px-5 py-4 backdrop-blur">
           <div className="min-w-0 flex-1">

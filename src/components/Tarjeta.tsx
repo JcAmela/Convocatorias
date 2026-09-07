@@ -24,7 +24,7 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
 
   return (
     <article
-      className="group focus-within:border-pine/40 hover:border-pine/40 relative flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:shadow-[0_1px_2px_rgba(0,0,0,0.04),0_10px_28px_-12px_rgba(0,0,0,0.16)]"
+      className="group focus-within:border-pine/40 hover:border-pine/40 relative flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:shadow-alza-1"
     >
       <div className="flex items-center gap-2">
         <PildoraPlazo dias={plaza.diasRestantes} />
