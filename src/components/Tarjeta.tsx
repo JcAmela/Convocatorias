@@ -80,7 +80,12 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
         {plaza.plazas ? <span>{plaza.plazas} {plaza.plazas === 1 ? 'puesto' : 'puestos'}</span> : null}
       </div>
 
-      <dl className="grid grid-cols-[auto_1fr] items-baseline gap-x-3 gap-y-1.5 border-t border-line-soft pt-3 text-sm">
+      {/* La columna de etiquetas va a un ancho fijo, no `auto`. Con `auto` la
+          fija el rótulo más largo de CADA tarjeta, y 48 de las 776 plazas no
+          traen nivel de estudios: esas pierden la fila «Estudios», su columna
+          encoge y sus datos arrancan veintidós píxeles a la izquierda que los
+          de la tarjeta de al lado. En una rejilla eso se lee de un vistazo. */}
+      <dl className="grid grid-cols-[4rem_1fr] items-baseline gap-x-3 gap-y-1.5 border-t border-line-soft pt-3 text-sm">
         {plaza.nivelEstudios && (
           <>
             <dt className="text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">Estudios</dt>
