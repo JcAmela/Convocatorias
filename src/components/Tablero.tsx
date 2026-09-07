@@ -47,6 +47,16 @@ function Cifra({ valor, texto, urgente }: { valor: number; texto: string; urgent
 export function Tablero({ inicial }: { inicial: Datos }) {
   const [datos, setDatos] = useState<Datos>(inicial);
   const [revalidando, setRevalidando] = useState(false);
+  /**
+   * Atenuar la lista y estar releyendo no son lo mismo. La primera lectura
+   * ocurre sobre contenido que ya es real —viene servido con la página—, así
+   * que bajarlo al 55% durante el viaje de ida y vuelta a la API solo lo hace
+   * parecer roto: unos 280ms en una conexión buena, bastante más en un móvil.
+   * La píldora de la cabecera ya avisa de que se está buscando, y esa señal
+   * no estropea lo que se está leyendo.
+   */
+  const [atenua, setAtenua] = useState(false);
+  const primeraLectura = useRef(true);
   const [fallo, setFallo] = useState<string | null>(null);
   const [f, setF] = useState<F>(FILTROS_INICIALES);
   const [guardadas, setGuardadas] = useState<Set<string>>(new Set());
@@ -74,6 +84,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     if (pidiendo.current) return;
     pidiendo.current = true;
     setRevalidando(true);
+    if (!primeraLectura.current) setAtenua(true);
     fetch(API, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`el servidor respondió ${r.status}`))))
       .then((d: unknown) => {
@@ -83,7 +94,12 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         ultimaLectura.current = Date.now();
       })
       .catch((e: Error) => setFallo(e.message))
-      .finally(() => { pidiendo.current = false; setRevalidando(false); });
+      .finally(() => {
+        pidiendo.current = false;
+        primeraLectura.current = false;
+        setRevalidando(false);
+        setAtenua(false);
+      });
   }, []);
 
   useEffect(() => { refresca(); }, [refresca]);
@@ -438,7 +454,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           id="panel-plazas"
           role="tabpanel"
           aria-labelledby={`pestana-${f.pestana}`}
-          className={revalidando ? 'revalidando' : undefined}
+          className={atenua ? 'revalidando' : undefined}
         >
           <Limite>
             {filtradas.length === 0 ? (
