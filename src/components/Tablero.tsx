@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plaza, Tablero as Datos } from '../lib/tipos';
 import { API, esTablero, saneaTablero } from '../lib/datos';
 import {
@@ -188,12 +188,31 @@ export function Tablero({ inicial }: { inicial: Datos }) {
    */
   const lugares = useMemo(() => preparaLugares(todas), [todas]);
 
+  /**
+   * Escribir en el buscador dispara seis pasadas completas sobre el conjunto
+   * —la lista, el gráfico y los recuentos de cada faceta— más el repintado de
+   * veinticuatro tarjetas. Medido de tecla a lista: entre 42 y 56ms en un
+   * escritorio rápido, y un móvil de gama media tarda tres o cuatro veces
+   * más. Como la caja es controlada, ese retraso es el que tardan las letras
+   * en aparecer.
+   *
+   * Con el valor diferido, React pinta primero lo urgente —la letra escrita y
+   * su ficha— y recalcula el resto en un pase aparte que puede interrumpir si
+   * llega otra tecla. Lo que se escribe va al día; los resultados llegan un
+   * instante después, que es el orden correcto.
+   */
+  const qDiferido = useDeferredValue(f.q);
+  const fCalculo = useMemo(
+    () => (qDiferido === f.q ? f : { ...f, q: qDiferido }),
+    [f, qDiferido],
+  );
+
   const base = useMemo(() => {
     if (f.pestana === 'guardadas') return todas.filter((p) => guardadas.has(p.id));
     return datos[f.pestana];
   }, [datos, f.pestana, guardadas, todas]);
 
-  const filtradas = useMemo(() => ordena(aplica(base, f), f.orden), [base, f]);
+  const filtradas = useMemo(() => ordena(aplica(base, fCalculo), fCalculo.orden), [base, fCalculo]);
 
   /**
    * El gráfico se dibuja con todo menos el filtro de día. Alimentándolo con la
@@ -202,16 +221,16 @@ export function Tablero({ inicial }: { inicial: Datos }) {
    * ver dónde había algo era adivinar. Es el mismo criterio que usan los
    * recuentos de cada faceta.
    */
-  const paraGrafico = useMemo(() => aplica(base, f, 'dia'), [base, f]);
+  const paraGrafico = useMemo(() => aplica(base, fCalculo, 'dia'), [base, fCalculo]);
 
   const conteos = useMemo(() => ({
-    niveles: cuenta(base, f, 'niveles', (p) => (p.nivelCodigo && NIVEL_CORTO[p.nivelCodigo] ? p.nivelCodigo : null)),
-    contratos: cuenta(base, f, 'contratos', claseContrato),
-    ambitos: cuenta(base, f, 'ambitos', (p) => (ETIQUETA_AMBITO[p.ambito] ? p.ambito : null)),
-    urgencias: cuenta(base, f, 'urgencias', (p) => urgencia(p.diasRestantes).cubo),
-    lugares: cuentaVarias(base, f, 'lugares', idsFiltroLugar),
-    lejos: aplica(base, f, 'cerca').filter((p) => p.lejos).length,
-  }), [base, f]);
+    niveles: cuenta(base, fCalculo, 'niveles', (p) => (p.nivelCodigo && NIVEL_CORTO[p.nivelCodigo] ? p.nivelCodigo : null)),
+    contratos: cuenta(base, fCalculo, 'contratos', claseContrato),
+    ambitos: cuenta(base, fCalculo, 'ambitos', (p) => (ETIQUETA_AMBITO[p.ambito] ? p.ambito : null)),
+    urgencias: cuenta(base, fCalculo, 'urgencias', (p) => urgencia(p.diasRestantes).cubo),
+    lugares: cuentaVarias(base, fCalculo, 'lugares', idsFiltroLugar),
+    lejos: aplica(base, fCalculo, 'cerca').filter((p) => p.lejos).length,
+  }), [base, fCalculo]);
 
   const resumen = useMemo(() => ({
     convocatorias: filtradas.length,
