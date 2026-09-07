@@ -1,0 +1,209 @@
+@import 'tailwindcss';
+
+/* ==========================================================================
+   Convocatorias — sistema visual
+
+   Los colores se declaran una sola vez como variables CSS y se exponen a
+   Tailwind con `@theme inline`, así que `bg-surface` o `text-ink-3` cambian
+   solos entre claro y oscuro sin repetir cada clase con el prefijo `dark:`.
+
+   Paleta pino y ocre: el verde es lo institucional y lo neutro; el ocre y el
+   óxido están reservados EXCLUSIVAMENTE a la urgencia del plazo, que es la
+   única información de esta página que debe gritar.
+   ========================================================================== */
+
+@theme inline {
+  --color-ground: var(--ground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-soft: var(--line-soft);
+
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+
+  --color-pine: var(--pine);
+  --color-pine-ink: var(--pine-ink);
+  --color-pine-soft: var(--pine-soft);
+
+  --color-ochre: var(--ochre);
+  --color-ochre-soft: var(--ochre-soft);
+  --color-rust: var(--rust);
+  --color-rust-soft: var(--rust-soft);
+
+  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+}
+
+:root {
+  color-scheme: light;
+
+  --ground: #f3f2ec;
+  --surface: #fbfaf7;
+  --surface-2: #f0efe8;
+  --surface-3: #e7e5da;
+  --line: #dddbcf;
+  --line-soft: #e9e7dd;
+
+  --ink: #16181a;
+  --ink-2: #4a504e;
+  --ink-3: #757c79;
+
+  --pine: #12705e;
+  --pine-ink: #0b4a3f;
+  --pine-soft: #dfece7;
+
+  --ochre: #8a5a02;
+  --ochre-soft: #f6eeda;
+  --rust: #a6331c;
+  --rust-soft: #f8e7e2;
+
+  /* Marca del gráfico: un solo color, validado a >= 3:1 sobre la superficie. */
+  --viz-barra: #12705e;
+  --viz-barra-apagada: #b9cfc8;
+  --viz-grid: #e2e0d5;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:where(:not([data-theme='light'])) {
+    color-scheme: dark;
+
+    --ground: #0e1112;
+    --surface: #14171a;
+    --surface-2: #1a1e20;
+    --surface-3: #232829;
+    --line: #2a2f31;
+    --line-soft: #212627;
+
+    --ink: #e8ece9;
+    --ink-2: #aab2ae;
+    --ink-3: #7c8582;
+
+    --pine: #4fb79b;
+    --pine-ink: #7fd3bb;
+    --pine-soft: #16322c;
+
+    --ochre: #dca648;
+    --ochre-soft: #2d2517;
+    --rust: #e58b72;
+    --rust-soft: #331d17;
+
+    --viz-barra: #4fb79b;
+    --viz-barra-apagada: #2c4a43;
+    --viz-grid: #262b2d;
+  }
+}
+
+:root[data-theme='dark'] {
+  color-scheme: dark;
+
+  --ground: #0e1112;
+  --surface: #14171a;
+  --surface-2: #1a1e20;
+  --surface-3: #232829;
+  --line: #2a2f31;
+  --line-soft: #212627;
+
+  --ink: #e8ece9;
+  --ink-2: #aab2ae;
+  --ink-3: #7c8582;
+
+  --pine: #4fb79b;
+  --pine-ink: #7fd3bb;
+  --pine-soft: #16322c;
+
+  --ochre: #dca648;
+  --ochre-soft: #2d2517;
+  --rust: #e58b72;
+  --rust-soft: #331d17;
+
+  --viz-barra: #4fb79b;
+  --viz-barra-apagada: #2c4a43;
+  --viz-grid: #262b2d;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  background: var(--ground);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Fraunces es variable: con `opsz` alto los remates se afinan y el titular
+   deja de parecer un texto de párrafo agrandado. */
+.display {
+  font-family: var(--font-display);
+  font-variation-settings: 'opsz' 96, 'SOFT' 0, 'WONK' 0;
+  letter-spacing: -0.02em;
+}
+
+:focus-visible {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+::selection {
+  background: var(--pine-soft);
+  color: var(--pine-ink);
+}
+
+/* Barras de scroll discretas dentro de los paneles largos. */
+.scroll-fino {
+  scrollbar-width: thin;
+  scrollbar-color: var(--surface-3) transparent;
+}
+.scroll-fino::-webkit-scrollbar { width: 9px; height: 9px; }
+.scroll-fino::-webkit-scrollbar-thumb {
+  background: var(--surface-3);
+  border-radius: 9px;
+  border: 2px solid var(--surface);
+}
+.scroll-fino::-webkit-scrollbar-track { background: transparent; }
+
+@keyframes entra {
+  from { opacity: 0; transform: translateY(6px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes entra-panel {
+  from { opacity: 0; transform: translateX(18px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes velo {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.anima-entra { animation: entra 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anima-panel { animation: entra-panel 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.anima-velo  { animation: velo 0.2s ease both; }
+
+/* Mientras se revalidan los datos la vista anterior se queda puesta y solo
+   baja de opacidad: nada de esqueletos parpadeando ni saltos de maquetación. */
+.revalidando {
+  opacity: 0.55;
+  transition: opacity 0.2s ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@media print {
+  .no-imprimir { display: none !important; }
+  body { background: #fff; }
+}
