@@ -74,7 +74,12 @@ function Menu({
     const caja = panel.current?.getBoundingClientRect();
     if (!caja) return;
     const margen = 12;
-    const sobra = caja.right - desvio - (window.innerWidth - margen);
+    // El ancho de referencia es el del documento, no `innerWidth`: ese incluye
+    // la barra de desplazamiento, así que el panel se colaba por debajo de
+    // ella. Restar `desvio` deshace el empujón de la vez anterior, porque el
+    // rectángulo ya lo lleva aplicado.
+    const util = document.documentElement.clientWidth;
+    const sobra = caja.right - desvio - (util - margen);
     setDesvio(sobra > 0 ? -sobra : 0);
   };
 
