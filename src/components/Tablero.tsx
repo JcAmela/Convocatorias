@@ -275,7 +275,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             <p className="mt-0.5 truncate text-sm text-ink-3">
               <span className="sm:hidden">Barcelona y alrededores</span>
               <span className="hidden sm:inline">
-                Barcelona, Badalona, Santa Coloma, Sant Adrià, Montgat, Tiana, Alella y El Masnou
+                Ayuntamientos a 25 km de Barcelona, Badalona y el Maresme sur
                 · Generalitat · Diputación
               </span>
             </p>
@@ -502,7 +502,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">De dónde salen los datos.</strong> Del portal CIDO de la
             Diputació de Barcelona y de los portales Convoca de Badalona, El Masnou y Santa Coloma.
-            Se actualiza solo varias veces al día.
+            Entran los organismos con sede a menos de 25 km de Barcelona, Badalona o el Maresme
+            sur, así que verás ayuntamientos del Barcelonès, el Baix Llobregat, el Maresme y los
+            dos Vallès. Se actualiza solo varias veces al día.
           </p>
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">Comprueba dos cosas antes de apuntarte.</strong> El lugar de

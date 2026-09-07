@@ -1,8 +1,9 @@
 # Convocatorias
 
-Tablero de plazas de empleo público en Barcelona, Badalona, Santa Coloma de
-Gramenet, Sant Adrià de Besòs, Montgat, Tiana, Alella y El Masnou, más las
-convocatorias de la Generalitat de Catalunya y de la Diputació de Barcelona.
+Tablero de plazas de empleo público en el área de Barcelona: los ayuntamientos
+con sede a menos de 25 km de Barcelona, Badalona o el Maresme sur —Barcelonès,
+Baix Llobregat, Maresme y los dos Vallès— más las convocatorias de la
+Generalitat de Catalunya y de la Diputació de Barcelona.
 
 No incluye plazas de policía, guardia urbana ni mossos.
 
@@ -82,6 +83,19 @@ Si la API no contesta durante el build, el build **no falla**: se genera con las
 listas vacías y el navegador las rellena.
 
 Para cambiar de endpoint, toca `API` en `src/lib/datos.ts`.
+
+El código de esa función vive en `supabase/functions/convoca-board/index.ts`.
+Estaba solo en Supabase, sin control de versiones; está aquí para poder leerlo
+y revisarlo con el resto. Se despliega con `supabase functions deploy
+convoca-board`.
+
+**De dónde sale cada convocatoria.** Tres consultas a CIDO (municipal,
+autonómica y diputaciones) y los portales Convoca de Badalona, El Masnou y
+Santa Coloma. Las tres de CIDO usan el mismo criterio de área: la sede del
+organismo a menos de 25 km de alguno de los ocho pueblos de `TOWNS`. Antes no
+era así —la Generalitat entraba por radio y los ayuntamientos por una lista
+cerrada de ocho nombres— y el resultado era un tablero con 367 plazas de la
+Generalitat y 9 de ayuntamientos.
 
 ### Lo que llega no siempre está limpio
 
