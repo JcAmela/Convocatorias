@@ -1,6 +1,7 @@
 import type { Plaza, Grupo } from './tipos';
 import { normaliza, urgencia, ORDEN_NIVEL, ETIQUETA_AMBITO } from './formato';
 import { idsFiltroLugar, lugaresTexto } from './lugar';
+import { terminosDe } from './oficios';
 
 export type Vista = 'tarjetas' | 'tabla';
 export type Orden = 'fin' | 'fin-lejos' | 'plazas' | 'publicado' | 'nivel';
@@ -66,8 +67,10 @@ function cumple(p: Plaza, f: Filtros, criterio: Criterio): boolean {
     case 'q': {
       if (!f.q.trim()) return true;
       const texto = textoBuscable(p);
-      // Todas las palabras deben aparecer, en cualquier orden.
-      return normaliza(f.q).split(/\s+/).filter(Boolean).every((palabra) => texto.includes(palabra));
+      // Todas las palabras deben aparecer, en cualquier orden; de cada una
+      // basta con que encaje una de sus formas, porque se teclea en español
+      // y el anuncio está en catalán.
+      return terminosDe(f.q).every((formas) => formas.some((forma) => texto.includes(forma)));
     }
     case 'niveles':
       return f.niveles.length === 0 || (p.nivelCodigo !== null && f.niveles.includes(p.nivelCodigo));

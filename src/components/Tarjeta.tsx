@@ -1,7 +1,7 @@
 import { memo } from 'react';
 import type { Plaza } from '../lib/tipos';
 import {
-  fechaLarga, partesEmpleador, tituloLimpio, esActualizacion,
+  fechaLarga, partesEmpleador, tituloLimpio, esActualizacion, enEspanol,
 } from '../lib/formato';
 import { lugarPrincipal } from '../lib/lugar';
 import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoFuera, IconoSalir } from './piezas';
@@ -16,6 +16,11 @@ interface Props {
 function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
   const { casa, organismo } = partesEmpleador(plaza);
   const lugar = lugarPrincipal(plaza);
+  // Cuando no hay fecha, el aviso del origen es todo lo que se sabe del
+  // plazo: dice si está abierto de forma permanente o a la espera del DOGC.
+  // Estaba solo en la ficha, así que en la pestaña «Sin plazo aún» la tarjeta
+  // no contaba nada.
+  const nota = !plaza.fin && plaza.notaPlazo ? enEspanol(plaza.notaPlazo) : null;
 
   return (
     <article
@@ -86,7 +91,13 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
           {plaza.fin ? 'Hasta' : 'Plazo'}
         </dt>
         <dd className="font-medium text-ink">
-          {plaza.fin ? fechaLarga(plaza.fin) : 'Todavía sin publicar'}
+          {plaza.fin ? (
+            fechaLarga(plaza.fin)
+          ) : nota ? (
+            <span lang={nota.traducida ? undefined : 'ca'}>{nota.texto}</span>
+          ) : (
+            'Todavía sin publicar'
+          )}
         </dd>
       </dl>
 

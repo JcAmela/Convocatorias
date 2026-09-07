@@ -15,8 +15,10 @@ No incluye plazas de policía, guardia urbana ni mossos.
 - **Filtros** por estudios, tipo de plaza, quién convoca, dónde se trabaja,
   tiempo que queda y cercanía, todos con el número de plazas que quedarían al
   marcarlos.
-- **Buscador** que ignora acentos y mayúsculas y exige todas las palabras.
-  La tecla `/` lo enfoca desde cualquier punto de la página.
+- **Buscador** que ignora acentos y mayúsculas, exige todas las palabras y
+  salva el salto del español al catalán: se teclea «administrativo» y encuentra
+  las plazas de *administratiu*. La tecla `/` lo enfoca desde cualquier punto
+  de la página.
 - **Ficha de detalle** en un panel lateral, con requisitos, avisos de plazo y los
   enlaces para presentar la solicitud.
 - **Guardadas** con la estrella, en `localStorage` de ese navegador.
@@ -53,6 +55,7 @@ src/
     filtros.ts       filtrado, recuento por faceta, orden y estado en la URL
     formato.ts       fechas en español, urgencia, traducción de niveles
     lugar.ts         limpia los lugares de trabajo y arma el catálogo de municipios
+    oficios.ts       puentes entre el español que se teclea y el catalán del anuncio
   layouts/Base.astro
   pages/index.astro
 ```
@@ -93,6 +96,13 @@ Dos cosas se corrigen aquí porque en el origen no tienen arreglo:
   tecleó el anuncio ("Barccelona", "LLeida"). `lugar.ts` lo rescata del título,
   tira lo que no es un topónimo y funde las grafías raras con la buena
   comparándolas entre sí, sin ninguna lista de municipios que mantener.
+- **El idioma.** El origen traduce casi todo menos los títulos, la titulación y
+  los avisos de plazo. Los títulos se dejan en catalán y se marcan con
+  `lang="ca"`; los avisos de plazo sí se traducen (`enEspanol()` en
+  `formato.ts`), porque son la frase que dice si la fecha es firme. Y el
+  buscador abre cada palabra tecleada en sus formas catalanas, que si no
+  «técnico» no encontraba ninguna de las doscientas cincuenta plazas de
+  *tècnic*.
 
 ## Desarrollo
 

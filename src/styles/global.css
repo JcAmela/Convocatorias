@@ -259,7 +259,19 @@ body {
   }
 }
 
+/* Papel. La clase `.no-imprimir` existía desde el principio pero no la
+   llevaba ningún elemento: al imprimir salían los filtros, el gráfico y el
+   botón de tema, y la lista quedaba partida entre hojas. */
 @media print {
   .no-imprimir { display: none !important; }
   body { background: #fff; }
+  main { max-width: none; padding: 0; }
+  /* Ni una tarjeta ni una fila cortada por la mitad entre dos hojas. */
+  article, tr { break-inside: avoid; }
+  /* En papel un enlace sin su dirección no sirve para nada. */
+  a[href^='http']::after {
+    content: ' (' attr(href) ')';
+    font-size: 0.75em;
+    word-break: break-all;
+  }
 }

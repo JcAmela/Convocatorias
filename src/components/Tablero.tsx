@@ -91,6 +91,26 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     window.history.replaceState(null, '', q ? `?${q}` : window.location.pathname);
   }, [f]);
 
+  /**
+   * Flechas para moverse entre pestañas, como manda el patrón de `tablist`:
+   * decíamos `role="tab"` pero se navegaba de una en una con el tabulador, que
+   * es justo lo que ese papel promete que no hay que hacer.
+   */
+  const teclasPestanas = (e: React.KeyboardEvent<HTMLElement>) => {
+    const saltos: Record<string, number> = { ArrowLeft: -1, ArrowRight: 1 };
+    const salto = saltos[e.key];
+    const extremo = e.key === 'Home' ? 0 : e.key === 'End' ? PESTANAS.length - 1 : null;
+    if (salto === undefined && extremo === null) return;
+    e.preventDefault();
+    const actual = PESTANAS.findIndex((p) => p.valor === f.pestana);
+    const destino = extremo !== null
+      ? extremo
+      : (actual + salto + PESTANAS.length) % PESTANAS.length;
+    setF((antes) => ({ ...antes, pestana: PESTANAS[destino].valor, dia: null }));
+    setVisibles(PAGINA);
+    document.getElementById(`pestana-${PESTANAS[destino].valor}`)?.focus();
+  };
+
   const set = useCallback((parcial: Partial<F>) => {
     setF((antes) => ({ ...antes, ...parcial }));
     setVisibles(PAGINA);
@@ -131,6 +151,15 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
   const filtradas = useMemo(() => ordena(aplica(base, f), f.orden), [base, f]);
 
+  /**
+   * El gráfico se dibuja con todo menos el filtro de día. Alimentándolo con la
+   * lista ya filtrada, al elegir un día las demás barras se iban a cero y el
+   * gráfico se quedaba ciego: seguía pudiéndose pulsar otra columna, pero sin
+   * ver dónde había algo era adivinar. Es el mismo criterio que usan los
+   * recuentos de cada faceta.
+   */
+  const paraGrafico = useMemo(() => aplica(base, f, 'dia'), [base, f]);
+
   const conteos = useMemo(() => ({
     niveles: cuenta(base, f, 'niveles', (p) => (p.nivelCodigo && NIVEL_CORTO[p.nivelCodigo] ? p.nivelCodigo : null)),
     contratos: cuenta(base, f, 'contratos', claseContrato),
@@ -151,8 +180,19 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   }), [filtradas]);
 
   const pestanaActual = PESTANAS.find((p) => p.valor === f.pestana)!;
+
+  /**
+   * Las guardadas se cuentan sobre las que siguen existiendo, no sobre lo que
+   * hay en el almacenamiento: una convocatoria guardada hace meses desaparece
+   * de la API cuando el origen la retira, y la pestaña prometía cinco para
+   * luego enseñar tres.
+   */
+  const guardadasVivas = useMemo(
+    () => todas.filter((p) => guardadas.has(p.id)).length,
+    [todas, guardadas],
+  );
   const cuentaPestana = (v: Pestana) =>
-    v === 'guardadas' ? guardadas.size : datos[v].length;
+    v === 'guardadas' ? guardadasVivas : datos[v].length;
 
   const generado = datos.generado ? new Date(datos.generado) : null;
 
@@ -213,7 +253,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             </p>
           </div>
 
-          <div className="flex shrink-0 items-center gap-2">
+          <div className="no-imprimir flex shrink-0 items-center gap-2">
             <p
               className="flex items-center gap-2 rounded-full border border-line bg-surface-2 px-2.5 py-1 text-xs text-ink-3 sm:px-3"
               aria-live="polite"
@@ -261,17 +301,23 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             pestañas se partían en tres renglones en un móvil y empujaban
             los resultados fuera de la primera pantalla. */}
         <nav
-          className="tira -mx-4 mb-4 flex gap-1 border-b border-line px-4 sm:mx-0 sm:px-0"
+          className="tira no-imprimir -mx-4 mb-4 flex gap-1 border-b border-line px-4 sm:mx-0 sm:px-0"
           role="tablist"
           aria-label="Estado de la plaza"
+          onKeyDown={teclasPestanas}
         >
           {PESTANAS.map((p) => {
             const activa = f.pestana === p.valor;
             return (
               <button
                 key={p.valor}
+                id={`pestana-${p.valor}`}
                 role="tab"
                 aria-selected={activa}
+                aria-controls="panel-plazas"
+                // Una sola parada de tabulador para las cuatro: dentro se
+                // circula con las flechas.
+                tabIndex={activa ? 0 : -1}
                 onClick={() => set({ pestana: p.valor, dia: null })}
                 className={`-mb-px flex shrink-0 items-center gap-2 border-b-[3px] px-3 py-2.5 text-base font-semibold whitespace-nowrap transition-colors ${
                   activa ? 'border-pine text-ink' : 'hover:text-ink border-transparent text-ink-3'
@@ -291,7 +337,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         </nav>
 
         <div className="mb-4 flex flex-col gap-4">
-          <Filtros filtros={f} set={set} lugares={lugares} conteos={conteos} />
+          <div className="no-imprimir">
+            <Filtros filtros={f} set={set} lugares={lugares} conteos={conteos} />
+          </div>
 
           {/* Las cifras y el gráfico describen lo que hay filtrado ahora
               mismo, no el total: si no, contarían otra película. */}
@@ -307,12 +355,14 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           </div>
 
           {f.pestana !== 'cerradas' && (
-            <Calendario
-              plazas={filtradas}
-              hoy={datos.hoy}
-              diaElegido={f.dia}
-              onElegirDia={(dia) => set({ dia })}
-            />
+            <div className="no-imprimir">
+              <Calendario
+                plazas={paraGrafico}
+                hoy={datos.hoy}
+                diaElegido={f.dia}
+                onElegirDia={(dia) => set({ dia })}
+              />
+            </div>
           )}
         </div>
 
@@ -343,19 +393,48 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         </div>
 
         {/* --------------------------------------------- resultados */}
-        <div className={revalidando ? 'revalidando' : undefined}>
+        {/* Cuántas quedan, dicho en voz alta para quien no ve la cifra grande:
+            sin esto, cambiar un filtro no anunciaba absolutamente nada. */}
+        <p aria-live="polite" className="sr-only">
+          {plural(filtradas.length, 'convocatoria encontrada', 'convocatorias encontradas')}
+        </p>
+
+        <div
+          id="panel-plazas"
+          role="tabpanel"
+          aria-labelledby={`pestana-${f.pestana}`}
+          className={revalidando ? 'revalidando' : undefined}
+        >
           {filtradas.length === 0 ? (
             <div className="rounded-xl border border-dashed border-line py-16 text-center">
+              {/* Sin datos ningún filtro sobra: decir "prueba a quitar algún
+                  filtro" cuando lo que ha pasado es que la API no contesta
+                  manda a buscar en el sitio equivocado. */}
               <p className="display mb-1.5 text-xl font-semibold">
-                {f.pestana === 'guardadas' && guardadas.size === 0
-                  ? 'Todavía no has guardado ninguna plaza'
-                  : 'No hay ninguna plaza que cumpla lo que pides'}
+                {todas.length === 0
+                  ? 'No se han podido cargar las convocatorias'
+                  : f.pestana === 'guardadas' && guardadasVivas === 0
+                    ? 'Todavía no has guardado ninguna plaza'
+                    : 'No hay ninguna plaza que cumpla lo que pides'}
               </p>
-              <p className="text-base text-ink-3">
-                {f.pestana === 'guardadas' && guardadas.size === 0
-                  ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
-                  : 'Prueba a quitar algún filtro.'}
+              <p className="mx-auto max-w-[52ch] text-base text-ink-3">
+                {todas.length === 0
+                  ? (fallo
+                      ? `El servidor de datos no ha contestado (${fallo}). Vuelve a intentarlo en un rato.`
+                      : 'El servidor de datos no ha contestado. Vuelve a intentarlo en un rato.')
+                  : f.pestana === 'guardadas' && guardadasVivas === 0
+                    ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
+                    : 'Prueba a quitar algún filtro.'}
               </p>
+              {todas.length === 0 && (
+                <button
+                  type="button"
+                  onClick={() => window.location.reload()}
+                  className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+                >
+                  Reintentar
+                </button>
+              )}
             </div>
           ) : f.vista === 'tabla' ? (
             <Tabla
@@ -382,7 +461,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             <button
               type="button"
               onClick={() => setVisibles((v) => v + PAGINA)}
-              className="hover:border-pine hover:text-pine mt-3 w-full rounded-xl border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 transition-colors"
+              className="no-imprimir hover:border-pine hover:text-pine mt-3 w-full rounded-xl border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 transition-colors"
             >
               Ver más — quedan {plural(filtradas.length - visibles, 'plaza', 'plazas')}
             </button>

@@ -129,6 +129,83 @@ export function plural(n: number, singular: string, plural_: string): string {
   return `${n.toLocaleString('es-ES')} ${n === 1 ? singular : plural_}`;
 }
 
+/**
+ * El origen traduce casi todo al español, pero se le escapan los avisos de
+ * plazo y alguna forma de selección. Acababan dentro de un recuadro redactado
+ * en español —«Ojo con el plazo: Obert permanentment»— y justo en la frase
+ * que más importa entender, porque dice si la fecha es firme o no.
+ *
+ * Once frases distintas cubren hoy los cincuenta avisos que llegan. Lo que no
+ * esté aquí se enseña tal cual y marcado como catalán, que es honesto: mejor
+ * la frase original que una traducción inventada.
+ */
+const DEL_CATALAN: Record<string, string> = {
+  'obert permanentment': 'Abierto de forma permanente',
+  "data orientativa; si teniu algun dubte, consulteu l'ens convocant":
+    'Fecha orientativa; si tienes dudas, pregunta al organismo que convoca',
+  "termini segons el web de l'ens convocant":
+    'El plazo es el que diga la web del organismo que convoca',
+  'obert fins a trobar la persona candidata adequada':
+    'Abierto hasta encontrar a la persona adecuada',
+  'obert fins inscripcio de nombre de candidats suficient':
+    'Abierto hasta reunir suficientes candidaturas',
+  'sense especificar': 'Sin especificar',
+  'lliure designacio': 'Libre designación',
+};
+
+/** Las que llevan una fecha o un número dentro y no caben en una tabla. */
+const REGLAS: { patron: RegExp; plantilla: string }[] = [
+  {
+    patron: /^termini anterior:\s*(.+)$/,
+    plantilla: 'Plazo anterior: $1',
+  },
+  {
+    patron: /^el termini s'obrira l'endema de la publicacio de la convocatoria al (dogc|boe),? i sera de (\d+) dies habils$/,
+    plantilla: 'El plazo se abrirá al día siguiente de publicarse la convocatoria en el $1 y durará $2 días hábiles',
+  },
+  {
+    patron: /^el termini esta obert i finalitzara passats (\d+) dies habils des de l'endema de la publicacio de la convocatoria al (dogc|boe)$/,
+    plantilla: 'El plazo está abierto y terminará $1 días hábiles después de publicarse la convocatoria en el $2',
+  },
+];
+
+function traduceTrozo(trozo: string): string | null {
+  const clave = normaliza(trozo).replace(/[’´`]/g, "'").trim();
+  if (DEL_CATALAN[clave]) return DEL_CATALAN[clave];
+  for (const { patron, plantilla } of REGLAS) {
+    const encaje = patron.exec(clave);
+    if (encaje) {
+      return plantilla.replace(/\$(\d)/g, (_, i) => {
+        const valor = encaje[Number(i)] ?? '';
+        return valor === 'dogc' || valor === 'boe' ? valor.toUpperCase() : valor;
+      });
+    }
+  }
+  return null;
+}
+
+/**
+ * Pasa al español una frase del origen. Los avisos compuestos llegan unidos
+ * por " / ", así que se traducen por partes.
+ *
+ * `traducida` dice si todas las partes estaban en la tabla. Solo sirve para
+ * los avisos de plazo, que el origen nunca traduce y por tanto siguen en
+ * catalán cuando aquí no se reconocen; en los demás campos, lo que no está en
+ * la tabla suele ser español que no hacía falta tocar.
+ */
+export function enEspanol(frase: string): { texto: string; traducida: boolean } {
+  // Se parte por la barra con espacios a los lados, que es como el origen une
+  // dos avisos. Por la barra a secas no: dentro hay fechas (17/08/2026).
+  const trozos = frase.split(/\s+\/\s+/).map((t) => t.trim()).filter(Boolean);
+  let traducida = true;
+  const partes = trozos.map((trozo) => {
+    const t = traduceTrozo(trozo);
+    if (t === null) traducida = false;
+    return t ?? trozo;
+  });
+  return { texto: partes.join('. '), traducida };
+}
+
 /** Quita acentos y pasa a minúsculas para que el buscador sea indulgente. */
 export function normaliza(t: string): string {
   return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();

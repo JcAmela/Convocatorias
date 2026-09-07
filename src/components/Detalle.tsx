@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import type { Plaza } from '../lib/tipos';
 import {
-  fechaLarga, partesEmpleador, tituloLimpio, esFinDeSemana, ETIQUETA_AMBITO,
+  fechaLarga, partesEmpleador, tituloLimpio, esFinDeSemana, enEspanol, ETIQUETA_AMBITO,
 } from '../lib/formato';
 import { lugaresTexto } from '../lib/lugar';
 import { PildoraPlazo, IconoEstrella, IconoSalir } from './piezas';
@@ -74,6 +74,8 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
   const { casa, organismo } = partesEmpleador(plaza);
   const lugar = lugaresTexto(plaza);
   const finDeSemana = esFinDeSemana(plaza.fin);
+  const nota = plaza.notaPlazo ? enEspanol(plaza.notaPlazo) : null;
+  const seleccion = plaza.seleccion ? enEspanol(plaza.seleccion) : null;
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={tituloLimpio(plaza)}>
@@ -122,10 +124,11 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
             {organismo && <p className="text-base text-ink-2">{organismo}</p>}
           </div>
 
-          {plaza.notaPlazo && (
+          {nota && (
             <p className="bg-ochre-soft text-ochre mb-3 rounded-lg px-3 py-2.5 text-base leading-relaxed">
               <strong className="font-bold">Ojo con el plazo: </strong>
-              {plaza.notaPlazo}. Confirma la fecha exacta en el enlace oficial.
+              <span lang={nota.traducida ? undefined : 'ca'}>{nota.texto}</span>. Confirma la
+              fecha exacta en el enlace oficial.
             </p>
           )}
 
@@ -186,7 +189,10 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
               <Fila termino="Además necesitas"><span lang="ca">{plaza.otrosRequisitos}</span></Fila>
             )}
 
-            {plaza.seleccion && <Fila termino="Cómo se entra">{plaza.seleccion}</Fila>}
+            {/* La forma de selección sí la traduce el origen salvo alguna
+                suelta, así que aquí no se marca idioma: lo que no esté en la
+                tabla ya viene en español. */}
+            {seleccion && <Fila termino="Cómo se entra">{seleccion.texto}</Fila>}
 
             {plaza.publicado && <Fila termino="Se publicó el">{fechaLarga(plaza.publicado)}</Fila>}
           </dl>
