@@ -48,6 +48,7 @@ src/
     Tabla.tsx        la misma lista en formato denso
     Detalle.tsx      panel lateral con la ficha completa
     Tema.tsx         claro / oscuro / el del sistema
+    Limite.tsx       red bajo la lista: un fallo al pintar no tumba la página
     piezas.tsx       píldoras e iconos compartidos
   lib/
     tipos.ts         el contrato de la API

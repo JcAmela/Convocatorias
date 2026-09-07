@@ -13,9 +13,12 @@ import { Tarjeta } from './Tarjeta';
 import { Tabla } from './Tabla';
 import { Detalle } from './Detalle';
 import { Tema } from './Tema';
+import { Limite } from './Limite';
 
 const CLAVE_GUARDADAS = 'convocatorias:guardadas';
 const PAGINA = 24;
+/** Cuánto aguanta una copia antes de volver a pedirla al volver a la pestaña. */
+const FRESCURA = 15 * 60 * 1000;
 
 const PESTANAS: { valor: Pestana; texto: string; pie: string }[] = [
   { valor: 'abiertas', texto: 'Con plazo abierto', pie: 'Puedes presentar la solicitud ahora mismo.' },
@@ -50,6 +53,8 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   const [abierta, setAbierta] = useState<Plaza | null>(null);
   const [visibles, setVisibles] = useState(PAGINA);
   const montado = useRef(false);
+  const pidiendo = useRef(false);
+  const ultimaLectura = useRef(0);
 
   /* --- arranque: filtros de la URL y guardadas del navegador ------------- */
 
@@ -65,19 +70,42 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
   /* --- datos frescos: la página se sirve estática y se revalida al abrir - */
 
-  useEffect(() => {
-    let vivo = true;
+  const refresca = useCallback(() => {
+    if (pidiendo.current) return;
+    pidiendo.current = true;
     setRevalidando(true);
     fetch(API, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`el servidor respondió ${r.status}`))))
       .then((d: unknown) => {
         if (!esTablero(d)) throw new Error('el servidor devolvió algo que no es un tablero');
-        if (vivo) { setDatos(saneaTablero(d)); setFallo(null); }
+        setDatos(saneaTablero(d));
+        setFallo(null);
+        ultimaLectura.current = Date.now();
       })
-      .catch((e: Error) => { if (vivo) setFallo(e.message); })
-      .finally(() => { if (vivo) setRevalidando(false); });
-    return () => { vivo = false; };
+      .catch((e: Error) => setFallo(e.message))
+      .finally(() => { pidiendo.current = false; setRevalidando(false); });
   }, []);
+
+  useEffect(() => { refresca(); }, [refresca]);
+
+  /**
+   * Los días que quedan los calcula el servidor con la fecha de su respuesta,
+   * así que una pestaña abierta desde ayer miente: dice «Cierra mañana» de algo
+   * que cerró anoche. Al volver a la pestaña se piden datos otra vez si la
+   * copia ya tiene un rato.
+   */
+  useEffect(() => {
+    const alVolver = () => {
+      if (document.visibilityState !== 'visible') return;
+      if (Date.now() - ultimaLectura.current > FRESCURA) refresca();
+    };
+    document.addEventListener('visibilitychange', alVolver);
+    window.addEventListener('focus', alVolver);
+    return () => {
+      document.removeEventListener('visibilitychange', alVolver);
+      window.removeEventListener('focus', alVolver);
+    };
+  }, [refresca]);
 
   /* --- la URL refleja lo que estás viendo, para compartir o guardar ------ */
 
@@ -405,57 +433,59 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           aria-labelledby={`pestana-${f.pestana}`}
           className={revalidando ? 'revalidando' : undefined}
         >
-          {filtradas.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-line py-16 text-center">
-              {/* Sin datos ningún filtro sobra: decir "prueba a quitar algún
-                  filtro" cuando lo que ha pasado es que la API no contesta
-                  manda a buscar en el sitio equivocado. */}
-              <p className="display mb-1.5 text-xl font-semibold">
-                {todas.length === 0
-                  ? 'No se han podido cargar las convocatorias'
-                  : f.pestana === 'guardadas' && guardadasVivas === 0
-                    ? 'Todavía no has guardado ninguna plaza'
-                    : 'No hay ninguna plaza que cumpla lo que pides'}
-              </p>
-              <p className="mx-auto max-w-[52ch] text-base text-ink-3">
-                {todas.length === 0
-                  ? (fallo
-                      ? `El servidor de datos no ha contestado (${fallo}). Vuelve a intentarlo en un rato.`
-                      : 'El servidor de datos no ha contestado. Vuelve a intentarlo en un rato.')
-                  : f.pestana === 'guardadas' && guardadasVivas === 0
-                    ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
-                    : 'Prueba a quitar algún filtro.'}
-              </p>
-              {todas.length === 0 && (
-                <button
-                  type="button"
-                  onClick={() => window.location.reload()}
-                  className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
-                >
-                  Reintentar
-                </button>
-              )}
-            </div>
-          ) : f.vista === 'tabla' ? (
-            <Tabla
-              plazas={filtradas.slice(0, visibles)}
-              guardadas={guardadas}
-              onGuardar={alternaGuardada}
-              onAbrir={setAbierta}
-            />
-          ) : (
-            <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
-              {filtradas.slice(0, visibles).map((p) => (
-                <Tarjeta
-                  key={p.id}
-                  plaza={p}
-                  guardada={guardadas.has(p.id)}
-                  onGuardar={alternaGuardada}
-                  onAbrir={setAbierta}
-                />
-              ))}
-            </div>
-          )}
+          <Limite>
+            {filtradas.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-line py-16 text-center">
+                {/* Sin datos ningún filtro sobra: decir "prueba a quitar algún
+                    filtro" cuando lo que ha pasado es que la API no contesta
+                    manda a buscar en el sitio equivocado. */}
+                <p className="display mb-1.5 text-xl font-semibold">
+                  {todas.length === 0
+                    ? 'No se han podido cargar las convocatorias'
+                    : f.pestana === 'guardadas' && guardadasVivas === 0
+                      ? 'Todavía no has guardado ninguna plaza'
+                      : 'No hay ninguna plaza que cumpla lo que pides'}
+                </p>
+                <p className="mx-auto max-w-[52ch] text-base text-ink-3">
+                  {todas.length === 0
+                    ? (fallo
+                        ? `El servidor de datos no ha contestado (${fallo}). Vuelve a intentarlo en un rato.`
+                        : 'El servidor de datos no ha contestado. Vuelve a intentarlo en un rato.')
+                    : f.pestana === 'guardadas' && guardadasVivas === 0
+                      ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
+                      : 'Prueba a quitar algún filtro.'}
+                </p>
+                {todas.length === 0 && (
+                  <button
+                    type="button"
+                    onClick={() => window.location.reload()}
+                    className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+                  >
+                    Reintentar
+                  </button>
+                )}
+              </div>
+            ) : f.vista === 'tabla' ? (
+              <Tabla
+                plazas={filtradas.slice(0, visibles)}
+                guardadas={guardadas}
+                onGuardar={alternaGuardada}
+                onAbrir={setAbierta}
+              />
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
+                {filtradas.slice(0, visibles).map((p) => (
+                  <Tarjeta
+                    key={p.id}
+                    plaza={p}
+                    guardada={guardadas.has(p.id)}
+                    onGuardar={alternaGuardada}
+                    onAbrir={setAbierta}
+                  />
+                ))}
+              </div>
+            )}
+          </Limite>
 
           {visibles < filtradas.length && (
             <button
