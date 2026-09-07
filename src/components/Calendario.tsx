@@ -1,9 +1,19 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plaza } from '../lib/tipos';
 import { claveDia, fechaCorta, fechaLarga, parseFecha, plural } from '../lib/formato';
 
 /** Cuántos días por delante dibujamos. Más allá el calendario se vacía. */
-const DIAS = 45;
+/**
+ * Cuántos días por delante dibujamos. En una pantalla estrecha son menos, y
+ * no por estética: con 45 días en 291px de trazado cada columna se queda en
+ * 6,5px, así que la zona sensible para elegir un día mide seis píxeles y
+ * medio. Ninguna guía baja de 24. Y a esa anchura la mayoría de las barras
+ * —uno o dos cierres— se dibujan como un pelo de un píxel, de modo que
+ * tampoco se leía nada. Con tres semanas, la columna sube a 14px y las
+ * barras vuelven a tener forma.
+ */
+const DIAS_ANCHO = 45;
+const DIAS_ESTRECHO = 21;
 const ALTO_PLOT = 140;
 const BANDA_EJE = 26;
 const HUECO = 2; // el separador de 2px entre barras es superficie, no borde
@@ -46,13 +56,36 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
    */
   const [desplegado, setDesplegado] = useState(false);
 
+  /**
+   * El suelo de 320 era mayor que el hueco real: en un móvil de 375, la
+   * tarjeta deja 309px de trazado, así que redondear hacia arriba a 320 ya
+   * se salía por el borde. Y 240 es el ancho más estrecho al que este
+   * gráfico sigue diciendo algo.
+   */
+  const mide = useCallback(() => {
+    const w = caja.current?.getBoundingClientRect().width ?? 0;
+    if (w > 0) setAncho(Math.max(240, w));
+  }, []);
+
   useEffect(() => {
     const el = caja.current;
     if (!el) return;
-    const ro = new ResizeObserver(([e]) => setAncho(Math.max(320, e.contentRect.width)));
+    const ro = new ResizeObserver(([e]) => {
+      if (e.contentRect.width > 0) setAncho(Math.max(240, e.contentRect.width));
+    });
     ro.observe(el);
     return () => ro.disconnect();
   }, []);
+
+  /**
+   * Mientras está plegado el contenedor no tiene caja, y un `ResizeObserver`
+   * no informa de lo que no se dibuja. Al desplegarlo hay que volver a medir
+   * a mano: sin esto el SVG se quedaba con el ancho inicial de 760px dentro
+   * de una tarjeta de 309 y se salía cuatrocientos píxeles por la derecha.
+   */
+  useEffect(() => { mide(); }, [mide, desplegado, tabla]);
+
+  const DIAS = ancho < 520 ? DIAS_ESTRECHO : DIAS_ANCHO;
 
   const dias = useMemo<Dia[]>(() => {
     const inicio = parseFecha(hoy) ?? new Date();
@@ -69,7 +102,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
       cubo.puestos += p.plazas ?? 1;
     }
     return [...cubos.values()];
-  }, [plazas, hoy]);
+  }, [plazas, hoy, DIAS]);
 
   const max = Math.max(1, ...dias.map((d) => d.n));
   const anchoPlot = Math.max(120, ancho - MARGEN_IZQ - MARGEN_DER);
