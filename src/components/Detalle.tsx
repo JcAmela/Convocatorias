@@ -110,7 +110,11 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
             type="button"
             onClick={onCerrar}
             aria-label="Cerrar"
-            className="hover:bg-surface-2 -mt-1 rounded-lg p-1.5 text-ink-3 transition-colors"
+            /* Área de toque de 40px, no de 28. Es la salida de un panel que en
+               un móvil ocupa la pantalla entera, y vive en la esquina, que es
+               donde peor se apunta con el pulgar. El icono no crece: solo el
+               sitio donde vale pulsar. */
+            className="hover:bg-surface-2 -mt-1.5 -mr-1.5 rounded-lg p-3 text-ink-3 transition-colors"
           >
             <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
@@ -203,7 +207,11 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
                 href={plaza.enlace}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-pine inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
+                /* Borde transparente para que mida lo mismo que los de al
+                   lado: sin él, este botón se quedaba en 42px mientras sus
+                   dos vecinos con borde median 44, y los tres se apoyaban en
+                   líneas distintas. */
+                className="bg-pine inline-flex items-center gap-2 rounded-lg border border-transparent px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
               >
                 Ir a apuntarte
                 <IconoSalir />
