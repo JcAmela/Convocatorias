@@ -356,7 +356,11 @@ export function Tablero({ inicial }: { inicial: Datos }) {
               >
                 {p.texto}
                 <span
-                  className={`rounded-full px-1.5 py-px font-mono text-2xs tabular-nums ${
+                  /* Peso explícito: el botón es `font-semibold` y el contador
+                     heredaba un 600 que la JetBrains Mono no tiene cargado, así
+                     que el navegador lo fingía engordando el 500. En
+                     monoespaciada a 11px ese falso negrita se ve emborronado. */
+                  className={`rounded-full px-1.5 py-px font-mono text-2xs font-medium tabular-nums ${
                     activa ? 'bg-pine-soft text-pine-ink' : 'bg-surface-2 text-ink-3'
                   }`}
                 >
