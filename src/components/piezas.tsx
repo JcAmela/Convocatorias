@@ -20,7 +20,7 @@ export function PildoraPlazo({ dias }: { dias: number | null }) {
   const u = urgencia(dias);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 font-mono text-[11.5px] font-medium whitespace-nowrap ${TONO[u.tono]}`}
+      className={`inline-flex items-center gap-1.5 rounded-md px-2 py-1 font-mono text-2xs font-medium whitespace-nowrap tabular-nums ${TONO[u.tono]}`}
     >
       {u.tono === 'critica' && (
         <svg viewBox="0 0 8 8" className="size-1.5 shrink-0" aria-hidden="true">
@@ -40,7 +40,7 @@ export function PildoraContrato({ plaza }: { plaza: Plaza }) {
     ? 'border-pine/35 text-pine-ink bg-pine-soft'
     : 'border-line text-ink-3';
   return (
-    <span className={`rounded-full border px-2 py-[1px] text-[11px] font-semibold tracking-wide ${estilo}`}>
+    <span className={`rounded-full border px-2 py-0.5 text-2xs font-semibold tracking-wide ${estilo}`}>
       {texto}
     </span>
   );
@@ -50,13 +50,13 @@ export function PildoraContrato({ plaza }: { plaza: Plaza }) {
 
 export function Etiqueta({ children }: { children: ReactNode }) {
   return (
-    <span className="text-[10.5px] font-bold tracking-[0.09em] text-ink-3 uppercase">{children}</span>
+    <span className="text-2xs font-bold tracking-[0.09em] text-ink-3 uppercase">{children}</span>
   );
 }
 
 export function IconoEstrella({ activa }: { activa: boolean }) {
   return (
-    <svg viewBox="0 0 24 24" className="size-[17px]" aria-hidden="true">
+    <svg viewBox="0 0 24 24" className="size-[18px]" aria-hidden="true">
       <path
         d="M12 3.6l2.6 5.3 5.8.85-4.2 4.1 1 5.75L12 16.9l-5.2 2.7 1-5.75-4.2-4.1 5.8-.85z"
         fill={activa ? 'currentColor' : 'none'}

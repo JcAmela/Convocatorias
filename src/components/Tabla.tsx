@@ -17,10 +17,10 @@ interface Props {
 export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border border-line bg-surface">
-      <table className="w-full min-w-[720px] border-collapse text-[13.5px]">
+      <table className="w-full min-w-[760px] border-collapse text-base">
         <caption className="sr-only">Plazas que cumplen los filtros</caption>
         <thead>
-          <tr className="border-b border-line bg-surface-2 text-left text-[10.5px] tracking-[0.08em] text-ink-3 uppercase">
+          <tr className="border-b border-line bg-surface-2 text-left text-2xs tracking-[0.08em] text-ink-3 uppercase">
             <th scope="col" className="px-3 py-2 font-bold">Plazo</th>
             <th scope="col" className="px-3 py-2 font-bold">Puesto</th>
             <th scope="col" className="px-3 py-2 font-bold">Quién convoca</th>
@@ -39,10 +39,10 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
             const guardada = guardadas.has(p.id);
             return (
               <tr key={p.id} className="hover:bg-surface-2 border-b border-line-soft transition-colors last:border-0">
-                <td className="px-3 py-2 align-middle">
+                <td className="px-3 py-2.5 align-middle">
                   <PildoraPlazo dias={p.diasRestantes} />
                 </td>
-                <td className="max-w-[340px] px-3 py-2 align-middle">
+                <td className="max-w-[340px] px-3 py-2.5 align-middle">
                   <button
                     type="button"
                     onClick={() => onAbrir(p)}
@@ -54,17 +54,17 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
                     <PildoraContrato plaza={p} />
                   </span>
                 </td>
-                <td className="text-pine max-w-[190px] px-3 py-2 align-middle text-[13px]">{casa}</td>
-                <td className={`px-3 py-2 align-middle text-[13px] ${p.lejos ? 'text-ochre font-semibold' : 'text-ink-3'}`}>
+                <td className="text-pine max-w-[190px] px-3 py-2.5 align-middle text-sm">{casa}</td>
+                <td className={`px-3 py-2.5 align-middle text-sm ${p.lejos ? 'text-ochre font-semibold' : 'text-ink-3'}`}>
                   {lugar ?? '—'}
                 </td>
-                <td className="px-3 py-2 text-right align-middle font-mono text-[13px] tabular-nums text-ink-2">
+                <td className="px-3 py-2.5 text-right align-middle font-mono text-sm tabular-nums text-ink-2">
                   {p.plazas ?? '—'}
                 </td>
-                <td className="px-3 py-2 align-middle font-mono text-[13px] whitespace-nowrap tabular-nums">
+                <td className="px-3 py-2.5 align-middle font-mono text-sm whitespace-nowrap tabular-nums">
                   {p.fin ? fechaCorta(p.fin) : '—'}
                 </td>
-                <td className="px-3 py-2 align-middle">
+                <td className="px-3 py-2.5 align-middle">
                   <button
                     type="button"
                     onClick={() => onGuardar(p.id)}

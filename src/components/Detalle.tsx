@@ -15,8 +15,8 @@ interface Props {
 function Fila({ termino, children }: { termino: string; children: React.ReactNode }) {
   return (
     <div className="border-t border-line-soft py-2.5">
-      <dt className="mb-0.5 text-[10.5px] font-bold tracking-[0.08em] text-ink-3 uppercase">{termino}</dt>
-      <dd className="text-[14px] leading-relaxed text-ink-2">{children}</dd>
+      <dt className="mb-1 text-2xs font-bold tracking-[0.08em] text-ink-3 uppercase">{termino}</dt>
+      <dd className="text-base leading-relaxed text-ink-2">{children}</dd>
     </div>
   );
 }
@@ -63,11 +63,11 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <PildoraPlazo dias={plaza.diasRestantes} />
-              <span className="rounded-full border border-line px-2 py-[1px] text-[11px] font-semibold text-ink-3">
+              <span className="rounded-full border border-line px-2 py-0.5 text-2xs font-semibold text-ink-3">
                 {ETIQUETA_AMBITO[plaza.ambito] ?? plaza.ambito}
               </span>
             </div>
-            <h2 className="display text-[21px] leading-tight font-semibold text-balance">
+            <h2 className="display-lg text-2xl font-semibold text-balance">
               {tituloLimpio(plaza)}
             </h2>
           </div>
@@ -85,19 +85,19 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
 
         <div className="px-5 pb-5">
           <div className="py-3">
-            <p className="text-pine text-[15px] font-semibold">{casa}</p>
-            {organismo && <p className="text-[14px] text-ink-2">{organismo}</p>}
+            <p className="text-pine text-md font-semibold">{casa}</p>
+            {organismo && <p className="text-base text-ink-2">{organismo}</p>}
           </div>
 
           {plaza.notaPlazo && (
-            <p className="bg-ochre-soft text-ochre mb-3 rounded-lg px-3 py-2 text-[13.5px] leading-relaxed">
+            <p className="bg-ochre-soft text-ochre mb-3 rounded-lg px-3 py-2.5 text-base leading-relaxed">
               <strong className="font-bold">Ojo con el plazo: </strong>
               {plaza.notaPlazo}. Confirma la fecha exacta en el enlace oficial.
             </p>
           )}
 
           {finDeSemana && (
-            <p className="bg-surface-2 mb-3 rounded-lg px-3 py-2 text-[13.5px] leading-relaxed text-ink-2">
+            <p className="bg-surface-2 mb-3 rounded-lg px-3 py-2.5 text-base leading-relaxed text-ink-2">
               El plazo termina en fin de semana, así que es probable que se corra al lunes siguiente.
               Aun así, no lo dejes para el final.
             </p>
@@ -119,7 +119,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
             <Fila termino="Qué tipo de plaza es">
               {plaza.tipoEtiqueta}
               {plaza.tipo === 'bolsa' && (
-                <span className="mt-1 block text-[13px] text-ink-3">
+                <span className="mt-1 block text-sm text-ink-3">
                   Una bolsa es una lista de espera: te apuntas una vez y te llaman cuando hace falta
                   cubrir contratos temporales o sustituciones.
                 </span>
@@ -136,7 +136,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
               <Fila termino="Dónde se trabaja">
                 {lugar}
                 {plaza.lejos && (
-                  <span className="text-ochre mt-1 block text-[13px] font-semibold">
+                  <span className="text-ochre mt-1 block text-sm font-semibold">
                     Queda fuera de tu zona: comprueba el desplazamiento antes de presentarte.
                   </span>
                 )}
@@ -162,7 +162,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
                 href={plaza.enlace}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="bg-pine inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-[14px] font-semibold text-white transition-opacity hover:opacity-90"
+                className="bg-pine inline-flex items-center gap-2 rounded-lg px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
               >
                 Ir a apuntarte
                 <IconoSalir />
@@ -173,7 +173,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
                 href={plaza.fichaOficial}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:border-pine hover:text-pine inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-[14px] font-semibold text-ink-2 transition-colors"
+                className="hover:border-pine hover:text-pine inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-base font-semibold text-ink-2 transition-colors"
               >
                 Ficha oficial
                 <IconoSalir />
@@ -183,7 +183,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
               type="button"
               onClick={() => onGuardar(plaza.id)}
               aria-pressed={guardada}
-              className={`hover:border-ochre ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-[13.5px] font-semibold transition-colors ${
+              className={`hover:border-ochre ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-base font-semibold transition-colors ${
                 guardada ? 'border-ochre/50 text-ochre' : 'border-line text-ink-3'
               }`}
             >
@@ -192,7 +192,7 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
             </button>
           </div>
 
-          <p className="mt-4 text-[12.5px] leading-relaxed text-ink-3">
+          <p className="mt-5 text-sm leading-relaxed text-ink-3">
             Manda siempre lo que diga la convocatoria oficial. Esta ficha resume lo que publican
             CIDO y los portales Convoca, y puede quedarse corta o desactualizada.
           </p>

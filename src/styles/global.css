@@ -36,6 +36,30 @@
   --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
   --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+
+  /* Escala tipografica: nueve peldanos y ninguno mas.
+     Antes convivian diecisiete tamanos, varios separados por medio pixel
+     (13 y 13.5, 12 y 12.5, 10.5 y 11). Esa diferencia no se ve, pero deja
+     la pagina sin ritmo: nada parece decidido. Cada peldano de aqui se
+     distingue del anterior a simple vista y tiene un trabajo asignado. */
+  --text-2xs: 0.6875rem;              /* 11px - versalitas y contadores */
+  --text-2xs--line-height: 1.45;
+  --text-xs: 0.75rem;                 /* 12px - pildoras, pies de nota */
+  --text-xs--line-height: 1.5;
+  --text-sm: 0.8125rem;               /* 13px - metadatos y subtitulos */
+  --text-sm--line-height: 1.5;
+  --text-base: 0.875rem;              /* 14px - cuerpo */
+  --text-base--line-height: 1.55;
+  --text-md: 0.9375rem;               /* 15px - cuerpo destacado */
+  --text-md--line-height: 1.5;
+  --text-lg: 1.0625rem;               /* 17px - titular de tarjeta */
+  --text-lg--line-height: 1.35;
+  --text-xl: 1.25rem;                 /* 20px - titulo de panel */
+  --text-xl--line-height: 1.25;
+  --text-2xl: 1.5625rem;              /* 25px - nombre del sitio */
+  --text-2xl--line-height: 1.1;
+  --text-3xl: 2.125rem;               /* 34px - cifras del resumen */
+  --text-3xl--line-height: 1;
 }
 
 :root {
@@ -50,7 +74,7 @@
 
   --ink: #16181a;
   --ink-2: #4a504e;
-  --ink-3: #757c79;
+  --ink-3: #656c69;
 
   --pine: #12705e;
   --pine-ink: #0b4a3f;
@@ -138,12 +162,22 @@ body {
   text-rendering: optimizeLegibility;
 }
 
-/* Fraunces es variable: con `opsz` alto los remates se afinan y el titular
-   deja de parecer un texto de párrafo agrandado. */
+/* Fraunces es variable y su eje `opsz` existe para esto: los remates se
+   afinan a medida que crece el tamaño. Fijar `opsz` 96 en todo lo serif
+   —como estaba— aplicaba a un titular de tarjeta de 17px la letra pensada
+   para un cartel: astas capilares que en una pantalla normal se rompen y
+   dejan de leerse. Cada peldaño lleva ahora la óptica de su tamaño real, y
+   el tracking acompaña: negativo solo donde la letra es grande. */
 .display {
   font-family: var(--font-display);
-  font-variation-settings: 'opsz' 96, 'SOFT' 0, 'WONK' 0;
-  letter-spacing: -0.02em;
+  font-variation-settings: 'opsz' 22, 'SOFT' 0, 'WONK' 0;
+  letter-spacing: -0.004em;
+}
+
+.display-lg {
+  font-family: var(--font-display);
+  font-variation-settings: 'opsz' 44, 'SOFT' 0, 'WONK' 0;
+  letter-spacing: -0.018em;
 }
 
 :focus-visible {
@@ -169,6 +203,28 @@ body {
   border: 2px solid var(--surface);
 }
 .scroll-fino::-webkit-scrollbar-track { background: transparent; }
+
+/* Tira horizontal: en móvil, una fila que se desplaza con el dedo en vez de
+   partirse en tres renglones. Las pestañas y los filtros ocupaban media
+   pantalla de alto antes de que se viera un solo resultado. */
+.tira {
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-x: contain;
+}
+.tira::-webkit-scrollbar { display: none; }
+
+/* La estrella de guardar se escondía hasta el hover. En un móvil no hay
+   hover, así que la función era invisible: aquí solo desaparece donde
+   existe un puntero de verdad que pueda revelarla. */
+.estrella { opacity: 1; transition: opacity 0.15s ease; }
+@media (hover: hover) and (pointer: fine) {
+  .estrella { opacity: 0; }
+  .group:hover .estrella,
+  .estrella:focus-visible { opacity: 1; }
+}
 
 @keyframes entra {
   from { opacity: 0; transform: translateY(6px); }

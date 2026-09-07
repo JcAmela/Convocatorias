@@ -49,6 +49,8 @@ function Menu({
   titulo, activos, children,
 }: { titulo: string; activos: number; children: React.ReactNode }) {
   const ref = useRef<HTMLDetailsElement>(null);
+  const panel = useRef<HTMLDivElement>(null);
+  const [desvio, setDesvio] = useState(0);
 
   // Un solo menú abierto a la vez, y clic fuera para cerrar.
   useEffect(() => {
@@ -66,16 +68,34 @@ function Menu({
     };
   }, []);
 
+  /**
+   * El panel cuelga del borde izquierdo del botón. En una pantalla estrecha
+   * los últimos menús arrancan ya pasada la mitad, así que sus 270px se
+   * salían de la ventana y media lista quedaba fuera. Al abrir se mide y se
+   * empuja hacia dentro lo justo.
+   */
+  const coloca = () => {
+    const caja = panel.current?.getBoundingClientRect();
+    if (!caja) return;
+    const margen = 12;
+    const sobra = caja.right - desvio - (window.innerWidth - margen);
+    setDesvio(sobra > 0 ? -sobra : 0);
+  };
+
   return (
-    <details ref={ref} className="relative">
+    <details
+      ref={ref}
+      className="relative"
+      onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) coloca(); }}
+    >
       <summary
-        className={`hover:border-pine/50 flex cursor-pointer list-none items-center gap-1.5 rounded-lg border px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
+        className={`hover:border-pine/50 flex cursor-pointer list-none items-center gap-1.5 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
           activos > 0 ? 'border-pine/45 bg-pine-soft text-pine-ink' : 'border-line bg-surface text-ink-2'
         }`}
       >
         {titulo}
         {activos > 0 && (
-          <span className="bg-pine rounded-full px-1.5 text-[11px] font-bold text-white tabular-nums">
+          <span className="bg-pine rounded-full px-1.5 text-2xs font-bold text-white tabular-nums">
             {activos}
           </span>
         )}
@@ -83,7 +103,11 @@ function Menu({
           <path d="M2 4.5L6 8.5L10 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
         </svg>
       </summary>
-      <div className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.05),0_16px_40px_-12px_rgba(0,0,0,0.24)]">
+      <div
+        ref={panel}
+        style={{ transform: desvio ? `translateX(${desvio}px)` : undefined }}
+        className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-[0_4px_10px_rgba(0,0,0,0.05),0_16px_40px_-12px_rgba(0,0,0,0.24)]"
+      >
         {children}
       </div>
     </details>
@@ -99,11 +123,11 @@ function Opcion({
       onClick={onClick}
       disabled={n === 0 && !marcada}
       aria-pressed={marcada}
-      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-1.5 text-left text-[13.5px] transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-base transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
     >
       <span
         aria-hidden="true"
-        className={`grid size-[15px] shrink-0 place-items-center rounded-[4px] border transition-colors ${
+        className={`grid size-4 shrink-0 place-items-center rounded-[4px] border transition-colors ${
           marcada ? 'border-pine bg-pine text-white' : 'border-line-soft bg-surface-2'
         }`}
       >
@@ -112,7 +136,7 @@ function Opcion({
         )}
       </span>
       <span className="flex-1 leading-tight">{texto}</span>
-      <span className="font-mono text-[11.5px] text-ink-3 tabular-nums">{n}</span>
+      <span className="font-mono text-2xs text-ink-3 tabular-nums">{n}</span>
     </button>
   );
 }
@@ -143,7 +167,7 @@ export function Filtros({ filtros: f, set, conteos }: Props) {
     <div className="flex flex-col gap-2.5">
       <div className="flex flex-wrap items-center gap-2">
         <div
-          className={`flex min-w-[220px] flex-1 items-center gap-2 rounded-lg border bg-surface px-3 py-1.5 transition-colors ${
+          className={`flex w-full items-center gap-2 rounded-lg border bg-surface px-3 py-2 transition-colors sm:w-auto sm:min-w-[220px] sm:flex-1 ${
             foco ? 'border-pine' : 'border-line'
           }`}
         >
@@ -159,32 +183,32 @@ export function Filtros({ filtros: f, set, conteos }: Props) {
             onBlur={() => setFoco(false)}
             placeholder="administrativo, educador, informática…"
             aria-label="Buscar por puesto, organismo o requisito"
-            className="w-full bg-transparent text-[14px] outline-none placeholder:text-ink-3"
+            className="w-full bg-transparent text-base outline-none placeholder:text-ink-3"
           />
           {!f.q && (
-            <kbd className="hidden shrink-0 rounded border border-line-soft bg-surface-2 px-1.5 font-mono text-[11px] text-ink-3 sm:block">/</kbd>
+            <kbd className="hidden shrink-0 rounded border border-line-soft bg-surface-2 px-1.5 font-mono text-2xs text-ink-3 sm:block">/</kbd>
           )}
         </div>
 
-        <label className="flex items-center gap-2 rounded-lg border border-line bg-surface px-3 py-1.5 text-[13px]">
-          <span className="text-ink-3">Ordenar</span>
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:flex-none">
+          <span className="text-ink-3 max-sm:sr-only">Ordenar</span>
           <select
             value={f.orden}
             onChange={(e) => set({ orden: e.target.value as Orden })}
-            className="cursor-pointer bg-transparent font-medium outline-none"
+            className="min-w-0 flex-1 cursor-pointer truncate bg-transparent font-medium outline-none sm:flex-none"
           >
             {ORDENES.map((o) => <option key={o.valor} value={o.valor}>{o.texto}</option>)}
           </select>
         </label>
 
-        <div className="flex rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Forma de ver los resultados">
+        <div className="flex shrink-0 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Forma de ver los resultados">
           {(['tarjetas', 'tabla'] as Vista[]).map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => set({ vista: v })}
               aria-pressed={f.vista === v}
-              className={`rounded-md px-2.5 py-1 text-[12.5px] font-semibold capitalize transition-colors ${
+              className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
                 f.vista === v ? 'bg-surface-3 text-ink' : 'text-ink-3 hover:text-ink'
               }`}
             >
@@ -247,13 +271,14 @@ export function Filtros({ filtros: f, set, conteos }: Props) {
           type="button"
           onClick={() => set({ soloCerca: !f.soloCerca })}
           aria-pressed={f.soloCerca}
-          className={`hover:border-pine/50 rounded-lg border px-3 py-1.5 text-[13px] font-medium whitespace-nowrap transition-colors ${
+          className={`hover:border-pine/50 rounded-lg border px-3 py-2 text-sm font-medium whitespace-nowrap transition-colors ${
             f.soloCerca ? 'border-pine/45 bg-pine-soft text-pine-ink' : 'border-line bg-surface text-ink-2'
           }`}
         >
-          Solo cerca de casa
+          <span className="sm:hidden">Cerca de casa</span>
+          <span className="hidden sm:inline">Solo cerca de casa</span>
           {conteos.lejos > 0 && !f.soloCerca && (
-            <span className="ml-1.5 text-[11.5px] text-ink-3">esconde {conteos.lejos}</span>
+            <span className="ml-1.5 text-2xs text-ink-3">esconde {conteos.lejos}</span>
           )}
         </button>
       </div>

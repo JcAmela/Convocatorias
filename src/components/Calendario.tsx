@@ -4,9 +4,18 @@ import { claveDia, fechaCorta, fechaLarga, parseFecha, plural } from '../lib/for
 
 /** Cuántos días por delante dibujamos. Más allá el calendario se vacía. */
 const DIAS = 45;
-const ALTO_PLOT = 132;
+const ALTO_PLOT = 140;
 const BANDA_EJE = 26;
 const HUECO = 2; // el separador de 2px entre barras es superficie, no borde
+
+/**
+ * Márgenes del área de dibujo. Antes no había ninguno: las cifras del eje
+ * se pintaban en x=0, encima de la primera barra, y la última fecha de abajo
+ * se salía por el borde derecho de la tarjeta. Reservar estas dos franjas
+ * cuesta 40px de ancho y arregla las dos colisiones.
+ */
+const MARGEN_IZQ = 30;
+const MARGEN_DER = 14;
 
 interface Dia {
   clave: string;
@@ -55,10 +64,11 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
   }, [plazas, hoy]);
 
   const max = Math.max(1, ...dias.map((d) => d.n));
-  const paso = ancho / DIAS;
+  const anchoPlot = Math.max(120, ancho - MARGEN_IZQ - MARGEN_DER);
+  const paso = anchoPlot / DIAS;
   const anchoBarra = Math.max(3, paso - HUECO);
   const total = dias.reduce((s, d) => s + d.n, 0);
-  const escala = (n: number) => (n / max) * (ALTO_PLOT - 10);
+  const escala = (n: number) => (n / max) * (ALTO_PLOT - 12);
 
   // Tres líneas de referencia bastan: la rejilla informa, no compite.
   const marcas = useMemo(() => {
@@ -75,10 +85,10 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
     >
       <header className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div>
-          <h2 id="cal-titulo" className="display text-[16px] font-semibold">
+          <h2 id="cal-titulo" className="display text-xl font-semibold">
             Cuándo se cierran los plazos
           </h2>
-          <p className="mt-0.5 text-[13px] text-ink-3">
+          <p className="mt-1 max-w-[78ch] text-sm text-ink-3">
             {total > 0
               ? `${plural(total, 'convocatoria cierra', 'convocatorias cierran')} en los próximos ${DIAS} días. Pulsa un día para quedarte solo con ese.`
               : 'Ninguna de las plazas que estás viendo cierra en los próximos 45 días.'}
@@ -87,7 +97,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
         <button
           type="button"
           onClick={() => setTabla((v) => !v)}
-          className="hover:border-pine hover:text-pine rounded-md border border-line px-2.5 py-1 text-[12px] font-semibold text-ink-3 transition-colors"
+          className="hover:border-pine hover:text-pine shrink-0 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink-3 transition-colors"
           aria-pressed={tabla}
         >
           {tabla ? 'Ver el gráfico' : 'Ver los datos'}
@@ -96,10 +106,10 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
 
       {tabla ? (
         <div className="scroll-fino max-h-64 overflow-y-auto rounded-lg border border-line-soft">
-          <table className="w-full text-[13px]">
+          <table className="w-full text-sm">
             <caption className="sr-only">Convocatorias que cierran cada día</caption>
             <thead className="sticky top-0 bg-surface-2 text-left">
-              <tr className="text-[10.5px] tracking-[0.07em] text-ink-3 uppercase">
+              <tr className="text-2xs tracking-[0.07em] text-ink-3 uppercase">
                 <th scope="col" className="px-3 py-1.5 font-bold">Día</th>
                 <th scope="col" className="px-3 py-1.5 text-right font-bold">Convocatorias</th>
                 <th scope="col" className="px-3 py-1.5 text-right font-bold">Puestos</th>
@@ -128,17 +138,21 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
             aria-label={`Convocatorias que cierran cada día durante los próximos ${DIAS} días`}
             className="block overflow-visible"
           >
-            {/* Rejilla: líneas continuas, un tono por encima de la superficie. */}
+            {/* Rejilla: líneas continuas, un tono por encima de la superficie.
+                Las cifras viven en el margen izquierdo, alineadas a la
+                derecha y centradas en su línea: ni tapan barras ni obligan a
+                buscar a qué altura corresponden. */}
             {marcas.map((v) => (
               <g key={v}>
                 <line
-                  x1={0} x2={ancho}
+                  x1={MARGEN_IZQ} x2={MARGEN_IZQ + anchoPlot}
                   y1={ALTO_PLOT - escala(v)} y2={ALTO_PLOT - escala(v)}
                   stroke="var(--viz-grid)" strokeWidth={1}
                 />
                 <text
-                  x={0} y={ALTO_PLOT - escala(v) - 4}
-                  className="fill-[var(--color-ink-3)] font-mono text-[10px] tabular-nums"
+                  x={MARGEN_IZQ - 8} y={ALTO_PLOT - escala(v)}
+                  textAnchor="end" dominantBaseline="middle"
+                  className="fill-[var(--color-ink-3)] font-mono text-2xs tabular-nums"
                 >
                   {v}
                 </text>
@@ -146,7 +160,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
             ))}
 
             {dias.map((d, i) => {
-              const x = i * paso;
+              const x = MARGEN_IZQ + i * paso;
               const alto = d.n === 0 ? 0 : Math.max(3, escala(d.n));
               const y = ALTO_PLOT - alto;
               const elegido = diaElegido === d.clave;
@@ -164,7 +178,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
                   {/* Zona sensible de columna entera: nunca hay que acertarle
                       a una barra de 3px de alto. */}
                   <rect
-                    x={x - HUECO / 2} y={0} width={paso} height={ALTO_PLOT + BANDA_EJE}
+                    x={x - HUECO / 2} y={0} width={paso} height={ALTO_PLOT}
                     fill="transparent"
                     className="cursor-pointer"
                     onMouseEnter={() => setEncima(i)}
@@ -181,16 +195,24 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
               );
             })}
 
-            <line x1={0} x2={ancho} y1={ALTO_PLOT} y2={ALTO_PLOT} stroke="var(--color-line)" strokeWidth={1} />
+            <line
+              x1={MARGEN_IZQ} x2={MARGEN_IZQ + anchoPlot}
+              y1={ALTO_PLOT} y2={ALTO_PLOT}
+              stroke="var(--color-line)" strokeWidth={1}
+            />
 
             {dias.map((d, i) => {
               // Una etiqueta por semana: más marcas se pisarían entre sí.
               if (i % 7 !== 0) return null;
+              // La primera se apoya en el eje y la última se ancla por su
+              // final, que si no se desbordaba fuera de la tarjeta.
+              const ultima = i + 7 >= DIAS;
               return (
                 <text
                   key={d.clave}
-                  x={i * paso} y={ALTO_PLOT + 15}
-                  className="fill-[var(--color-ink-3)] font-mono text-[10px] tabular-nums"
+                  x={MARGEN_IZQ + i * paso} y={ALTO_PLOT + 16}
+                  textAnchor={i === 0 ? 'start' : ultima ? 'end' : 'middle'}
+                  className="fill-[var(--color-ink-3)] font-mono text-2xs tabular-nums"
                 >
                   {/* Con el día y el mes la referencia no se pierde al cambiar
                       de mes, que es donde un "lu 5" a secas confunde. */}
@@ -202,8 +224,8 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
 
           {activo && (
             <div
-              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-[12.5px] whitespace-nowrap shadow-lg"
-              style={{ left: Math.min(Math.max(70, encima! * paso), ancho - 70), top: -6 }}
+              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg"
+              style={{ left: Math.min(Math.max(78, MARGEN_IZQ + encima! * paso), ancho - 78), top: -6 }}
               role="status"
             >
               <p className="font-semibold">{fechaLarga(activo.clave)}</p>
