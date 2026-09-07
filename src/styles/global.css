@@ -207,10 +207,30 @@ body {
   letter-spacing: -0.018em;
 }
 
+/* El anillo de foco NO toca el radio del elemento. Lo tocaba: esta regla
+   llevaba un `border-radius: 4px` que, por orden de cascada, ganaba a las
+   utilidades de Tailwind. Resultado: cada vez que el tabulador llegaba a una
+   píldora redonda, la píldora se volvía rectangular; una tarjeta de 12px
+   pasaba a 4. Los navegadores actuales ya curvan el `outline` siguiendo el
+   radio propio, así que no hacía falta nunca. */
 :focus-visible {
   outline: 2px solid var(--pine);
   outline-offset: 2px;
-  border-radius: 4px;
+}
+
+/* Hay un caso en que el anillo no debe rodear al elemento enfocado: el título
+   de una tarjeta, cuyo botón se estira con un `::before` hasta cubrirla
+   entera para que valga pulsar en cualquier parte. Ahí lo que se está
+   eligiendo es la plaza, no tres palabras, así que el anillo va en la capa.
+   Antes esto se resolvía apagando el foco del botón y confiando en un borde
+   verde al 40%: 1.38:1 contra el borde en reposo, cuando la norma pide 3:1.
+   Es decir, con el teclado no se veía qué tarjeta estaba elegida. */
+.foco-en-capa:focus-visible {
+  outline: none;
+}
+.foco-en-capa:focus-visible::before {
+  outline: 2px solid var(--pine);
+  outline-offset: 2px;
 }
 
 ::selection {

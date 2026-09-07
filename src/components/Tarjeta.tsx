@@ -58,7 +58,7 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
         <button
           type="button"
           onClick={() => onAbrir(plaza)}
-          className="text-left before:absolute before:inset-0 before:content-[''] focus:outline-none"
+          className="foco-en-capa text-left before:absolute before:inset-0 before:rounded-xl before:content-['']"
         >
           {tituloLimpio(plaza)}
         </button>
