@@ -487,6 +487,19 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                     Reintentar
                   </button>
                 )}
+                {/* «Prueba a quitar algún filtro» sin nada que pulsar manda a
+                    buscar el remedio a otra parte de la página, justo cuando
+                    quien lee está mirando aquí. La salida va donde está el
+                    problema. */}
+                {todas.length > 0 && hayFiltros(f) && (
+                  <button
+                    type="button"
+                    onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista })}
+                    className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+                  >
+                    Quitar todos los filtros
+                  </button>
+                )}
               </div>
             ) : f.vista === 'tabla' ? (
               <Tabla
