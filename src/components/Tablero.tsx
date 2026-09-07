@@ -272,8 +272,11 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
           <div className="min-w-0 flex-1">
             <h1 className="display-lg truncate text-xl font-bold sm:text-2xl">Convocatorias</h1>
-            <p className="mt-0.5 truncate text-sm text-ink-3">
-              <span className="sm:hidden">Barcelona y alrededores</span>
+            {/* En móvil la frase se acorta, pero las tres procedencias se
+                quedan: son lo que delimita qué hay aquí dentro. Dos líneas
+                como mucho —tres era lo que ahogaba la primera pantalla. */}
+            <p className="mt-0.5 text-sm text-ink-3 max-sm:line-clamp-2 sm:truncate">
+              <span className="sm:hidden">Barcelona y alrededores · Generalitat · Diputación</span>
               <span className="hidden sm:inline">
                 Ayuntamientos a 25 km de Barcelona, Badalona y el Maresme sur
                 · Generalitat · Diputación
