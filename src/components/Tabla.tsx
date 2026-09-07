@@ -43,18 +43,31 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
                 <td className="px-3 py-2.5 align-middle">
                   <PildoraPlazo dias={p.diasRestantes} />
                 </td>
-                <td className="max-w-[340px] px-3 py-2.5 align-middle">
-                  <button
-                    type="button"
-                    lang="ca"
-                    onClick={() => onAbrir(p)}
-                    className="hover:text-pine text-left font-medium transition-colors"
-                  >
-                    {tituloLimpio(p)}
-                  </button>
-                  <span className="ml-2 inline-block align-middle">
-                    <PildoraContrato plaza={p} />
-                  </span>
+                {/* El tope de dos líneas es lo que hace compacta a la vista
+                    compacta. Sin él las filas iban de 46 a 109px según lo
+                    largo que fuera el título: más del doble de variación, y
+                    con ella se pierde el renglón regular que es justo la
+                    razón de mirar una tabla en vez de las tarjetas. El título
+                    y la píldora van como dos piezas de una fila flexible, así
+                    que recortar el uno no se lleva por delante al otro.
+                    (Aquí había un `max-w-[340px]` que no hacía nada: con
+                    `table-layout: auto` el CSS ignora el ancho máximo de una
+                    celda, y la columna se dibujaba a 451px.) */}
+                <td className="px-3 py-2.5 align-middle">
+                  <div className="flex items-start gap-2">
+                    <button
+                      type="button"
+                      lang="ca"
+                      title={tituloLimpio(p)}
+                      onClick={() => onAbrir(p)}
+                      className="hover:text-pine line-clamp-2 text-left font-medium transition-colors"
+                    >
+                      {tituloLimpio(p)}
+                    </button>
+                    <span className="mt-px shrink-0">
+                      <PildoraContrato plaza={p} />
+                    </span>
+                  </div>
                 </td>
                 <td className="text-pine max-w-[190px] px-3 py-2.5 align-middle text-sm">{casa}</td>
                 <td className={`px-3 py-2.5 align-middle text-sm ${p.lejos ? 'text-ochre font-semibold' : 'text-ink-3'}`}>
