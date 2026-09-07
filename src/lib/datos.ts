@@ -1,5 +1,4 @@
 import type { Plaza, Tablero } from './tipos';
-import { ETIQUETA_AMBITO } from './formato';
 
 export const API = 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board';
 
@@ -33,10 +32,13 @@ function sanea(p: Partial<Plaza> | null | undefined): Plaza {
   return {
     id: q.id ?? `sin-id-${Math.random().toString(36).slice(2)}`,
     titulo: q.titulo ?? 'Convocatoria sin título',
-    // Cuando falta el organismo se cae a cómo lo clasificó la propia API
-    // ("Generalitat", "Ayuntamiento"): no inventa nada y además cuadra con lo
-    // que dice el filtro «Quién convoca» para esa misma plaza.
-    empleador: q.empleador ?? ETIQUETA_AMBITO[q.ambito ?? ''] ?? 'Organismo sin identificar',
+    // Aquí no se cae al ámbito que dice la API. Las 42 plazas que llegan sin
+    // organismo vienen marcadas como «generalitat» y no lo son: son escoles
+    // bressol, el Parc Zoològic o los bomberos de Barcelona, o sea el
+    // Ayuntamiento. Son filas viejas del archivo, guardadas por una versión
+    // anterior del recolector que no rellenaba estos campos. Repetir esa
+    // etiqueta sería engañar dos veces.
+    empleador: q.empleador ?? 'Organismo sin identificar',
     municipio: q.municipio ?? null,
     lugar: q.lugar ?? null,
     ambito: q.ambito ?? '',
