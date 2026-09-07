@@ -1,5 +1,6 @@
 import type { Plaza, Grupo } from './tipos';
-import { normaliza, urgencia, ORDEN_NIVEL } from './formato';
+import { normaliza, urgencia, ORDEN_NIVEL, ETIQUETA_AMBITO } from './formato';
+import { idsFiltroLugar, lugaresTexto } from './lugar';
 
 export type Vista = 'tarjetas' | 'tabla';
 export type Orden = 'fin' | 'fin-lejos' | 'plazas' | 'publicado' | 'nivel';
@@ -13,6 +14,8 @@ export interface Filtros {
   contratos: ClaseContrato[];
   ambitos: string[];
   urgencias: string[];
+  /** Identificadores de lugar de trabajo, los del catálogo de `lugar.ts`. */
+  lugares: string[];
   /** true = esconder lo que cae fuera del área metropolitana. */
   soloCerca: boolean;
   /** Día concreto elegido en el gráfico, `YYYY-MM-DD`. */
@@ -28,6 +31,7 @@ export const FILTROS_INICIALES: Filtros = {
   contratos: [],
   ambitos: [],
   urgencias: [],
+  lugares: [],
   soloCerca: false,
   dia: null,
   orden: 'fin',
@@ -45,7 +49,7 @@ function textoBuscable(p: Plaza): string {
   let t = cacheTexto.get(p);
   if (t === undefined) {
     t = normaliza(
-      [p.titulo, p.empleador, p.lugar, p.municipio, p.nivelEstudios, p.titulacion, p.otrosRequisitos]
+      [p.titulo, p.empleador, lugaresTexto(p), p.nivelEstudios, p.titulacion, p.otrosRequisitos]
         .filter(Boolean)
         .join(' '),
     );
@@ -55,7 +59,7 @@ function textoBuscable(p: Plaza): string {
 }
 
 /** Cada clave es un criterio; se aplican todos menos el que se quiera excluir. */
-type Criterio = 'q' | 'niveles' | 'contratos' | 'ambitos' | 'urgencias' | 'cerca' | 'dia';
+type Criterio = 'q' | 'niveles' | 'contratos' | 'ambitos' | 'urgencias' | 'lugares' | 'cerca' | 'dia';
 
 function cumple(p: Plaza, f: Filtros, criterio: Criterio): boolean {
   switch (criterio) {
@@ -73,6 +77,10 @@ function cumple(p: Plaza, f: Filtros, criterio: Criterio): boolean {
       return f.ambitos.length === 0 || f.ambitos.includes(p.ambito);
     case 'urgencias':
       return f.urgencias.length === 0 || f.urgencias.includes(urgencia(p.diasRestantes).cubo);
+    case 'lugares':
+      // Una plaza puede tocar varios sitios ("Ribera de Cardós - Lleida"), así
+      // que basta con que coincida uno.
+      return f.lugares.length === 0 || idsFiltroLugar(p).some((id) => f.lugares.includes(id));
     case 'cerca':
       return !f.soloCerca || !p.lejos;
     case 'dia':
@@ -80,7 +88,7 @@ function cumple(p: Plaza, f: Filtros, criterio: Criterio): boolean {
   }
 }
 
-const TODOS: Criterio[] = ['q', 'niveles', 'contratos', 'ambitos', 'urgencias', 'cerca', 'dia'];
+const TODOS: Criterio[] = ['q', 'niveles', 'contratos', 'ambitos', 'urgencias', 'lugares', 'cerca', 'dia'];
 
 export function aplica(plazas: Plaza[], f: Filtros, excepto?: Criterio): Plaza[] {
   const criterios = excepto ? TODOS.filter((c) => c !== excepto) : TODOS;
@@ -100,6 +108,18 @@ export function cuenta<T extends string>(
   for (const p of base) {
     const k = clave(p);
     if (k !== null) out[k] = (out[k] ?? 0) + 1;
+  }
+  return out;
+}
+
+/** Igual que `cuenta`, pero para criterios donde una plaza puede caer en varias casillas. */
+export function cuentaVarias(
+  plazas: Plaza[], f: Filtros, criterio: Criterio, claves: (p: Plaza) => string[],
+): Record<string, number> {
+  const base = aplica(plazas, f, criterio);
+  const out: Record<string, number> = {};
+  for (const p of base) {
+    for (const k of claves(p)) out[k] = (out[k] ?? 0) + 1;
   }
   return out;
 }
@@ -128,7 +148,7 @@ export function ordena(plazas: Plaza[], orden: Orden): Plaza[] {
 export function hayFiltros(f: Filtros): boolean {
   return Boolean(
     f.q.trim() || f.niveles.length || f.contratos.length || f.ambitos.length ||
-    f.urgencias.length || f.soloCerca || f.dia,
+    f.urgencias.length || f.lugares.length || f.soloCerca || f.dia,
   );
 }
 
@@ -143,6 +163,7 @@ export function aQuery(f: Filtros): string {
   if (f.contratos.length) p.set('tipo', f.contratos.join(','));
   if (f.ambitos.length) p.set('convoca', f.ambitos.join(','));
   if (f.urgencias.length) p.set('plazo', f.urgencias.join(','));
+  if (f.lugares.length) p.set('donde', f.lugares.join(','));
   if (f.soloCerca) p.set('cerca', '1');
   if (f.dia) p.set('dia', f.dia);
   if (f.orden !== 'fin') p.set('orden', f.orden);
@@ -150,23 +171,40 @@ export function aQuery(f: Filtros): string {
   return p.toString();
 }
 
+/** Cubos de urgencia que ofrece la barra de filtros. */
+const URGENCIAS_VALIDAS = ['hoy', '3dias', 'semana', 'mes', 'lejano'];
+
+/**
+ * La query la escribe cualquiera: un enlace viejo de cuando los valores se
+ * llamaban de otra forma, un recorte a mano, un rastreador probando cosas. Lo
+ * que no se reconoce se tira, porque un filtro fantasma deja la pantalla
+ * vacía sin decir por qué y encima pinta una ficha con texto ilegible.
+ */
 export function deQuery(query: string): Filtros {
   const p = new URLSearchParams(query);
-  const lista = (k: string) => (p.get(k) ? p.get(k)!.split(',').filter(Boolean) : []);
+  const lista = (k: string, validos?: readonly string[]) => {
+    const crudo = p.get(k) ? p.get(k)!.split(',').filter(Boolean) : [];
+    return validos ? crudo.filter((v) => validos.includes(v)) : crudo;
+  };
   const pestana = p.get('ver');
   const orden = p.get('orden');
   const vista = p.get('vista');
+  const dia = p.get('dia');
   return {
     ...FILTROS_INICIALES,
     pestana: (['abiertas', 'pendientes', 'cerradas', 'guardadas'] as const).includes(pestana as Pestana)
       ? (pestana as Pestana) : 'abiertas',
     q: p.get('q') ?? '',
-    niveles: lista('estudios'),
-    contratos: lista('tipo') as ClaseContrato[],
-    ambitos: lista('convoca'),
-    urgencias: lista('plazo'),
+    niveles: lista('estudios', Object.keys(ORDEN_NIVEL)),
+    contratos: lista('tipo', ['fija', 'temporal', 'bolsa']) as ClaseContrato[],
+    ambitos: lista('convoca', Object.keys(ETIQUETA_AMBITO)),
+    urgencias: lista('plazo', URGENCIAS_VALIDAS),
+    // Los lugares salen de los datos, así que aquí solo se comprueba la forma;
+    // el que no exista en el catálogo no casará con nada y se podrá quitar
+    // desde su ficha.
+    lugares: lista('donde').filter((v) => /^[a-z0-9-]{1,60}$/.test(v)),
     soloCerca: p.get('cerca') === '1',
-    dia: p.get('dia'),
+    dia: dia && /^\d{4}-\d{2}-\d{2}$/.test(dia) ? dia : null,
     orden: (['fin', 'fin-lejos', 'plazas', 'publicado', 'nivel'] as const).includes(orden as Orden)
       ? (orden as Orden) : 'fin',
     vista: vista === 'tabla' ? 'tabla' : 'tarjetas',

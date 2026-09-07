@@ -12,8 +12,9 @@ No incluye plazas de policía, guardia urbana ni mossos.
   todavía, y ya cerradas. Más una cuarta pestaña con las que guardas tú.
 - **Gráfico de cierres**: cuántas convocatorias vencen cada uno de los próximos
   45 días. Se pulsa un día y la lista se queda solo con ese.
-- **Filtros** por estudios, tipo de plaza, quién convoca, tiempo que queda y
-  cercanía, todos con el número de plazas que quedarían al marcarlos.
+- **Filtros** por estudios, tipo de plaza, quién convoca, dónde se trabaja,
+  tiempo que queda y cercanía, todos con el número de plazas que quedarían al
+  marcarlos.
 - **Buscador** que ignora acentos y mayúsculas y exige todas las palabras.
   La tecla `/` lo enfoca desde cualquier punto de la página.
 - **Ficha de detalle** en un panel lateral, con requisitos, avisos de plazo y los
@@ -48,9 +49,10 @@ src/
     piezas.tsx       píldoras e iconos compartidos
   lib/
     tipos.ts         el contrato de la API
-    datos.ts         lectura en build, con caída elegante
+    datos.ts         lectura en build, saneado de la respuesta y caída elegante
     filtros.ts       filtrado, recuento por faceta, orden y estado en la URL
     formato.ts       fechas en español, urgencia, traducción de niveles
+    lugar.ts         limpia los lugares de trabajo y arma el catálogo de municipios
   layouts/Base.astro
   pages/index.astro
 ```
@@ -76,6 +78,21 @@ Si la API no contesta durante el build, el build **no falla**: se genera con las
 listas vacías y el navegador las rellena.
 
 Para cambiar de endpoint, toca `API` en `src/lib/datos.ts`.
+
+### Lo que llega no siempre está limpio
+
+Dos cosas se corrigen aquí porque en el origen no tienen arreglo:
+
+- **Campos que faltan.** En las convocatorias antiguas la API omite `empleador`,
+  `enlace` o `nivelCodigo` en vez de mandarlos a `null`. `saneaTablero()` en
+  `datos.ts` pone la respuesta en regla al entrar, así que el resto del código
+  puede fiarse del contrato de `tipos.ts`.
+- **El lugar de trabajo.** El origen lo saca del último paréntesis del título,
+  así que a veces no hay ("…als Serveis Territorials a Girona"), a veces es un
+  código interno ("(NAJ)", "(BST - Girona)") y a veces trae la errata de quien
+  tecleó el anuncio ("Barccelona", "LLeida"). `lugar.ts` lo rescata del título,
+  tira lo que no es un topónimo y funde las grafías raras con la buena
+  comparándolas entre sí, sin ninguna lista de municipios que mantener.
 
 ## Desarrollo
 

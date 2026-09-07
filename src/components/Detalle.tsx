@@ -1,8 +1,9 @@
 import { useEffect, useRef } from 'react';
 import type { Plaza } from '../lib/tipos';
 import {
-  fechaLarga, lugarDe, partesEmpleador, tituloLimpio, esFinDeSemana, ETIQUETA_AMBITO,
+  fechaLarga, partesEmpleador, tituloLimpio, esFinDeSemana, ETIQUETA_AMBITO,
 } from '../lib/formato';
+import { lugaresTexto } from '../lib/lugar';
 import { PildoraPlazo, IconoEstrella, IconoSalir } from './piezas';
 
 interface Props {
@@ -21,28 +22,57 @@ function Fila({ termino, children }: { termino: string; children: React.ReactNod
   );
 }
 
+/** Lo que un lector de pantalla o el tabulador pueden alcanzar dentro del panel. */
+const FOCALIZABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
+
 export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
   const panel = useRef<HTMLDivElement>(null);
   const abierto = plaza !== null;
 
   useEffect(() => {
     if (!abierto) return;
-    const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') onCerrar(); };
-    document.addEventListener('keydown', esc);
+
+    // Con quién estabas antes de abrir, para devolverle el foco al cerrar: si
+    // no, el teclado vuelve al principio del documento y hay que recorrer la
+    // página entera para seguir donde estabas.
+    const veniaDe = document.activeElement as HTMLElement | null;
+
+    const teclas = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { onCerrar(); return; }
+      // El panel dice `aria-modal`, así que el tabulador no puede escaparse a
+      // la lista de detrás: se cierra el ciclo a mano.
+      if (e.key !== 'Tab' || !panel.current) return;
+      const dentro = [...panel.current.querySelectorAll<HTMLElement>(FOCALIZABLE)]
+        .filter((el) => el.offsetParent !== null);
+      if (dentro.length === 0) return;
+      const primero = dentro[0];
+      const ultimo = dentro[dentro.length - 1];
+      const foco = document.activeElement;
+      if (e.shiftKey && (foco === primero || foco === panel.current)) {
+        e.preventDefault();
+        ultimo.focus();
+      } else if (!e.shiftKey && foco === ultimo) {
+        e.preventDefault();
+        primero.focus();
+      }
+    };
+
+    document.addEventListener('keydown', teclas);
     // El fondo no debe poder desplazarse mientras el panel tapa la página.
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
     panel.current?.focus();
     return () => {
-      document.removeEventListener('keydown', esc);
+      document.removeEventListener('keydown', teclas);
       document.body.style.overflow = overflow;
+      veniaDe?.focus?.();
     };
   }, [abierto, onCerrar]);
 
   if (!plaza) return null;
 
   const { casa, organismo } = partesEmpleador(plaza);
-  const lugar = lugarDe(plaza);
+  const lugar = lugaresTexto(plaza);
   const finDeSemana = esFinDeSemana(plaza.fin);
 
   return (
@@ -67,7 +97,10 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
                 {ETIQUETA_AMBITO[plaza.ambito] ?? plaza.ambito}
               </span>
             </div>
-            <h2 className="display-lg text-2xl font-semibold text-balance">
+            {/* El sitio está en español pero los títulos llegan en catalán:
+                marcarlos evita que un lector de pantalla los pronuncie con las
+                reglas equivocadas. */}
+            <h2 lang="ca" className="display-lg text-2xl font-semibold text-balance">
               {tituloLimpio(plaza)}
             </h2>
           </div>
@@ -146,10 +179,12 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
             {plaza.nivelEstudios && <Fila termino="Estudios que piden">{plaza.nivelEstudios}</Fila>}
 
             {plaza.titulacion && plaza.titulacion !== 'Vegeu les bases' && (
-              <Fila termino="Titulación concreta">{plaza.titulacion}</Fila>
+              <Fila termino="Titulación concreta"><span lang="ca">{plaza.titulacion}</span></Fila>
             )}
 
-            {plaza.otrosRequisitos && <Fila termino="Además necesitas">{plaza.otrosRequisitos}</Fila>}
+            {plaza.otrosRequisitos && (
+              <Fila termino="Además necesitas"><span lang="ca">{plaza.otrosRequisitos}</span></Fila>
+            )}
 
             {plaza.seleccion && <Fila termino="Cómo se entra">{plaza.seleccion}</Fila>}
 

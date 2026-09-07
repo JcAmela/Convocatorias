@@ -1,5 +1,6 @@
 import type { Plaza } from '../lib/tipos';
-import { fechaCorta, lugarDe, partesEmpleador, tituloLimpio } from '../lib/formato';
+import { fechaCorta, partesEmpleador, tituloLimpio } from '../lib/formato';
+import { lugarPrincipal } from '../lib/lugar';
 import { PildoraPlazo, PildoraContrato, IconoEstrella } from './piezas';
 
 interface Props {
@@ -35,7 +36,7 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
         <tbody>
           {plazas.map((p) => {
             const { casa } = partesEmpleador(p);
-            const lugar = lugarDe(p);
+            const lugar = lugarPrincipal(p);
             const guardada = guardadas.has(p.id);
             return (
               <tr key={p.id} className="hover:bg-surface-2 border-b border-line-soft transition-colors last:border-0">
@@ -45,6 +46,7 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
                 <td className="max-w-[340px] px-3 py-2.5 align-middle">
                   <button
                     type="button"
+                    lang="ca"
                     onClick={() => onAbrir(p)}
                     className="hover:text-pine text-left font-medium transition-colors"
                   >

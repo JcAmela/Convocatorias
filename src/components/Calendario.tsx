@@ -107,7 +107,9 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
       {tabla ? (
         <div className="scroll-fino max-h-64 overflow-y-auto rounded-lg border border-line-soft">
           <table className="w-full text-sm">
-            <caption className="sr-only">Convocatorias que cierran cada día</caption>
+            <caption className="sr-only">
+              Convocatorias que cierran cada día. Pulsa una fecha para quedarte solo con ese día.
+            </caption>
             <thead className="sticky top-0 bg-surface-2 text-left">
               <tr className="text-2xs tracking-[0.07em] text-ink-3 uppercase">
                 <th scope="col" className="px-3 py-1.5 font-bold">Día</th>
@@ -116,13 +118,28 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
               </tr>
             </thead>
             <tbody>
-              {dias.filter((d) => d.n > 0).map((d) => (
-                <tr key={d.clave} className="border-t border-line-soft">
-                  <th scope="row" className="px-3 py-1.5 text-left font-medium">{fechaLarga(d.clave)}</th>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums">{d.n}</td>
-                  <td className="px-3 py-1.5 text-right font-mono tabular-nums text-ink-2">{d.puestos}</td>
-                </tr>
-              ))}
+              {/* Elegir día también se hace desde aquí. Las barras del gráfico
+                  solo responden al ratón, así que sin esto quien navega con el
+                  teclado no tenía ninguna forma de usar el filtro por día. */}
+              {dias.filter((d) => d.n > 0).map((d) => {
+                const elegido = diaElegido === d.clave;
+                return (
+                  <tr key={d.clave} className={`border-t border-line-soft ${elegido ? 'bg-pine-soft' : ''}`}>
+                    <th scope="row" className="px-3 py-1.5 text-left font-medium">
+                      <button
+                        type="button"
+                        onClick={() => onElegirDia(elegido ? null : d.clave)}
+                        aria-pressed={elegido}
+                        className="hover:text-pine text-left underline-offset-2 hover:underline"
+                      >
+                        {fechaLarga(d.clave)}
+                      </button>
+                    </th>
+                    <td className="px-3 py-1.5 text-right font-mono tabular-nums">{d.n}</td>
+                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-ink-2">{d.puestos}</td>
+                  </tr>
+                );
+              })}
               {total === 0 && (
                 <tr><td colSpan={3} className="px-3 py-4 text-center text-ink-3">Sin cierres en este periodo.</td></tr>
               )}
@@ -226,7 +243,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
             <div
               className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-lg"
               style={{ left: Math.min(Math.max(78, MARGEN_IZQ + encima! * paso), ancho - 78), top: -6 }}
-              role="status"
+              aria-hidden="true"
             >
               <p className="font-semibold">{fechaLarga(activo.clave)}</p>
               <p className="text-ink-2">

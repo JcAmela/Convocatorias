@@ -50,29 +50,30 @@ export interface Urgencia {
   tono: TonoUrgencia;
   etiqueta: string;
   /** Para agrupar en el filtro de "tiempo que queda". */
-  cubo: 'hoy' | '3dias' | 'semana' | 'mes' | 'lejano' | 'sinfecha';
+  cubo: 'cerrada' | 'hoy' | '3dias' | 'semana' | 'mes' | 'lejano' | 'sinfecha';
 }
 
 export function urgencia(dias: number | null): Urgencia {
   if (dias === null || dias === undefined) {
     return { tono: 'sinfecha', etiqueta: 'Sin plazo aún', cubo: 'sinfecha' };
   }
-  if (dias <= 0) return { tono: 'critica', etiqueta: 'Último día', cubo: 'hoy' };
+  // Lo ya vencido no puede seguir gritando en rojo "Último día": en la pestaña
+  // de cerradas eso teñía de urgencia ciento y pico plazas a las que ya no
+  // llegas.
+  if (dias < 0) {
+    const pasados = -dias;
+    return {
+      tono: 'calma',
+      etiqueta: pasados === 1 ? 'Cerró ayer' : `Cerró hace ${pasados} días`,
+      cubo: 'cerrada',
+    };
+  }
+  if (dias === 0) return { tono: 'critica', etiqueta: 'Último día', cubo: 'hoy' };
   if (dias === 1) return { tono: 'critica', etiqueta: 'Cierra mañana', cubo: '3dias' };
   if (dias <= 3) return { tono: 'critica', etiqueta: `Quedan ${dias} días`, cubo: '3dias' };
   if (dias <= 7) return { tono: 'seria', etiqueta: `Quedan ${dias} días`, cubo: 'semana' };
   if (dias <= 30) return { tono: 'aviso', etiqueta: `Quedan ${dias} días`, cubo: 'mes' };
   return { tono: 'calma', etiqueta: `Quedan ${dias} días`, cubo: 'lejano' };
-}
-
-/**
- * En las plazas de la Generalitat `municipio` repite el nombre del organismo,
- * así que solo sirve como lugar cuando aporta algo distinto.
- */
-export function lugarDe(p: Plaza): string | null {
-  if (p.lugar) return p.lugar;
-  if (p.municipio && p.municipio !== p.empleador) return p.municipio;
-  return null;
 }
 
 /** "Generalitat · Departament de Cultura" → { casa, organismo }. */
@@ -87,6 +88,19 @@ export const ETIQUETA_AMBITO: Record<string, string> = {
   generalitat: 'Generalitat',
   diputacio: 'Diputación',
 };
+
+/**
+ * Los cubos del filtro «Tiempo que queda», en el orden en que se ofrecen. Vive
+ * aquí y no en la barra de filtros porque el tablero necesita los mismos
+ * rótulos para las fichas de «quitar este filtro».
+ */
+export const URGENCIAS: { valor: string; texto: string }[] = [
+  { valor: 'hoy', texto: 'Cierra hoy' },
+  { valor: '3dias', texto: 'En 3 días o menos' },
+  { valor: 'semana', texto: 'Esta semana' },
+  { valor: 'mes', texto: 'Este mes' },
+  { valor: 'lejano', texto: 'Más de un mes' },
+];
 
 export const ORDEN_NIVEL: Record<string, number> = {
   AP: 0, C2: 1, C1: 2, A2: 3, A: 4, A1: 5,
@@ -123,9 +137,19 @@ export function normaliza(t: string): string {
 /**
  * Los títulos vienen en catalán y empiezan por el número de plazas
  * ("3 places de Tècnic…"), que ya mostramos aparte.
+ *
+ * También se les quita el paréntesis final cuando es de donde el origen sacó
+ * el lugar de trabajo: la columna «Dónde» ya lo dice, y repetirlo alarga el
+ * título justo donde menos sitio hay. Solo se toca si coincide exactamente,
+ * así que "(mecànic)" o "(convocatòria extraordinària)" se quedan.
  */
 export function tituloLimpio(p: Plaza): string {
-  return p.titulo
+  let bruto = p.titulo;
+  if (p.lugar) {
+    const cola = /\s*\(([^()]*)\)\s*$/.exec(bruto);
+    if (cola && cola[1].trim() === p.lugar.trim()) bruto = bruto.slice(0, cola.index);
+  }
+  return bruto
     .replace(/^\s*\d+\s+(places?|placa|plaça|places)\s+(de\s+la\s+|de\s+l'|del\s+|de\s+|d')?/i, '')
     .replace(/^\s*🗓️\s*/, '')
     .trim() || p.titulo;

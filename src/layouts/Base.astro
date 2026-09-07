@@ -7,6 +7,10 @@ interface Props {
 }
 
 const { titulo, descripcion } = Astro.props;
+
+// `Astro.site` viene de astro.config.mjs; si no estuviera, se cae con elegancia
+// a la URL con la que se ha pedido la página.
+const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
 ---
 
 <!doctype html>
@@ -18,10 +22,15 @@ const { titulo, descripcion } = Astro.props;
     <meta name="description" content={descripcion} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <link rel="canonical" href={canonica} />
 
     <meta property="og:title" content={titulo} />
     <meta property="og:description" content={descripcion} />
     <meta property="og:type" content="website" />
+    <meta property="og:url" content={canonica} />
+    <meta property="og:locale" content="es_ES" />
+    <meta property="og:site_name" content="Convocatorias" />
+    <meta name="twitter:card" content="summary" />
     <meta name="robots" content="index, follow" />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />

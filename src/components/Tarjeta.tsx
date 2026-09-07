@@ -1,8 +1,9 @@
 import { memo } from 'react';
 import type { Plaza } from '../lib/tipos';
 import {
-  fechaLarga, lugarDe, partesEmpleador, tituloLimpio, esActualizacion,
+  fechaLarga, partesEmpleador, tituloLimpio, esActualizacion,
 } from '../lib/formato';
+import { lugarPrincipal } from '../lib/lugar';
 import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoFuera, IconoSalir } from './piezas';
 
 interface Props {
@@ -14,7 +15,7 @@ interface Props {
 
 function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
   const { casa, organismo } = partesEmpleador(plaza);
-  const lugar = lugarDe(plaza);
+  const lugar = lugarPrincipal(plaza);
 
   return (
     <article
@@ -42,7 +43,10 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
         </p>
       )}
 
-      <h3 className="display text-lg font-semibold text-balance">
+      {/* El título llega en catalán aunque la página esté en español; marcarlo
+          evita que un lector de pantalla lo pronuncie con las reglas del
+          castellano. */}
+      <h3 lang="ca" className="display text-lg font-semibold text-balance">
         {/* La tarjeta entera es clicable, pero el enlace real está en el
             título para que el foco de teclado y el lector de pantalla lo
             encuentren donde se espera. */}

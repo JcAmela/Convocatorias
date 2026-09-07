@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Plaza, Tablero as Datos } from '../lib/tipos';
-import { API } from '../lib/datos';
+import { API, esTablero, saneaTablero } from '../lib/datos';
 import {
-  aplica, cuenta, ordena, hayFiltros, aQuery, deQuery, claseContrato,
+  aplica, cuenta, cuentaVarias, ordena, hayFiltros, aQuery, deQuery, claseContrato,
   FILTROS_INICIALES, type Filtros as F, type Pestana,
 } from '../lib/filtros';
-import { urgencia, fechaLarga, plural, NIVEL_CORTO, ETIQUETA_AMBITO } from '../lib/formato';
+import { urgencia, fechaLarga, plural, NIVEL_CORTO, ETIQUETA_AMBITO, URGENCIAS } from '../lib/formato';
+import { preparaLugares, idsFiltroLugar, SIN_LUGAR } from '../lib/lugar';
 import { Filtros } from './Filtros';
 import { Calendario } from './Calendario';
 import { Tarjeta } from './Tarjeta';
@@ -60,7 +61,6 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     } catch {
       // Navegador con el almacenamiento capado: se sigue sin guardadas.
     }
-    montado.current = true;
   }, []);
 
   /* --- datos frescos: la página se sirve estática y se revalida al abrir - */
@@ -70,7 +70,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     setRevalidando(true);
     fetch(API, { cache: 'no-store' })
       .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`el servidor respondió ${r.status}`))))
-      .then((d: Datos) => { if (vivo) { setDatos(d); setFallo(null); } })
+      .then((d: unknown) => {
+        if (!esTablero(d)) throw new Error('el servidor devolvió algo que no es un tablero');
+        if (vivo) { setDatos(saneaTablero(d)); setFallo(null); }
+      })
       .catch((e: Error) => { if (vivo) setFallo(e.message); })
       .finally(() => { if (vivo) setRevalidando(false); });
     return () => { vivo = false; };
@@ -79,7 +82,11 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   /* --- la URL refleja lo que estás viendo, para compartir o guardar ------ */
 
   useEffect(() => {
-    if (!montado.current) return;
+    // La primera pasada se salta a propósito. El HTML se genera con los
+    // filtros vacíos y el efecto de arranque aún no ha aplicado los de la URL,
+    // así que escribir aquí borraría la query con la que acaba de entrar el
+    // visitante antes de leerla.
+    if (!montado.current) { montado.current = true; return; }
     const q = aQuery(f);
     window.history.replaceState(null, '', q ? `?${q}` : window.location.pathname);
   }, [f]);
@@ -109,6 +116,14 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     [datos],
   );
 
+  /**
+   * El catálogo de lugares se monta con todas las plazas a la vez, no con las
+   * que se estén viendo: solo mirando el conjunto se puede saber que
+   * "Barccelona" es Barcelona. Va antes de pintar nada porque el resto de la
+   * pantalla ya lo consulta.
+   */
+  const lugares = useMemo(() => preparaLugares(todas), [todas]);
+
   const base = useMemo(() => {
     if (f.pestana === 'guardadas') return todas.filter((p) => guardadas.has(p.id));
     return datos[f.pestana];
@@ -121,13 +136,17 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     contratos: cuenta(base, f, 'contratos', claseContrato),
     ambitos: cuenta(base, f, 'ambitos', (p) => (ETIQUETA_AMBITO[p.ambito] ? p.ambito : null)),
     urgencias: cuenta(base, f, 'urgencias', (p) => urgencia(p.diasRestantes).cubo),
+    lugares: cuentaVarias(base, f, 'lugares', idsFiltroLugar),
     lejos: aplica(base, f, 'cerca').filter((p) => p.lejos).length,
   }), [base, f]);
 
   const resumen = useMemo(() => ({
     convocatorias: filtradas.length,
     puestos: filtradas.reduce((s, p) => s + (p.plazas ?? 0), 0),
-    urgentes: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes <= 7).length,
+    // Los días negativos son plazos vencidos: contarlos como «cierran esta
+    // semana» pintaba de rojo la pestaña entera de cerradas.
+    urgentes: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes >= 0 && p.diasRestantes <= 7).length,
+    reciencerradas: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes < 0 && p.diasRestantes >= -7).length,
     fijas: filtradas.filter((p) => p.fijo).length,
   }), [filtradas]);
 
@@ -149,6 +168,18 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   }
   for (const a of f.ambitos) {
     fichas.push({ texto: ETIQUETA_AMBITO[a] ?? a, quitar: () => set({ ambitos: f.ambitos.filter((x) => x !== a) }) });
+  }
+  for (const u of f.urgencias) {
+    // Sin ficha, este filtro solo se veía como un númerito en su menú; y si
+    // el menú no está (pestaña de cerradas) no se veía en absoluto.
+    const texto = URGENCIAS.find((x) => x.valor === u)?.texto ?? u;
+    fichas.push({ texto, quitar: () => set({ urgencias: f.urgencias.filter((x) => x !== u) }) });
+  }
+  for (const id of f.lugares) {
+    const nombre = id === SIN_LUGAR
+      ? 'Sin lugar indicado'
+      : lugares.find((l) => l.id === id)?.nombre ?? id;
+    fichas.push({ texto: nombre, quitar: () => set({ lugares: f.lugares.filter((x) => x !== id) }) });
   }
   if (f.soloCerca) fichas.push({ texto: 'Solo cerca de casa', quitar: () => set({ soloCerca: false }) });
   if (f.dia) fichas.push({ texto: `Cierra el ${fechaLarga(f.dia)}`, quitar: () => set({ dia: null }) });
@@ -260,14 +291,18 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         </nav>
 
         <div className="mb-4 flex flex-col gap-4">
-          <Filtros filtros={f} set={set} conteos={conteos} />
+          <Filtros filtros={f} set={set} lugares={lugares} conteos={conteos} />
 
           {/* Las cifras y el gráfico describen lo que hay filtrado ahora
               mismo, no el total: si no, contarían otra película. */}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
             <Cifra valor={resumen.convocatorias} texto={f.pestana === 'cerradas' ? 'convocatorias cerradas' : 'convocatorias que estás viendo'} />
             <Cifra valor={resumen.puestos} texto="puestos en juego" />
-            <Cifra valor={resumen.urgentes} texto="cierran esta semana" urgente={resumen.urgentes > 0} />
+            {f.pestana === 'cerradas' ? (
+              <Cifra valor={resumen.reciencerradas} texto="cerraron esta semana" />
+            ) : (
+              <Cifra valor={resumen.urgentes} texto="cierran esta semana" urgente={resumen.urgentes > 0} />
+            )}
             <Cifra valor={resumen.fijas} texto="son plaza fija" />
           </div>
 

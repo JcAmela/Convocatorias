@@ -1,17 +1,21 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import type { Filtros as F, ClaseContrato, Orden, Vista } from '../lib/filtros';
-import { NIVEL_CORTO, ETIQUETA_AMBITO, ORDEN_NIVEL } from '../lib/formato';
+import { NIVEL_CORTO, ETIQUETA_AMBITO, ORDEN_NIVEL, URGENCIAS, normaliza } from '../lib/formato';
+import { SIN_LUGAR, type Lugar } from '../lib/lugar';
 
 type Conteos = Record<string, number>;
 
 interface Props {
   filtros: F;
   set: (parcial: Partial<F>) => void;
+  /** Catálogo de lugares de trabajo, ya limpio, para el desplegable «Dónde». */
+  lugares: Lugar[];
   conteos: {
     niveles: Conteos;
     contratos: Conteos;
     ambitos: Conteos;
     urgencias: Conteos;
+    lugares: Conteos;
     lejos: number;
   };
 }
@@ -20,14 +24,6 @@ const CONTRATOS: { valor: ClaseContrato; texto: string }[] = [
   { valor: 'fija', texto: 'Fija, para quedarte' },
   { valor: 'temporal', texto: 'Temporal o interinaje' },
   { valor: 'bolsa', texto: 'Bolsa de trabajo' },
-];
-
-const URGENCIAS = [
-  { valor: 'hoy', texto: 'Cierra hoy' },
-  { valor: '3dias', texto: 'En 3 días o menos' },
-  { valor: 'semana', texto: 'Esta semana' },
-  { valor: 'mes', texto: 'Este mes' },
-  { valor: 'lejano', texto: 'Más de un mes' },
 ];
 
 const ORDENES: { valor: Orden; texto: string }[] = [
@@ -143,8 +139,9 @@ function Opcion({
 
 /* -------------------------------------------------------------------- barra */
 
-export function Filtros({ filtros: f, set, conteos }: Props) {
+export function Filtros({ filtros: f, set, lugares, conteos }: Props) {
   const [foco, setFoco] = useState(false);
+  const [buscaLugar, setBuscaLugar] = useState('');
   const busca = useRef<HTMLInputElement>(null);
 
   // "/" enfoca el buscador, como en GitHub: el atajo que ya se conoce.
@@ -162,6 +159,20 @@ export function Filtros({ filtros: f, set, conteos }: Props) {
   }, []);
 
   const niveles = Object.keys(NIVEL_CORTO).sort((a, b) => ORDEN_NIVEL[a] - ORDEN_NIVEL[b]);
+
+  /**
+   * Hay del orden de ochenta sitios, así que arriba van los que más plazas
+   * tienen ahora mismo y lo demás se encuentra escribiendo. Un lugar ya
+   * marcado no se esconde nunca, aunque el resto de filtros lo dejen a cero:
+   * si no, no habría forma de desmarcarlo.
+   */
+  const lugaresVisibles = useMemo(() => {
+    const texto = normaliza(buscaLugar.trim());
+    return lugares
+      .filter((l) => f.lugares.includes(l.id) || !texto || normaliza(l.nombre).includes(texto))
+      .sort((a, b) => (conteos.lugares[b.id] ?? 0) - (conteos.lugares[a.id] ?? 0)
+        || a.nombre.localeCompare(b.nombre, 'es'));
+  }, [lugares, buscaLugar, f.lugares, conteos.lugares]);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -255,17 +266,60 @@ export function Filtros({ filtros: f, set, conteos }: Props) {
           ))}
         </Menu>
 
-        <Menu titulo="Tiempo que queda" activos={f.urgencias.length}>
-          {URGENCIAS.map((u) => (
+        <Menu titulo="Dónde" activos={f.lugares.length}>
+          <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 border-b border-line-soft bg-surface px-1.5 pt-1.5 pb-1.5">
+            <input
+              type="search"
+              value={buscaLugar}
+              onChange={(e) => setBuscaLugar(e.target.value)}
+              placeholder="Buscar un municipio…"
+              aria-label="Buscar un municipio dentro de la lista"
+              className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
+            />
+          </div>
+          {lugaresVisibles.map((l) => (
             <Opcion
-              key={u.valor}
-              marcada={f.urgencias.includes(u.valor)}
-              texto={u.texto}
-              n={conteos.urgencias[u.valor] ?? 0}
-              onClick={() => set({ urgencias: conmuta(f.urgencias, u.valor) })}
+              key={l.id}
+              marcada={f.lugares.includes(l.id)}
+              texto={l.nombre}
+              n={conteos.lugares[l.id] ?? 0}
+              onClick={() => set({ lugares: conmuta(f.lugares, l.id) })}
             />
           ))}
+          {lugaresVisibles.length === 0 && (
+            <p className="px-2 py-3 text-sm text-ink-3">Ningún municipio se llama así.</p>
+          )}
+          {/* Una de cada cinco convocatorias no dice dónde se trabaja. Va la
+              última y separada: no es un sitio, es la ausencia de sitio, pero
+              tiene que poder pedirse y sobre todo verse, porque si no
+              desaparecerían sin explicación al marcar cualquier municipio. */}
+          {(conteos.lugares[SIN_LUGAR] > 0 || f.lugares.includes(SIN_LUGAR)) && (
+            <div className="mt-1 border-t border-line-soft pt-1">
+              <Opcion
+                marcada={f.lugares.includes(SIN_LUGAR)}
+                texto="Sin lugar indicado"
+                n={conteos.lugares[SIN_LUGAR] ?? 0}
+                onClick={() => set({ lugares: conmuta(f.lugares, SIN_LUGAR) })}
+              />
+            </div>
+          )}
         </Menu>
+
+        {/* En las ya cerradas no queda tiempo que valga: el menú entero
+            marcaba cero y parecía roto. */}
+        {f.pestana !== 'cerradas' && (
+          <Menu titulo="Tiempo que queda" activos={f.urgencias.length}>
+            {URGENCIAS.map((u) => (
+              <Opcion
+                key={u.valor}
+                marcada={f.urgencias.includes(u.valor)}
+                texto={u.texto}
+                n={conteos.urgencias[u.valor] ?? 0}
+                onClick={() => set({ urgencias: conmuta(f.urgencias, u.valor) })}
+              />
+            ))}
+          </Menu>
+        )}
 
         <button
           type="button"
