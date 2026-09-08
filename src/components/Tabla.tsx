@@ -1,10 +1,13 @@
 import type { Plaza } from '../lib/tipos';
 import { fechaCorta, partesEmpleador, tituloLimpio } from '../lib/formato';
-import { lugarPrincipal } from '../lib/lugar';
+import { nombreLugar, esSoloSede } from '../lib/localizacion';
+import { kmDesde } from '../lib/cercania';
 import { PildoraPlazo, PildoraContrato, IconoEstrella } from './piezas';
 
 interface Props {
   plazas: Plaza[];
+  /** Municipio desde el que se miden las distancias. `null` = sin elegir. */
+  desde: string | null;
   guardadas: Set<string>;
   onGuardar: (id: string) => void;
   onAbrir: (plaza: Plaza) => void;
@@ -15,7 +18,7 @@ interface Props {
  * densa con la vista es más rápido que pasar tarjetas, y además es el
  * equivalente accesible del mismo conjunto de datos.
  */
-export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
+export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
   return (
     <div className="overflow-x-auto rounded-xl border border-line bg-surface">
       <table className="w-full min-w-[760px] border-collapse text-base">
@@ -36,7 +39,8 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
         <tbody>
           {plazas.map((p) => {
             const { casa } = partesEmpleador(p);
-            const lugar = lugarPrincipal(p);
+            const lugar = nombreLugar(p);
+            const km = kmDesde(p, desde);
             const guardada = guardadas.has(p.id);
             return (
               <tr key={p.id} className="hover:bg-surface-2 border-b border-line-soft transition-colors last:border-0">
@@ -70,8 +74,14 @@ export function Tabla({ plazas, guardadas, onGuardar, onAbrir }: Props) {
                   </div>
                 </td>
                 <td className="text-pine max-w-[190px] px-3 py-2.5 align-middle text-sm">{casa}</td>
-                <td className={`px-3 py-2.5 align-middle text-sm ${p.lejos ? 'text-ochre font-semibold' : 'text-ink-3'}`}>
+                <td className="px-3 py-2.5 align-middle text-sm text-ink-3">
                   {lugar ?? '—'}
+                  {/* El asterisco avisa de que ese municipio es la sede del
+                      organismo y no el destino: el anuncio no lo dice. */}
+                  {lugar && esSoloSede(p) && (
+                    <abbr title="Es la sede del organismo; el anuncio no dice dónde se trabaja" className="ml-0.5 cursor-help no-underline text-ink-3">*</abbr>
+                  )}
+                  {km !== null && <span className="ml-1.5 font-mono text-2xs text-ink-3">{km} km</span>}
                 </td>
                 <td className="px-3 py-2.5 text-right align-middle font-mono text-sm tabular-nums text-ink-2">
                   {p.plazas ?? '—'}

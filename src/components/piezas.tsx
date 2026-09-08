@@ -68,7 +68,8 @@ export function IconoEstrella({ activa }: { activa: boolean }) {
   );
 }
 
-export function IconoFuera() {
+/** Pin de mapa. Acompaña al lugar, esté cerca o lejos. */
+export function IconoPin() {
   return (
     <svg viewBox="0 0 24 24" className="size-3.5 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
       <path d="M12 21s7-5.5 7-11a7 7 0 10-14 0c0 5.5 7 11 7 11z" strokeLinejoin="round" />

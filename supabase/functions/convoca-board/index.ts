@@ -7,35 +7,45 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // avisadas (su trabajo es no repetir mensajes de WhatsApp). Este devuelve
 // TODO lo que está abierto ahora mismo, se haya avisado o no, más el archivo
 // de lo ya cerrado. Son dos preguntas distintas sobre la misma fuente.
+//
+// LAS LOCALIZACIONES SE RESUELVEN AQUÍ. Antes se sacaban del último paréntesis
+// del título, y por ahí se colaban códigos de departamento —(TEI), (SIAD),
+// (CMP)— como si fueran pueblos, y erratas de quien tecleó el anuncio. CIDO
+// tiene el dato bien: cada oposición apunta a una institución con `municipi`,
+// `comarca` y coordenadas, y se puede traer en la misma petición con
+// `?include=institucio`. De ahí sale el 100 % de las sedes.
+//
+// Se distinguen dos cosas que antes iban revueltas:
+//   - la SEDE del organismo, que se sabe siempre;
+//   - el LUGAR DE TRABAJO, que solo se sabe cuando el anuncio lo dice.
+// En una plaza municipal son lo mismo. En la Generalitat no: 119 de 463
+// trabajan fuera de su sede y 158 no dicen dónde, porque son bolsas que
+// cubren muchos centros a la vez. `donde.origen` dice cuál de los dos casos
+// es, para que la web nunca presente una sede como si fuera un destino.
 // ============================================================================
 
 const CONVOCA_CLIENT_ID = "a97c8701-79d9-4744-9a84-c1726085a61e";
 const CONVOCA_BASE_URL = "https://apigw.convoca.online";
 const CIDO_BASE_URL = "https://api.diba.cat/dadesobertes/cido/v1/oposicions";
+const CIDO_INSTITUCIONS_URL = "https://api.diba.cat/dadesobertes/cido/v1/institucions";
 
 const FETCH_TIMEOUT_MS = 20000;
 
-// El área que cubre el portal: la unión de círculos de este radio alrededor de
-// cada pueblo de TOWNS. Vale igual para las tres fuentes de CIDO.
-//
-// Antes no era así y ese fue el desequilibrio que vació el portal de
-// ayuntamientos: la Generalitat entraba por radio y los municipios por una
-// lista cerrada de ocho nombres. Como casi toda la Generalitat tiene la sede
-// en Barcelona, por el radio entraba media Cataluña (de ahí las plazas de
-// Lleida o Tortosa), mientras que del lado municipal se quedaban fuera
-// Sabadell, Terrassa, Mataró, L'Hospitalet o El Prat, que son justo donde
-// trabaja la gente de aquí. Con el mismo criterio para todos, las municipales
-// pasan de veinte a doscientas sesenta.
-const AREA_RADIUS_KM = 25;
-
 // Cuánto vale la respuesta cacheada. La fuente publica una o dos veces al día,
 // así que 3 horas no deja ver nada desactualizado y evita que cada visita
-// dispare seis consultas a las APIs de origen.
+// dispare diez consultas a las APIs de origen.
 const CACHE_TTL_MIN = 180;
 
 // Cuántos días se conservan las cerradas en el listado (el archivo en base de
 // datos no se borra, solo se recorta lo que se envía al navegador).
 const CLOSED_WINDOW_DAYS = 120;
+// Tope de cerradas que se sirven. Con el tablero cubriendo toda Cataluña hay
+// del orden de mil convocatorias vivas, y las que van cerrando se acumulan.
+const CLOSED_LIMIT = 800;
+
+// El callejero cambia cuando se crea o se disuelve un ente: mirarlo una vez a
+// la semana sobra.
+const CALLEJERO_TTL_DIAS = 7;
 
 const EXCLUDE_KEYWORDS = [
   "policia", "policía", "guàrdia urbana", "guardia urbana",
@@ -43,42 +53,279 @@ const EXCLUDE_KEYWORDS = [
   "sergent", "caporal", "sotsinspector", "intendent", "mosso",
 ];
 
-// Los puntos desde los que se mide el área. No son una lista de municipios
-// admitidos: son los centros de los círculos.
-const TOWNS = [
-  { nombre: "Barcelona", lat: 41.3874, lon: 2.1686 },
-  { nombre: "Badalona", lat: 41.4500, lon: 2.2474 },
-  { nombre: "Montgat", lat: 41.4680, lon: 2.2790 },
-  { nombre: "Santa Coloma de Gramenet", lat: 41.4515, lon: 2.2080 },
-  { nombre: "Alella", lat: 41.4939, lon: 2.2947 },
-  { nombre: "Tiana", lat: 41.4817, lon: 2.2683 },
-  { nombre: "Sant Adrià de Besòs", lat: 41.4304, lon: 2.2183 },
-  { nombre: "El Masnou", lat: 41.4795, lon: 2.3168 },
-];
+/* ============================ LUGARES ============================ */
+
+/** Un municipio o una comarca del callejero, con identificador estable. */
+export interface Sitio {
+  /** Apto para la URL: `hospitalet-llobregat`, `comarca-baix-llobregat`. */
+  id: string;
+  /** Nombre del callejero: "L'Hospitalet de Llobregat". */
+  nombre: string;
+  tipo: "municipio" | "comarca";
+  comarca: string | null;
+  comarcaId: string | null;
+  lat: number | null;
+  lon: number | null;
+}
+
+/** Cuánto hay que fiarse de `trabajoId`. */
+export type OrigenLugar =
+  | "sede"          // el organismo es de ese pueblo: se trabaja donde está
+  | "portal"        // portal Convoca: el municipio se sabe por construcción
+  | "titulo"        // topónimo del anuncio, comprobado contra el callejero
+  | "desconocido";  // el anuncio no lo dice en ningún campo
+
+export interface Localizacion {
+  /** Municipio del organismo. Referencia a `sitios`. */
+  sedeId: string | null;
+  /** Dónde se trabaja. `null` cuando el anuncio no lo dice. */
+  trabajoId: string | null;
+  origen: OrigenLugar;
+}
+
+/**
+ * Artículos y preposiciones que sobran para comparar dos nombres de sitio.
+ * COPIA LITERAL de `PARTICULAS` en src/lib/lugar.ts.
+ */
+const PARTICULAS = new Set([
+  "el", "la", "els", "les", "lo", "los", "de", "del", "dels", "da", "d", "l", "i", "a", "al", "als",
+]);
+
+/** COPIA LITERAL de `normaliza()` en src/lib/formato.ts. */
+function normalizaTexto(t: string): string {
+  return t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+}
+
+/**
+ * COPIA LITERAL de `claveLugar()` en src/lib/lugar.ts, y tiene que seguir
+ * siéndolo: de aquí sale el identificador que viaja en `?donde=` y que la
+ * gente tiene guardado en marcadores y mandado por WhatsApp. Si las dos
+ * versiones divergen, esos enlaces dejan de filtrar sin dar ningún error.
+ */
+function claveSitio(nombre: string): string {
+  return normalizaTexto(nombre)
+    .replace(/[’´`]/g, "'")
+    .replace(/'/g, "' ")
+    .split(/[\s.,]+/)
+    .map((palabra) => palabra.replace(/'$/, ""))
+    .filter((palabra) => palabra && !PARTICULAS.has(palabra))
+    .join(" ");
+}
+
+/** COPIA LITERAL de `idDe()` en src/lib/lugar.ts. */
+function idSitio(clave: string): string {
+  return clave.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+}
+
+/** Las comarcas llevan prefijo para no chocar nunca con un municipio homónimo. */
+function idComarca(nombre: string): string {
+  return `comarca-${idSitio(claveSitio(nombre))}`;
+}
+
+const PROVINCIAS_CATALANAS = new Set(["Barcelona", "Girona", "Lleida", "Tarragona"]);
+
+type Callejero = Record<string, Sitio>;
+
+/**
+ * Baja el callejero entero de CIDO: unos 7.700 entes públicos de los que salen
+ * los 989 municipios catalanes con coordenadas y sus 43 comarcas.
+ *
+ * Se prefieren las coordenadas del ayuntamiento: son las del pueblo, no las de
+ * un consorcio que casualmente tenga allí la sede.
+ */
+async function descargaCallejero(): Promise<Callejero> {
+  const sitios: Callejero = {};
+  const esAyuntamiento: Record<string, boolean> = {};
+  let offset = 0;
+  let total = Infinity;
+
+  while (offset < total && offset < 12000) {
+    const res = await fetchJson(
+      `${CIDO_INSTITUCIONS_URL}?${new URLSearchParams({
+        "page[limit]": "500",
+        "page[offset]": String(offset),
+      })}`,
+    );
+    const cuerpo = res.body as
+      { data?: { attributes: Record<string, unknown> }[]; meta?: { totalResourceCount?: number } } | null;
+    const filas = cuerpo?.data;
+    if (!res.ok || !Array.isArray(filas)) throw new Error(`El callejero de CIDO respondió ${res.status}`);
+    total = Number(cuerpo?.meta?.totalResourceCount ?? filas.length);
+
+    for (const fila of filas) {
+      const a = fila.attributes;
+      const municipi = typeof a.municipi === "string" ? a.municipi.trim() : "";
+      const provincia = typeof a.provincia === "string" ? a.provincia : "";
+      if (!municipi || !PROVINCIAS_CATALANAS.has(provincia)) continue;
+
+      const comarca = typeof a.comarca === "string" ? a.comarca.trim() : "";
+      const clave = claveSitio(municipi);
+      if (!clave) continue;
+
+      const ayto = /^Ajuntament /i.test(String(a.institucioDesenvolupat ?? ""));
+      if (!sitios[clave] || (ayto && !esAyuntamiento[clave])) {
+        sitios[clave] = {
+          id: idSitio(clave),
+          nombre: municipi,
+          tipo: "municipio",
+          comarca: comarca || null,
+          comarcaId: comarca ? idComarca(comarca) : null,
+          lat: typeof a.latitud === "number" ? a.latitud : null,
+          lon: typeof a.longitud === "number" ? a.longitud : null,
+        };
+        esAyuntamiento[clave] = ayto;
+      }
+
+      // La comarca es un sitio más: hay anuncios que solo dicen la comarca
+      // ("als Serveis Territorials al Vallès Occidental") y el menú «Dónde» se
+      // agrupa por ella.
+      const claveCom = comarca ? claveSitio(comarca) : "";
+      if (claveCom && !sitios[`c:${claveCom}`]) {
+        sitios[`c:${claveCom}`] = {
+          id: idComarca(comarca),
+          nombre: comarca,
+          tipo: "comarca",
+          comarca,
+          comarcaId: idComarca(comarca),
+          lat: null,
+          lon: null,
+        };
+      }
+    }
+    if (!filas.length) break;
+    offset += 500;
+  }
+  return sitios;
+}
+
+/** El callejero guardado en la base, y cuándo toca volver a bajarlo. */
+async function cargaCallejero(puedeRefrescar: boolean): Promise<Callejero> {
+  const guardado = await readSnapshot(2);
+  const datos = guardado?.data as { sitios?: Callejero } | null;
+  const util = datos?.sitios && Object.keys(datos.sitios).length ? datos.sitios : null;
+  const caducado = !guardado ||
+    (Date.now() - Date.parse(guardado.updated_at)) / 86400000 > CALLEJERO_TTL_DIAS;
+
+  // Lo normal: hay callejero guardado y no toca renovarlo.
+  if (util && !(caducado && puedeRefrescar)) return util;
+
+  // Se baja entero si no hay ninguno —sin él no habría lugares de trabajo— o
+  // si alguien ha pedido un refresco y ya ha caducado. Nunca en una visita
+  // corriente con el callejero al día: dieciséis peticiones seguidas dentro de
+  // una Edge Function son la vía más corta a un tiempo de espera agotado.
+  try {
+    const fresco = await descargaCallejero();
+    if (Object.keys(fresco).length) {
+      await writeSnapshot(2, { sitios: fresco, generado: new Date().toISOString() });
+      return fresco;
+    }
+  } catch {
+    // Un callejero rancio resuelve igual de bien los municipios de siempre.
+  }
+  return util ?? {};
+}
+
+function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: Callejero): Sitio | null {
+  const municipi = typeof a?.municipi === "string" ? a.municipi.trim() : "";
+  if (!municipi) return null;
+  const clave = claveSitio(municipi);
+  if (!clave) return null;
+  const conocido = callejero[clave];
+  if (conocido) return conocido;
+
+  // Un ente de fuera de Cataluña (la delegación del Govern en Madrid) o un
+  // municipio que el callejero no traiga: se construye al vuelo para que la
+  // convocatoria no se quede sin sede.
+  const comarca = typeof a?.comarca === "string" ? a.comarca.trim() : "";
+  return {
+    id: idSitio(clave),
+    nombre: municipi,
+    tipo: "municipio",
+    comarca: comarca || null,
+    comarcaId: comarca ? idComarca(comarca) : null,
+    lat: typeof a?.latitud === "number" ? a.latitud : null,
+    lon: typeof a?.longitud === "number" ? a.longitud : null,
+  };
+}
+
+function parentheticals(titol: string): string[] {
+  return [...titol.matchAll(/\(([^()]{2,60})\)/g)].map((m) => m[1].trim());
+}
+
+const ORGANO_TERRITORIAL =
+  "Serveis Territorials|Servei Territorial|Oficina Territorial|Delegació Territorial|" +
+  "Demarcació Territorial|Direcció Territorial|Gerència Territorial";
+
+const COLA_TERRITORIAL = new RegExp(
+  "(?:" + ORGANO_TERRITORIAL + ")" +
+    "(?:\\s+(?:als|a la|a l'|al|a|dels|de la|de l'|del|de|d'))?" +
+    "\\s+([^,;()]{3,40})\\s*$",
+  "i",
+);
+
+/**
+ * El lugar de trabajo que declara el anuncio, comprobado contra el callejero.
+ *
+ * Solo vale un acierto exacto de clave, y por eso no hace falta ninguna lista
+ * negra: "TEI", "SIAD" o "Recursos Humans" no son municipios y mueren aquí
+ * solos. Se mira el paréntesis final y también la cola del título —"als
+ * Serveis Territorials a Girona"—, que es donde estaban escondidas 36
+ * convocatorias que hasta ahora se daban por perdidas.
+ *
+ * En las municipales y comarcales no se mira: ahí el organismo ya dice el
+ * pueblo, y de los 361 títulos municipales solo 7 tienen paréntesis, todos con
+ * códigos internos del ayuntamiento.
+ */
+function lugarDelTitulo(titol: string, ambito: string, callejero: Callejero): Sitio | null {
+  if (ambito === "municipal" || ambito === "comarcal") return null;
+
+  const candidatos = parentheticals(titol);
+  const cola = COLA_TERRITORIAL.exec(titol.replace(/\s*\([^()]*\)\s*$/, "").trim());
+  if (cola) candidatos.push(cola[1].trim());
+
+  // Del final hacia el principio: la cola del título y el último paréntesis
+  // son los que hablan del destino; los de en medio suelen ser la categoría.
+  for (const candidato of candidatos.reverse()) {
+    const clave = claveSitio(candidato);
+    if (!clave) continue;
+    const sitio = callejero[clave] ?? callejero[`c:${clave}`];
+    if (sitio) return sitio;
+  }
+  return null;
+}
+
+/* ============================ FUENTES ============================ */
 
 type ConvocaSource = { id: string; nombre: string; source: "convoca"; baseUrl: string };
 type CidoSource = { id: string; nombre: string; source: "cido"; ambit: string; ambito: string };
 type Source = ConvocaSource | CidoSource;
 
+/**
+ * Todo el empleo público de Cataluña que publica CIDO, menos dos ámbitos que
+ * se quedan fuera a propósito: «Altres entitats públiques» (hospitales,
+ * universidades y centros de investigación) y «Cossos de l'Administració de
+ * l'Estat» (ministerios, casi todos en Madrid).
+ */
 const SOURCES: Source[] = [
   { id: "badalona", nombre: "Badalona", source: "convoca", baseUrl: "https://badalona.convoca.online" },
   { id: "elmasnou", nombre: "El Masnou", source: "convoca", baseUrl: "https://elmasnou.convoca.online" },
   { id: "santacoloma", nombre: "Santa Coloma de Gramenet", source: "convoca", baseUrl: "https://gramenet.convoca.online" },
-  { id: "cido-municipal", nombre: "Ayuntamientos", source: "cido", ambit: "Municipis província de Barcelona i ens adscrits", ambito: "municipal" },
+  { id: "cido-bcn", nombre: "Ayuntamientos de Barcelona", source: "cido", ambit: "Municipis província de Barcelona i ens adscrits", ambito: "municipal" },
+  { id: "cido-gir", nombre: "Ayuntamientos de Girona", source: "cido", ambit: "Municipis província de Girona i ens adscrits", ambito: "municipal" },
+  { id: "cido-lle", nombre: "Ayuntamientos de Lleida", source: "cido", ambit: "Municipis província de Lleida i ens adscrits", ambito: "municipal" },
+  { id: "cido-tar", nombre: "Ayuntamientos de Tarragona", source: "cido", ambit: "Municipis província de Tarragona i ens adscrits", ambito: "municipal" },
+  { id: "cido-comarcal", nombre: "Consejos comarcales", source: "cido", ambit: "Consells comarcals i els seus ens adscrits", ambito: "comarcal" },
   { id: "cido-generalitat", nombre: "Generalitat de Catalunya", source: "cido", ambit: "Administració autonòmica", ambito: "generalitat" },
-  { id: "cido-diputacio", nombre: "Diputació de Barcelona", source: "cido", ambit: "Diputacions i els seus ens adscrits", ambito: "diputacio" },
+  { id: "cido-diputacio", nombre: "Diputaciones", source: "cido", ambit: "Diputacions i els seus ens adscrits", ambito: "diputacio" },
 ];
 
 const CIDO_STATES = ["Termini obert", "Pendent de termini"];
 
-// CIDO pagina con page[limit] y page[offset], y dice el total en
-// meta.totalResourceCount. Se piden todas las páginas: con un tope fijo, el
-// día que la fuente creciera se perderían filas sin que nadie se enterara.
 const CIDO_PAGE_LIMIT = 500;
 /** Cinturón de seguridad por si la fuente devolviera un total absurdo. */
 const CIDO_MAX_ROWS = 5000;
 
-// ============================ HELPERS ============================
+/* ============================ HELPERS ============================ */
 
 type Item = Record<string, unknown> & { id: string };
 
@@ -87,12 +334,6 @@ function asText(v: unknown): string {
   if (typeof v === "string") return v;
   if (typeof v === "object") return Object.values(v as Record<string, string>).join(" ");
   return String(v);
-}
-
-function normalize(s: string): string {
-  return s.toLowerCase().normalize("NFD")
-    .replace(/[̀-ͯ]/g, "")
-    .replace(/[^a-z0-9]+/g, " ").trim();
 }
 
 function isExcluded(...vals: unknown[]): boolean {
@@ -114,82 +355,6 @@ function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(to) - Date.parse(from)) / 86400000);
 }
 
-function nearestTownKm(lat: unknown, lon: unknown): number {
-  if (typeof lat !== "number" || typeof lon !== "number") return Infinity;
-  return Math.min(...TOWNS.map((t) => {
-    const dLat = (lat - t.lat) * 111.0;
-    const dLon = (lon - t.lon) * 111.0 * Math.cos((t.lat * Math.PI) / 180);
-    return Math.hypot(dLat, dLon);
-  }));
-}
-
-// "Ajuntament de Sabadell - Promoció Econòmica, SL" → "Sabadell". Sirve para
-// saber en qué pueblo se trabaja, que en una plaza municipal es el mismo
-// pueblo del organismo. Devuelve null para consorcios y demás entes que no
-// son un ayuntamiento.
-function municipioDe(institucio: string): string | null {
-  const cabeza = institucio.split(" - ")[0].trim();
-  const m = /^Ajuntament\s+(.+)$/i.exec(cabeza);
-  if (!m) return null;
-  // El artículo forma parte del nombre del pueblo —El Prat de Llobregat, La
-  // Roca del Vallès, L'Hospitalet— pero la preposición que lo enlaza con
-  // "Ajuntament" no: se quita el "de" y se deja el artículo en pie.
-  const nombre = m[1].trim()
-    .replace(/^de\s+l'/i, "L'")
-    .replace(/^de\s+la\s+/i, "La ")
-    .replace(/^de\s+les\s+/i, "Les ")
-    .replace(/^dels\s+/i, "Els ")
-    .replace(/^del\s+/i, "El ")
-    .replace(/^d'/i, "")
-    .replace(/^de\s+/i, "")
-    .trim();
-  return nombre || null;
-}
-
-// El nombre del organismo, en español donde se puede y con el separador que
-// espera la web: "casa · organismo".
-function employerLabel(institucio: string): string {
-  return institucio
-    .replace(/^Ajuntament /, "Ayuntamiento ")
-    .replace(/^Generalitat de Catalunya - /, "Generalitat de Catalunya · ")
-    .replace(/ - /, " · ");
-}
-
-function parentheticals(titol: string): string[] {
-  return [...titol.matchAll(/\(([^()]{2,60})\)/g)].map((m) => m[1].trim());
-}
-
-// El centro de trabajo no es un campo: CIDO lo deja entre paréntesis en el
-// título. La lat/lon del registro es la SEDE del organismo, no la del puesto.
-function extractWorkplace(titol: string): string | null {
-  const NOT_PLACE = /grup|categoria|nivell|torn|especialitat|jornada|substituci/i;
-  for (const p of parentheticals(titol).reverse()) {
-    if (/\d/.test(p) || NOT_PLACE.test(p)) continue;
-    if (!/^[A-ZÀ-ÿ]/.test(p)) continue;
-    return p;
-  }
-  return null;
-}
-
-// A diferencia del aviso de WhatsApp, aquí NO se descartan las plazas lejanas:
-// el portal las muestra y deja que el usuario filtre por lugar. Se marcan.
-const FAR_PLACES = [
-  "lleida", "girona", "tarragona", "reus", "tortosa", "amposta", "falset",
-  "seu d urgell", "sort", "montferrer", "puigcerda", "solsona", "berga", "vic",
-  "manresa", "igualada", "vilafranca del penedes", "vilanova i la geltru", "olot",
-  "figueres", "blanes", "salt", "banyoles", "valls", "el vendrell", "cambrils",
-  "salou", "tremp", "la pobla de segur", "balaguer", "mollerussa", "cervera",
-  "tarrega", "sau", "siurana", "palamos", "palafrugell", "ripoll", "lloret de mar",
-  "manlleu", "guissona", "mataro", "tortella",
-];
-
-function isFarTitle(titol: string): boolean {
-  return parentheticals(titol).some((p) => {
-    const w = normalize(p);
-    return FAR_PLACES.some((f) => new RegExp(`(^| )${f}( |$)`).test(w));
-  });
-}
-
 async function fetchJson(url: string, init: RequestInit = {}, attempts = 2) {
   let lastErr: unknown = null;
   for (let i = 0; i < attempts; i++) {
@@ -201,7 +366,7 @@ async function fetchJson(url: string, init: RequestInit = {}, attempts = 2) {
   throw new Error(`Sin respuesta de ${new URL(url).host}: ${String((lastErr as Error)?.message ?? lastErr)}`);
 }
 
-// ============================ NORMALIZACIÓN COMÚN ============================
+/* ====================== NORMALIZACIÓN COMÚN ====================== */
 
 // Traducciones a español llano. Se hacen en el servidor para que la web no
 // tenga que conocer la jerga catalana de la fuente.
@@ -247,14 +412,25 @@ function buildItem(base: Record<string, unknown>): Item {
   const contract = base.contractType as string | null;
   const tipo = contract ? TIPO_CONTRATO[contract] : undefined;
   const esBolsa = base.kind === "bag";
+  const donde = base.donde as Localizacion;
+  const sede = base.sede as Sitio | null;
+  const trabajo = base.trabajo as Sitio | null;
+
   return {
     id: String(base.id),
     titulo: titol,
     empleador: base.empleador,
     ambito: base.ambito,
-    municipio: base.municipio,
-    lugar: base.lugar ?? null,
-    lejos: base.lejos ?? false,
+    donde,
+    // Los tres campos de siempre se derivan de `donde` y se siguen enviando:
+    // el archivo de cerradas está lleno de filas guardadas con este formato, y
+    // un despliegue anterior de la web puede seguir cacheado en un navegador.
+    // Están marcados como obsoletos en src/lib/tipos.ts.
+    municipio: base.municipioLegado ?? null,
+    lugar: trabajo?.nombre ?? null,
+    // Ya no significa nada en el servidor: la distancia depende de dónde viva
+    // quien mira, y eso solo lo sabe el navegador.
+    lejos: false,
     tipo: esBolsa ? "bolsa" : "convocatoria",
     tipoEtiqueta: esBolsa
       ? "Bolsa de trabajo: lista de espera para contratos temporales y sustituciones"
@@ -276,12 +452,13 @@ function buildItem(base: Record<string, unknown>): Item {
     enlace: base.enlace ?? null,
     fichaOficial: base.fichaOficial ?? null,
     fuente: base.fuente,
+    _sitios: [sede, trabajo].filter(Boolean) as Sitio[],
   };
 }
 
-// ============================ FUENTE A: CONVOCA ============================
+/* ====================== FUENTE A: CONVOCA ====================== */
 
-async function fetchConvoca(m: ConvocaSource): Promise<Item[]> {
+async function fetchConvoca(m: ConvocaSource, callejero: Callejero): Promise<Item[]> {
   const headers = {
     "client-id": CONVOCA_CLIENT_ID,
     "Origin": m.baseUrl,
@@ -294,6 +471,14 @@ async function fetchConvoca(m: ConvocaSource): Promise<Item[]> {
   if (!Array.isArray(callsRes.body) || !Array.isArray(bagsRes.body)) {
     throw new Error(`Convoca respondió mal (calls=${callsRes.status}, bags=${bagsRes.status})`);
   }
+
+  // Cada portal es un ayuntamiento, así que el pueblo se sabe por construcción.
+  const sede = callejero[claveSitio(m.nombre)] ?? null;
+  const donde: Localizacion = {
+    sedeId: sede?.id ?? null,
+    trabajoId: sede?.id ?? null,
+    origen: "portal",
+  };
 
   const build = (arr: unknown[], kind: "call" | "bag"): Item[] =>
     (arr as Record<string, unknown>[])
@@ -309,8 +494,10 @@ async function fetchConvoca(m: ConvocaSource): Promise<Item[]> {
           titulo: titleCa,
           empleador: `Ayuntamiento de ${m.nombre}`,
           ambito: "municipal",
-          municipio: m.nombre,
-          lugar: m.nombre,
+          donde,
+          sede,
+          trabajo: sede,
+          municipioLegado: m.nombre,
           kind,
           plazas: (i.vacancies as Record<string, number> | null)?.total ?? null,
           inicio: ymdOf(i.startDate),
@@ -327,14 +514,23 @@ async function fetchConvoca(m: ConvocaSource): Promise<Item[]> {
   return [...build(callsRes.body, "call"), ...build(bagsRes.body, "bag")];
 }
 
-// ============================ FUENTE B: CIDO ============================
+/* ======================== FUENTE B: CIDO ======================== */
 
 function cidoUrl(ambit: string, extra: Record<string, string>): string {
   return `${CIDO_BASE_URL}?${new URLSearchParams({ "filter[ambit]": ambit, ...extra }).toString()}`;
 }
 
-/** Todas las páginas de un ámbito y un estado. */
-async function cidoRows(ambit: string, estat: string): Promise<Record<string, unknown>[]> {
+type Instituciones = Map<string, Record<string, unknown>>;
+
+/**
+ * Todas las páginas de un ámbito y un estado, con sus instituciones. Las
+ * instituciones se acumulan en el mismo mapa para TODAS las llamadas: cada
+ * página trae solo las suyas, y una fila cuya institución se quedara fuera del
+ * mapa se quedaría sin sede.
+ */
+async function cidoRows(
+  ambit: string, estat: string, instituciones: Instituciones,
+): Promise<Record<string, unknown>[]> {
   const filas: Record<string, unknown>[] = [];
   for (let offset = 0; offset < CIDO_MAX_ROWS; offset += CIDO_PAGE_LIMIT) {
     const res = await fetchJson(cidoUrl(ambit, {
@@ -342,13 +538,18 @@ async function cidoRows(ambit: string, estat: string): Promise<Record<string, un
       sort: "-id",
       "page[limit]": String(CIDO_PAGE_LIMIT),
       "page[offset]": String(offset),
+      include: "institucio",
     }));
-    const cuerpo = res.body as
-      { data?: Record<string, unknown>[]; meta?: { totalResourceCount?: number } } | null;
+    const cuerpo = res.body as {
+      data?: Record<string, unknown>[];
+      included?: { id: string; attributes: Record<string, unknown> }[];
+      meta?: { totalResourceCount?: number };
+    } | null;
     const data = cuerpo?.data;
     if (!res.ok || !Array.isArray(data)) {
       throw new Error(`CIDO respondió mal (${ambit} / ${estat}, status=${res.status})`);
     }
+    for (const inc of cuerpo?.included ?? []) instituciones.set(inc.id, inc.attributes);
     filas.push(...data);
     const total = Number(cuerpo?.meta?.totalResourceCount ?? filas.length);
     if (!data.length || filas.length >= total) break;
@@ -356,34 +557,53 @@ async function cidoRows(ambit: string, estat: string): Promise<Record<string, un
   return filas;
 }
 
-async function fetchCido(s: CidoSource): Promise<Item[]> {
-  const paginas = await Promise.all(CIDO_STATES.map((estat) => cidoRows(s.ambit, estat)));
+async function fetchCido(s: CidoSource, callejero: Callejero): Promise<Item[]> {
+  const instituciones: Instituciones = new Map();
+  const paginas = await Promise.all(
+    CIDO_STATES.map((estat) => cidoRows(s.ambit, estat, instituciones)),
+  );
 
   const out: Item[] = [];
-  paginas.forEach((data) => {
+  for (const data of paginas) {
     for (const row of data) {
       const a = row.attributes as Record<string, unknown> | undefined;
       const rid = String((row as Record<string, unknown>).id ?? a?.identificador ?? "");
       if (!a || !rid || isExcluded(a.titol)) continue;
 
-      // Un solo criterio de área para las tres fuentes. En una plaza municipal
-      // la sede del organismo es además el sitio donde se trabaja, así que
-      // aquí el radio es más fiel que en la Generalitat, donde solo dice que
-      // el departamento tiene la sede en Barcelona.
-      if (nearestTownKm(a.latitud, a.longitud) > AREA_RADIUS_KM) continue;
+      const rel = (row.relationships as Record<string, { data?: { id: string } }> | undefined)
+        ?.institucio?.data;
+      const inst = rel ? instituciones.get(rel.id) : undefined;
+      const sede = sitioDeInstitucion(inst, callejero);
+
+      const titol = String(a.titol ?? "").trim();
+      const delTitulo = lugarDelTitulo(titol, s.ambito, callejero);
+
+      // En un ayuntamiento o un consejo comarcal, la sede es el destino. En la
+      // Generalitat solo lo es si el anuncio lo dice; si calla, no se inventa.
+      const trabajo = delTitulo ?? (s.ambito === "municipal" || s.ambito === "comarcal" ? sede : null);
+      const origen: OrigenLugar = delTitulo
+        ? "titulo"
+        : trabajo
+          ? "sede"
+          : "desconocido";
 
       const institucio = String(a.institucioDesenvolupat ?? "");
-      const municipio = s.ambito === "municipal" ? municipioDe(institucio) : null;
-      const titol = String(a.titol ?? "").trim();
       const empleador = employerLabel(institucio);
+
       out.push(buildItem({
         id: `cido-${rid}`,
         titulo: titol,
         empleador,
         ambito: s.ambito,
-        municipio: municipio ?? empleador,
-        lugar: extractWorkplace(titol) ?? municipio,
-        lejos: isFarTitle(titol),
+        donde: { sedeId: sede?.id ?? null, trabajoId: trabajo?.id ?? null, origen },
+        sede,
+        trabajo,
+        // El campo viejo `municipio` se comporta como siempre: el pueblo en las
+        // municipales, y el nombre del organismo en el resto, que es lo que la
+        // web anterior espera para saber que no aporta nada.
+        municipioLegado: s.ambito === "municipal" || s.ambito === "comarcal"
+          ? (sede?.nombre ?? empleador)
+          : empleador,
         kind: a.borsaTreball ? "bag" : "call",
         plazas: (a.numPlaces as number) || null,
         inicio: ymdOf(a.dataInici),
@@ -400,11 +620,21 @@ async function fetchCido(s: CidoSource): Promise<Item[]> {
         fuente: "cido",
       }));
     }
-  });
+  }
   return out;
 }
 
-// ============================ BASE DE DATOS ============================
+/** El nombre del organismo, en español donde se puede y con el separador que
+ * espera la web: "casa · organismo". */
+function employerLabel(institucio: string): string {
+  return institucio
+    .replace(/^Ajuntament /, "Ayuntamiento ")
+    .replace(/^Consell Comarcal /, "Consejo Comarcal ")
+    .replace(/^Generalitat de Catalunya - /, "Generalitat de Catalunya · ")
+    .replace(/ - /, " · ");
+}
+
+/* ========================= BASE DE DATOS ========================= */
 
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
@@ -439,7 +669,7 @@ async function loadClosed(today: string): Promise<Item[]> {
   const desde = new Date(Date.parse(today) - CLOSED_WINDOW_DAYS * 86400000)
     .toISOString().slice(0, 10);
   const res = await fetch(
-    `${SB_URL}/rest/v1/convoca_board_items?select=item&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=400`,
+    `${SB_URL}/rest/v1/convoca_board_items?select=item&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=${CLOSED_LIMIT}`,
     { headers: DB, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
   );
   if (!res.ok) return [];
@@ -447,8 +677,8 @@ async function loadClosed(today: string): Promise<Item[]> {
   return rows.map((r) => r.item);
 }
 
-async function readSnapshot(): Promise<{ data: unknown; updated_at: string } | null> {
-  const res = await fetch(`${SB_URL}/rest/v1/convoca_snapshot?id=eq.1&select=data,updated_at`, {
+async function readSnapshot(id: number): Promise<{ data: unknown; updated_at: string } | null> {
+  const res = await fetch(`${SB_URL}/rest/v1/convoca_snapshot?id=eq.${id}&select=data,updated_at`, {
     headers: DB, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
   if (!res.ok) return null;
@@ -456,22 +686,30 @@ async function readSnapshot(): Promise<{ data: unknown; updated_at: string } | n
   return rows?.[0] ?? null;
 }
 
-async function writeSnapshot(data: unknown): Promise<void> {
+async function writeSnapshot(id: number, data: unknown): Promise<void> {
   await fetch(`${SB_URL}/rest/v1/convoca_snapshot?on_conflict=id`, {
     method: "POST",
     headers: { ...DB, Prefer: "resolution=merge-duplicates" },
-    body: JSON.stringify([{ id: 1, data, updated_at: new Date().toISOString() }]),
+    body: JSON.stringify([{ id, data, updated_at: new Date().toISOString() }]),
     signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
   });
 }
 
-// ============================ CONSTRUCCIÓN ============================
+/* ========================= CONSTRUCCIÓN ========================= */
 
-async function build(today: string) {
-  const results = await Promise.allSettled(
-    SOURCES.map((s) => (s.source === "convoca" ? fetchConvoca(s) : fetchCido(s))),
-  );
+async function build(today: string, puedeRefrescar: boolean) {
   const errores: { fuente: string; mensaje: string }[] = [];
+
+  let callejero: Callejero = {};
+  try {
+    callejero = await cargaCallejero(puedeRefrescar);
+  } catch (e) {
+    errores.push({ fuente: "(callejero)", mensaje: String((e as Error)?.message ?? e) });
+  }
+
+  const results = await Promise.allSettled(
+    SOURCES.map((s) => (s.source === "convoca" ? fetchConvoca(s, callejero) : fetchCido(s, callejero))),
+  );
   const vistos = new Map<string, Item>();
   results.forEach((r, i) => {
     if (r.status === "fulfilled") {
@@ -481,6 +719,17 @@ async function build(today: string) {
     }
   });
   const todos = [...vistos.values()];
+
+  // El catálogo que se manda: el callejero entero —para que el navegador pueda
+  // ofrecer cualquier municipio de Cataluña como punto de referencia y para que
+  // los identificadores del archivo viejo sigan resolviendo— más los sitios de
+  // fuera del callejero que hayan aparecido.
+  const sitios: Record<string, Sitio> = {};
+  for (const s of Object.values(callejero)) sitios[s.id] = s;
+  for (const it of todos) {
+    for (const s of (it._sitios as Sitio[] | undefined) ?? []) sitios[s.id] = s;
+    delete (it as Record<string, unknown>)._sitios;
+  }
 
   try { await saveSeen(todos); } catch (e) {
     errores.push({ fuente: "(archivo)", mensaje: String((e as Error)?.message ?? e) });
@@ -498,9 +747,14 @@ async function build(today: string) {
   abiertas.sort((a, b) => String(a.fin).localeCompare(String(b.fin)));
   pendientes.sort((a, b) => String(b.publicado ?? "").localeCompare(String(a.publicado ?? "")));
 
-  const cerradas = (await loadClosed(today))
-    .filter((x) => !vistos.has(x.id))
-    .map((x) => ({ ...x, diasRestantes: x.fin ? daysBetween(today, String(x.fin)) : null }));
+  // Las cerradas salen del archivo y sus identificadores de sitio resuelven
+  // contra el callejero, que va entero en la respuesta. Las guardadas antes de
+  // este cambio no traen `donde`: de esas se ocupa el modo de compatibilidad
+  // de la web.
+  const cerradas = (await loadClosed(today)).filter((x) => !vistos.has(x.id)).map((x) => {
+    delete (x as Record<string, unknown>)._sitios;
+    return { ...x, diasRestantes: x.fin ? daysBetween(today, String(x.fin)) : null };
+  });
 
   const plazas = abiertas.reduce((s, x) => s + (Number(x.plazas) || 0), 0);
   return {
@@ -509,6 +763,7 @@ async function build(today: string) {
     abiertas,
     pendientes,
     cerradas,
+    sitios,
     resumen: {
       abiertas: abiertas.length,
       pendientes: pendientes.length,
@@ -522,7 +777,7 @@ async function build(today: string) {
   };
 }
 
-// ============================ SERVIDOR ============================
+/* =========================== SERVIDOR =========================== */
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -537,7 +792,7 @@ Deno.serve(async (req: Request) => {
     const today = todayMadrid();
 
     if (!refresh) {
-      const snap = await readSnapshot();
+      const snap = await readSnapshot(1);
       if (snap) {
         const edadMin = (Date.now() - Date.parse(snap.updated_at)) / 60000;
         const mismoDia = (snap.data as { hoy?: string })?.hoy === today;
@@ -549,8 +804,8 @@ Deno.serve(async (req: Request) => {
       }
     }
 
-    const data = await build(today);
-    await writeSnapshot(data);
+    const data = await build(today, refresh);
+    await writeSnapshot(1, data);
     return new Response(JSON.stringify({ ...data, cache: refresh ? "refresh" : "miss" }), {
       headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=600" },
     });

@@ -1,10 +1,11 @@
 import type { Plaza, Grupo } from './tipos';
 import { normaliza, urgencia, ORDEN_NIVEL, ETIQUETA_AMBITO } from './formato';
-import { idsFiltroLugar, lugaresTexto } from './lugar';
+import { idsFiltroLugar, lugaresTexto } from './localizacion';
+import { estaCerca, kmDesde } from './cercania';
 import { terminosDe } from './oficios';
 
 export type Vista = 'tarjetas' | 'tabla';
-export type Orden = 'fin' | 'fin-lejos' | 'plazas' | 'publicado' | 'nivel';
+export type Orden = 'fin' | 'fin-lejos' | 'plazas' | 'publicado' | 'nivel' | 'cercania';
 export type Pestana = Grupo | 'guardadas';
 export type ClaseContrato = 'fija' | 'temporal' | 'bolsa';
 
@@ -17,7 +18,9 @@ export interface Filtros {
   urgencias: string[];
   /** Identificadores de lugar de trabajo, los del catálogo de `lugar.ts`. */
   lugares: string[];
-  /** true = esconder lo que cae fuera del área metropolitana. */
+  /** Municipio desde el que se miden las distancias. `null` = sin elegir. */
+  desde: string | null;
+  /** true = esconder lo que queda a más de `RADIO_CERCA_KM` de `desde`. */
   soloCerca: boolean;
   /** Día concreto elegido en el gráfico, `YYYY-MM-DD`. */
   dia: string | null;
@@ -33,6 +36,7 @@ export const FILTROS_INICIALES: Filtros = {
   ambitos: [],
   urgencias: [],
   lugares: [],
+  desde: null,
   soloCerca: false,
   dia: null,
   orden: 'fin',
@@ -85,7 +89,7 @@ function cumple(p: Plaza, f: Filtros, criterio: Criterio): boolean {
       // que basta con que coincida uno.
       return f.lugares.length === 0 || idsFiltroLugar(p).some((id) => f.lugares.includes(id));
     case 'cerca':
-      return !f.soloCerca || !p.lejos;
+      return !f.soloCerca || estaCerca(p, f.desde);
     case 'dia':
       return f.dia === null || p.fin?.slice(0, 10) === f.dia;
   }
@@ -135,9 +139,15 @@ function porFecha(a: Plaza, b: Plaza, desc: boolean): number {
   return desc ? b.fin.localeCompare(a.fin) : a.fin.localeCompare(b.fin);
 }
 
-export function ordena(plazas: Plaza[], orden: Orden): Plaza[] {
+export function ordena(plazas: Plaza[], orden: Orden, desde: string | null = null): Plaza[] {
   const copia = [...plazas];
   switch (orden) {
+    case 'cercania': return copia.sort((a, b) => {
+      // Las que no se sabe a qué distancia están van al final, no al principio.
+      const ka = kmDesde(a, desde) ?? Infinity;
+      const kb = kmDesde(b, desde) ?? Infinity;
+      return ka - kb || porFecha(a, b, false);
+    });
     case 'fin': return copia.sort((a, b) => porFecha(a, b, false));
     case 'fin-lejos': return copia.sort((a, b) => porFecha(a, b, true));
     case 'plazas': return copia.sort((a, b) => (b.plazas ?? 0) - (a.plazas ?? 0) || porFecha(a, b, false));
@@ -167,6 +177,7 @@ export function aQuery(f: Filtros): string {
   if (f.ambitos.length) p.set('convoca', f.ambitos.join(','));
   if (f.urgencias.length) p.set('plazo', f.urgencias.join(','));
   if (f.lugares.length) p.set('donde', f.lugares.join(','));
+  if (f.desde) p.set('desde', f.desde);
   if (f.soloCerca) p.set('cerca', '1');
   if (f.dia) p.set('dia', f.dia);
   if (f.orden !== 'fin') p.set('orden', f.orden);
@@ -206,9 +217,10 @@ export function deQuery(query: string): Filtros {
     // el que no exista en el catálogo no casará con nada y se podrá quitar
     // desde su ficha.
     lugares: lista('donde').filter((v) => /^[a-z0-9-]{1,60}$/.test(v)),
+    desde: /^[a-z0-9-]{1,60}$/.test(p.get('desde') ?? '') ? p.get('desde') : null,
     soloCerca: p.get('cerca') === '1',
     dia: dia && /^\d{4}-\d{2}-\d{2}$/.test(dia) ? dia : null,
-    orden: (['fin', 'fin-lejos', 'plazas', 'publicado', 'nivel'] as const).includes(orden as Orden)
+    orden: (['fin', 'fin-lejos', 'plazas', 'publicado', 'nivel', 'cercania'] as const).includes(orden as Orden)
       ? (orden as Orden) : 'fin',
     vista: vista === 'tabla' ? 'tabla' : 'tarjetas',
   };

@@ -3,19 +3,23 @@ import type { Plaza } from '../lib/tipos';
 import {
   fechaLarga, partesEmpleador, tituloLimpio, esActualizacion, enEspanol,
 } from '../lib/formato';
-import { lugarPrincipal } from '../lib/lugar';
-import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoFuera, IconoSalir } from './piezas';
+import { nombreLugar, esSoloSede } from '../lib/localizacion';
+import { kmDesde } from '../lib/cercania';
+import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoPin, IconoSalir } from './piezas';
 
 interface Props {
   plaza: Plaza;
+  /** Municipio desde el que se miden las distancias. `null` = sin elegir. */
+  desde: string | null;
   guardada: boolean;
   onGuardar: (id: string) => void;
   onAbrir: (plaza: Plaza) => void;
 }
 
-function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
+function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
   const { casa, organismo } = partesEmpleador(plaza);
-  const lugar = lugarPrincipal(plaza);
+  const lugar = nombreLugar(plaza);
+  const km = kmDesde(plaza, desde);
   // Cuando no hay fecha, el aviso del origen es todo lo que se sabe del
   // plazo: dice si está abierto de forma permanente o a la espera del DOGC.
   // Estaba solo en la ficha, así que en la pestaña «Sin plazo aún» la tarjeta
@@ -71,10 +75,13 @@ function TarjetaBase({ plaza, guardada, onGuardar, onAbrir }: Props) {
 
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-sm text-ink-3">
         {lugar && (
-          <span className={`inline-flex items-center gap-1 ${plaza.lejos ? 'text-ochre font-semibold' : ''}`}>
-            <IconoFuera />
+          <span className="inline-flex items-center gap-1">
+            <IconoPin />
             {lugar}
-            {plaza.lejos && ' · fuera de tu zona'}
+            {esSoloSede(plaza) && (
+              <abbr title="Es la sede del organismo; el anuncio no dice dónde se trabaja" className="cursor-help no-underline">*</abbr>
+            )}
+            {km !== null && ` · a ${km} km`}
           </span>
         )}
         {plaza.plazas ? <span>{plaza.plazas} {plaza.plazas === 1 ? 'puesto' : 'puestos'}</span> : null}

@@ -1,9 +1,8 @@
 # Convocatorias
 
-Tablero de plazas de empleo público en el área de Barcelona: los ayuntamientos
-con sede a menos de 25 km de Barcelona, Badalona o el Maresme sur —Barcelonès,
-Baix Llobregat, Maresme y los dos Vallès— más las convocatorias de la
-Generalitat de Catalunya y de la Diputació de Barcelona.
+Tablero de plazas de empleo público de toda Cataluña: los ayuntamientos de las
+cuatro provincias, los consejos comarcales, la Generalitat y las diputaciones.
+Alrededor de mil convocatorias vivas en cualquier momento.
 
 No incluye plazas de policía, guardia urbana ni mossos.
 
@@ -13,9 +12,12 @@ No incluye plazas de policía, guardia urbana ni mossos.
   todavía, y ya cerradas. Más una cuarta pestaña con las que guardas tú.
 - **Gráfico de cierres**: cuántas convocatorias vencen cada uno de los próximos
   45 días. Se pulsa un día y la lista se queda solo con ese.
-- **Filtros** por estudios, tipo de plaza, quién convoca, dónde se trabaja,
-  tiempo que queda y cercanía, todos con el número de plazas que quedarían al
-  marcarlos.
+- **Filtros** por estudios, tipo de plaza, quién convoca, dónde se trabaja
+  —municipio o comarca entera— y tiempo que queda, todos con el número de
+  plazas que quedarían al marcarlos.
+- **Distancias de verdad**: eliges tu municipio una vez y cada convocatoria dice
+  a cuántos kilómetros queda. Se puede ordenar por cercanía y esconder lo que
+  pille lejos.
 - **Buscador** que ignora acentos y mayúsculas, exige todas las palabras y
   salva el salto del español al catalán: se teclea «administrativo» y encuentra
   las plazas de *administratiu*. La tecla `/` lo enfoca desde cualquier punto
@@ -56,7 +58,8 @@ src/
     datos.ts         lectura en build, saneado de la respuesta y caída elegante
     filtros.ts       filtrado, recuento por faceta, orden y estado en la URL
     formato.ts       fechas en español, urgencia, traducción de niveles
-    lugar.ts         limpia los lugares de trabajo y arma el catálogo de municipios
+    localizacion.ts  resuelve el sitio de cada plaza contra el catálogo del servidor
+    cercania.ts      tu municipio de referencia y la distancia hasta cada plaza
     oficios.ts       puentes entre el español que se teclea y el catalán del anuncio
   layouts/Base.astro
   pages/index.astro
@@ -89,13 +92,11 @@ Estaba solo en Supabase, sin control de versiones; está aquí para poder leerlo
 y revisarlo con el resto. Se despliega con `supabase functions deploy
 convoca-board`.
 
-**De dónde sale cada convocatoria.** Tres consultas a CIDO (municipal,
-autonómica y diputaciones) y los portales Convoca de Badalona, El Masnou y
-Santa Coloma. Las tres de CIDO usan el mismo criterio de área: la sede del
-organismo a menos de 25 km de alguno de los ocho pueblos de `TOWNS`. Antes no
-era así —la Generalitat entraba por radio y los ayuntamientos por una lista
-cerrada de ocho nombres— y el resultado era un tablero con 367 plazas de la
-Generalitat y 9 de ayuntamientos.
+**De dónde sale cada convocatoria.** Siete consultas a CIDO —ayuntamientos de
+Barcelona, Girona, Lleida y Tarragona, consejos comarcales, Generalitat y
+diputaciones— y los portales Convoca de Badalona, El Masnou y Santa Coloma. Se
+quedan fuera a propósito «Altres entitats públiques» (hospitales, universidades
+y centros de investigación) y los cuerpos de la Administración del Estado.
 
 ### Lo que llega no siempre está limpio
 
@@ -105,12 +106,18 @@ Dos cosas se corrigen aquí porque en el origen no tienen arreglo:
   `enlace` o `nivelCodigo` en vez de mandarlos a `null`. `saneaTablero()` en
   `datos.ts` pone la respuesta en regla al entrar, así que el resto del código
   puede fiarse del contrato de `tipos.ts`.
-- **El lugar de trabajo.** El origen lo saca del último paréntesis del título,
-  así que a veces no hay ("…als Serveis Territorials a Girona"), a veces es un
-  código interno ("(NAJ)", "(BST - Girona)") y a veces trae la errata de quien
-  tecleó el anuncio ("Barccelona", "LLeida"). `lugar.ts` lo rescata del título,
-  tira lo que no es un topónimo y funde las grafías raras con la buena
-  comparándolas entre sí, sin ninguna lista de municipios que mantener.
+- **El lugar.** CIDO enlaza cada oposición con una institución que trae
+  `municipi`, `comarca` y coordenadas, y se pide en la misma llamada con
+  `?include=institucio`: de ahí sale el 100 % de las sedes. El lugar de trabajo
+  es otra cosa y solo se sabe cuando el anuncio lo dice, así que se saca del
+  paréntesis o de la cola del título y **se comprueba contra el callejero** —los
+  989 municipios catalanes y sus 43 comarcas, cacheados en `convoca_snapshot`—.
+  Por eso ya no se cuelan códigos como "TEI" o "SIAD" haciéndose pasar por
+  pueblos: si no está en el callejero, no es un sitio.
+
+  `donde.origen` dice de cuál de los dos casos se trata. Cuando el anuncio calla
+  —140 bolsas que cubren varios centros a la vez— la web enseña el municipio del
+  organismo **con un asterisco**, nunca disfrazado de destino.
 - **El idioma.** El origen traduce casi todo menos los títulos, la titulación y
   los avisos de plazo. Los títulos se dejan en catalán y se marcan con
   `lang="ca"`; los avisos de plazo sí se traducen (`enEspanol()` en

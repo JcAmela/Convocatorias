@@ -3,11 +3,14 @@ import type { Plaza } from '../lib/tipos';
 import {
   fechaLarga, partesEmpleador, tituloLimpio, esFinDeSemana, enEspanol, ETIQUETA_AMBITO,
 } from '../lib/formato';
-import { lugaresTexto } from '../lib/lugar';
+import { sitio, sitioSede, sitioTrabajo, esSoloSede } from '../lib/localizacion';
+import { kmDesde } from '../lib/cercania';
 import { PildoraPlazo, IconoEstrella, IconoSalir } from './piezas';
 
 interface Props {
   plaza: Plaza | null;
+  /** Municipio desde el que se miden las distancias. `null` = sin elegir. */
+  desde: string | null;
   guardada: boolean;
   onGuardar: (id: string) => void;
   onCerrar: () => void;
@@ -25,7 +28,7 @@ function Fila({ termino, children }: { termino: string; children: React.ReactNod
 /** Lo que un lector de pantalla o el tabulador pueden alcanzar dentro del panel. */
 const FOCALIZABLE = 'a[href], button:not([disabled]), input, select, textarea, [tabindex]:not([tabindex="-1"])';
 
-export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
+export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) {
   const panel = useRef<HTMLDivElement>(null);
   const abierto = plaza !== null;
 
@@ -72,7 +75,11 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
   if (!plaza) return null;
 
   const { casa, organismo } = partesEmpleador(plaza);
-  const lugar = lugaresTexto(plaza);
+  const trabajo = sitioTrabajo(plaza);
+  const sede = sitioSede(plaza);
+  const soloSede = esSoloSede(plaza);
+  const km = kmDesde(plaza, desde);
+  const referencia = sitio(desde);
   const finDeSemana = esFinDeSemana(plaza.fin);
   const nota = plaza.notaPlazo ? enEspanol(plaza.notaPlazo) : null;
   const seleccion = plaza.seleccion ? enEspanol(plaza.seleccion) : null;
@@ -172,13 +179,39 @@ export function Detalle({ plaza, guardada, onGuardar, onCerrar }: Props) {
               </Fila>
             ) : null}
 
-            {lugar && (
+            {/* Dos cosas distintas que antes iban revueltas. Cuando el anuncio
+                dice dónde se trabaja, eso es lo que manda; cuando calla, se
+                enseña la sede del organismo diciendo que es la sede. */}
+            {trabajo && !soloSede && (
               <Fila termino="Dónde se trabaja">
-                {lugar}
-                {plaza.lejos && (
-                  <span className="text-ochre mt-1 block text-sm font-semibold">
-                    Queda fuera de tu zona: comprueba el desplazamiento antes de presentarte.
+                {trabajo.nombre}
+                {trabajo.comarca && trabajo.comarca !== trabajo.nombre && (
+                  <span className="text-ink-3"> · {trabajo.comarca}</span>
+                )}
+                {km !== null && referencia && (
+                  <span className="mt-1 block text-sm text-ink-3">
+                    A {km} km de {referencia.nombre}, en línea recta.
                   </span>
+                )}
+              </Fila>
+            )}
+
+            {soloSede && sede && (
+              <Fila termino="Dónde se trabaja">
+                <span className="text-ink-3">No consta en el anuncio.</span>
+                <span className="mt-1 block text-sm">
+                  El organismo tiene la sede en <strong className="font-semibold text-ink">{sede.nombre}</strong>,
+                  pero eso no dice dónde estaría el puesto. Suele pasar en las bolsas de trabajo, que
+                  cubren varios centros a la vez. Compruébalo en la convocatoria oficial.
+                </span>
+              </Fila>
+            )}
+
+            {sede && trabajo && !soloSede && sede.id !== trabajo.id && (
+              <Fila termino="Dónde está el organismo">
+                {sede.nombre}
+                {sede.comarca && sede.comarca !== sede.nombre && (
+                  <span className="text-ink-3"> · {sede.comarca}</span>
                 )}
               </Fila>
             )}

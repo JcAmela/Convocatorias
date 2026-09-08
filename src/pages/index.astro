@@ -1,17 +1,17 @@
 ---
 import Base from '../layouts/Base.astro';
 import { Tablero } from '../components/Tablero';
-import { leeTablero } from '../lib/datos';
+import { leeTablero, soloLoVisible } from '../lib/datos';
 
 // Se lee en el build para que la primera pintada ya lleve plazas de verdad.
 // El navegador vuelve a pedirlo al montar la isla, así que lo que se ve
 // acaba siendo lo de hoy aunque el despliegue sea de la semana pasada.
-const datos = await leeTablero();
+const datos = soloLoVisible(await leeTablero());
 ---
 
 <Base
-  titulo="Convocatorias — empleo público en Barcelona y alrededores"
-  descripcion="Plazas de empleo público con el plazo abierto en los ayuntamientos del área de Barcelona —Barcelonès, Baix Llobregat, Maresme y los dos Vallès— más Generalitat y Diputación. Filtra por municipio, estudios, tipo de plaza y días que quedan."
+  titulo="Convocatorias — empleo público en Cataluña"
+  descripcion="Plazas de empleo público con el plazo abierto en toda Cataluña: ayuntamientos de las cuatro provincias, consejos comarcales, Generalitat y diputaciones. Filtra por municipio, comarca, distancia desde tu pueblo, estudios y días que quedan."
 >
   <div id="contenido">
     <Tablero inicial={datos} client:load />

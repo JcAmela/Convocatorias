@@ -15,13 +15,43 @@ export type TipoPlaza = 'convocatoria' | 'bolsa' | (string & {});
 /** Nivel de estudios exigido, en la nomenclatura de la función pública. */
 export type NivelCodigo = 'A1' | 'A2' | 'A' | 'C1' | 'C2' | 'AP' | (string & {});
 
+/** Un municipio o una comarca del callejero, resuelto por el servidor. */
+export interface Sitio {
+  /** Apto para la URL: `hospitalet-llobregat`, `comarca-baix-llobregat`. */
+  id: string;
+  nombre: string;
+  tipo: 'municipio' | 'comarca';
+  comarca: string | null;
+  comarcaId: string | null;
+  lat: number | null;
+  lon: number | null;
+}
+
+/**
+ * Cuánto hay que fiarse de `trabajoId`. Es la diferencia entre saber dónde se
+ * trabaja y saber solo dónde tiene la sede el organismo, que en la Generalitat
+ * no es lo mismo: 119 de 463 convocatorias trabajan fuera de su sede.
+ */
+export type OrigenLugar = 'sede' | 'portal' | 'titulo' | 'desconocido';
+
+export interface Localizacion {
+  /** Municipio del organismo. Referencia a `Tablero.sitios`. */
+  sedeId: string | null;
+  /** Dónde se trabaja. `null` cuando el anuncio no lo dice. */
+  trabajoId: string | null;
+  origen: OrigenLugar;
+}
+
 export interface Plaza {
   id: string;
   titulo: string;
   empleador: string;
-  /** Para la Generalitat repite el empleador; solo sirve en las municipales. */
+  /** Dónde está el organismo y dónde se trabaja. Falta en las filas viejas del
+   * archivo, y entonces `sanea()` lo reconstruye a partir de `lugar`. */
+  donde: Localizacion;
+  /** @deprecated Usa `donde.sedeId`. Se conserva por el archivo y por la web ya desplegada. */
   municipio: string | null;
-  /** Dónde se trabaja de verdad. `null` cuando el anuncio no lo dice. */
+  /** @deprecated Usa `donde.trabajoId`. */
   lugar: string | null;
   ambito: Ambito;
   tipo: TipoPlaza;
@@ -51,7 +81,8 @@ export interface Plaza {
   otrosRequisitos: string | null;
   /** Cómo se selecciona: oposición, concurso-oposición, concurso. */
   seleccion: string | null;
-  /** true cuando el puesto cae fuera del área metropolitana de Barcelona. */
+  /** @deprecated El servidor lo manda siempre `false`: la distancia depende de
+   * dónde viva quien mira, y eso solo lo sabe el navegador. Usa `cercania.ts`. */
   lejos: boolean;
   /** Dónde se presenta la solicitud. */
   enlace: string | null;
@@ -78,6 +109,12 @@ export interface Tablero {
   abiertas: Plaza[];
   pendientes: Plaza[];
   cerradas: Plaza[];
+  /**
+   * Todos los municipios y comarcas de Cataluña, no solo los que aparecen: con
+   * ellos se resuelven los identificadores del archivo viejo y se ofrece
+   * cualquier pueblo como punto de referencia para medir distancias.
+   */
+  sitios: Record<string, Sitio>;
   resumen: Resumen;
   /** Fuentes que no se pudieron consultar en esta pasada. */
   errores: string[];

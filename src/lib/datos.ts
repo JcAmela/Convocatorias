@@ -1,4 +1,4 @@
-import type { Plaza, Tablero } from './tipos';
+import type { Localizacion, Plaza, Tablero } from './tipos';
 
 export const API = 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board';
 
@@ -11,6 +11,7 @@ export function tableroVacio(motivo: string): Tablero {
     abiertas: [],
     pendientes: [],
     cerradas: [],
+    sitios: {},
     resumen: { abiertas: 0, pendientes: 0, cerradas: 0, plazas: 0, fijas: 0, temporales: 0, cierranEn7Dias: 0 },
     errores: [motivo],
   };
@@ -39,6 +40,9 @@ function sanea(p: Partial<Plaza> | null | undefined): Plaza {
     // anterior del recolector que no rellenaba estos campos. Repetir esa
     // etiqueta sería engañar dos veces.
     empleador: q.empleador ?? 'Organismo sin identificar',
+    // Las convocatorias archivadas antes del cambio de localizaciones no traen
+    // `donde`. Se les fabrica uno a partir del `lugar` de texto que guardaron.
+    donde: q.donde ?? legadoDonde(q),
     municipio: q.municipio ?? null,
     lugar: q.lugar ?? null,
     ambito: q.ambito ?? '',
@@ -64,6 +68,11 @@ function sanea(p: Partial<Plaza> | null | undefined): Plaza {
   };
 }
 
+/** El `donde` de una fila vieja del archivo, que solo tiene texto. */
+function legadoDonde(q: Partial<Plaza>): Localizacion {
+  return { sedeId: null, trabajoId: null, origen: q.lugar ? 'titulo' : 'desconocido' };
+}
+
 /** Deja el tablero con el contrato que promete `tipos.ts`. */
 export function saneaTablero(d: Tablero): Tablero {
   return {
@@ -71,6 +80,7 @@ export function saneaTablero(d: Tablero): Tablero {
     abiertas: d.abiertas.map(sanea),
     pendientes: d.pendientes.map(sanea),
     cerradas: d.cerradas.map(sanea),
+    sitios: d.sitios ?? {},
     errores: d.errores ?? [],
   };
 }
@@ -86,6 +96,17 @@ export function esTablero(d: unknown): d is Tablero {
     t && typeof t === 'object' &&
     Array.isArray(t.abiertas) && Array.isArray(t.pendientes) && Array.isArray(t.cerradas),
   );
+}
+
+/**
+ * Lo que se empotra en el HTML del build: solo lo que se ve en la primera
+ * pintada. Las otras dos pestañas están detrás de un clic y para entonces el
+ * navegador ya ha traído los datos frescos, así que mandarlas de entrada solo
+ * servía para engordar la página 500 KB. Las cuentas siguen en `resumen`, que
+ * es lo que necesitan las pestañas para saber qué número enseñar.
+ */
+export function soloLoVisible(t: Tablero): Tablero {
+  return { ...t, pendientes: [], cerradas: [] };
 }
 
 /**

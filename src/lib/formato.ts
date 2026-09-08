@@ -85,6 +85,7 @@ export function partesEmpleador(p: Plaza): { casa: string; organismo: string | n
 
 export const ETIQUETA_AMBITO: Record<string, string> = {
   municipal: 'Ayuntamiento',
+  comarcal: 'Consejo comarcal',
   generalitat: 'Generalitat',
   diputacio: 'Diputación',
 };
@@ -224,7 +225,12 @@ export function tituloLimpio(p: Plaza): string {
   let bruto = p.titulo;
   if (p.lugar) {
     const cola = /\s*\(([^()]*)\)\s*$/.exec(bruto);
-    if (cola && cola[1].trim() === p.lugar.trim()) bruto = bruto.slice(0, cola.index);
+    // Se comparan las dos formas normalizadas: el paréntesis lo escribió quien
+    // redactó el anuncio y el nombre del sitio viene del callejero, así que
+    // pueden diferir en un acento o una mayúscula.
+    if (cola && normaliza(cola[1].trim()) === normaliza(p.lugar.trim())) {
+      bruto = bruto.slice(0, cola.index);
+    }
   }
   return bruto
     .replace(/^\s*\d+\s+(places?|placa|plaça|places)\s+(de\s+la\s+|de\s+l'|del\s+|de\s+|d')?/i, '')

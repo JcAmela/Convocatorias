@@ -6,7 +6,11 @@ import {
   FILTROS_INICIALES, type Filtros as F, type Pestana,
 } from '../lib/filtros';
 import { urgencia, fechaLarga, plural, NIVEL_CORTO, ETIQUETA_AMBITO, URGENCIAS } from '../lib/formato';
-import { preparaLugares, idsFiltroLugar, SIN_LUGAR } from '../lib/lugar';
+import {
+  usaSitios, catalogoDe, idsFiltroLugar, sitio, todosLosSitios,
+  SIN_LUGAR, TEXTO_SIN_LUGAR, TEXTO_SOLO_CERCA,
+} from '../lib/localizacion';
+import { estaCerca, referenciaGuardada, guardaReferencia, RADIO_CERCA_KM } from '../lib/cercania';
 import { Filtros } from './Filtros';
 import { Calendario } from './Calendario';
 import { Tarjeta } from './Tarjeta';
@@ -69,7 +73,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   /* --- arranque: filtros de la URL y guardadas del navegador ------------- */
 
   useEffect(() => {
-    setF(deQuery(window.location.search.slice(1)));
+    const inicial = deQuery(window.location.search.slice(1));
+    // El municipio de referencia se recuerda entre visitas; si el enlace trae
+    // uno, manda el del enlace.
+    setF({ ...inicial, desde: inicial.desde ?? referenciaGuardada() });
     try {
       const crudo = localStorage.getItem(CLAVE_GUARDADAS);
       if (crudo) setGuardadas(new Set(JSON.parse(crudo) as string[]));
@@ -156,7 +163,12 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   };
 
   const set = useCallback((parcial: Partial<F>) => {
-    setF((antes) => ({ ...antes, ...parcial }));
+    setF((antes) => {
+      // El pueblo desde el que se miden las distancias se queda en este
+      // navegador: es un ajuste de quien mira, no un filtro de la búsqueda.
+      if ('desde' in parcial) guardaReferencia(parcial.desde ?? null);
+      return { ...antes, ...parcial };
+    });
     setVisibles(PAGINA);
   }, []);
 
@@ -181,12 +193,27 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   );
 
   /**
-   * El catálogo de lugares se monta con todas las plazas a la vez, no con las
-   * que se estén viendo: solo mirando el conjunto se puede saber que
-   * "Barccelona" es Barcelona. Va antes de pintar nada porque el resto de la
-   * pantalla ya lo consulta.
+   * El catálogo de sitios lo resuelve el servidor y viene con la respuesta. Se
+   * fija antes de derivar nada, porque todo lo que sigue traduce
+   * identificadores contra él.
    */
-  const lugares = useMemo(() => preparaLugares(todas), [todas]);
+  useMemo(() => usaSitios(datos.sitios), [datos.sitios]);
+
+  /** Los municipios y comarcas que aparecen de verdad, con su cuenta. */
+  const lugares = useMemo(() => catalogoDe(todas), [todas]);
+
+  /**
+   * Todos los municipios de Cataluña, con cuántas convocatorias tiene cada uno,
+   * para elegir desde dónde se miden las distancias. Sale el pueblo aunque hoy
+   * no tenga nada: quien vive en él sigue queriendo medir desde allí.
+   */
+  const municipios = useMemo(() => {
+    const conCuenta = new Map(lugares.map((l) => [l.id, l.n]));
+    return todosLosSitios()
+      .filter((s) => s.tipo === 'municipio')
+      .map((s) => ({ ...s, n: conCuenta.get(s.id) ?? 0 }))
+      .sort((a, b) => b.n - a.n || a.nombre.localeCompare(b.nombre, 'es'));
+  }, [lugares, datos.sitios]);
 
   /**
    * Escribir en el buscador dispara seis pasadas completas sobre el conjunto
@@ -212,7 +239,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     return datos[f.pestana];
   }, [datos, f.pestana, guardadas, todas]);
 
-  const filtradas = useMemo(() => ordena(aplica(base, fCalculo), fCalculo.orden), [base, fCalculo]);
+  const filtradas = useMemo(
+    () => ordena(aplica(base, fCalculo), fCalculo.orden, fCalculo.desde),
+    [base, fCalculo],
+  );
 
   /**
    * El gráfico se dibuja con todo menos el filtro de día. Alimentándolo con la
@@ -229,7 +259,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     ambitos: cuenta(base, fCalculo, 'ambitos', (p) => (ETIQUETA_AMBITO[p.ambito] ? p.ambito : null)),
     urgencias: cuenta(base, fCalculo, 'urgencias', (p) => urgencia(p.diasRestantes).cubo),
     lugares: cuentaVarias(base, fCalculo, 'lugares', idsFiltroLugar),
-    lejos: aplica(base, fCalculo, 'cerca').filter((p) => p.lejos).length,
+    // Sin municipio de referencia no hay nada «lejos» que contar.
+    lejos: fCalculo.desde
+      ? aplica(base, fCalculo, 'cerca').filter((p) => !estaCerca(p, fCalculo.desde)).length
+      : 0,
   }), [base, fCalculo]);
 
   const resumen = useMemo(() => ({
@@ -254,8 +287,14 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     () => todas.filter((p) => guardadas.has(p.id)).length,
     [todas, guardadas],
   );
+  // El HTML del build solo trae las abiertas, así que hasta que llegan los
+  // datos frescos las otras dos pestañas se cuentan con el resumen.
   const cuentaPestana = (v: Pestana) =>
-    v === 'guardadas' ? guardadasVivas : datos[v].length;
+    v === 'guardadas' ? guardadasVivas : (datos[v].length || datos.resumen[v] || 0);
+
+  /** La pestaña dice que tiene convocatorias pero no han llegado. */
+  const faltanDatos = f.pestana !== 'guardadas' &&
+    datos[f.pestana].length === 0 && (datos.resumen[f.pestana] ?? 0) > 0;
 
   const generado = datos.generado ? new Date(datos.generado) : null;
 
@@ -279,12 +318,16 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     fichas.push({ texto, quitar: () => set({ urgencias: f.urgencias.filter((x) => x !== u) }) });
   }
   for (const id of f.lugares) {
-    const nombre = id === SIN_LUGAR
-      ? 'Sin lugar indicado'
-      : lugares.find((l) => l.id === id)?.nombre ?? id;
+    const nombre = id === SIN_LUGAR ? TEXTO_SIN_LUGAR : sitio(id)?.nombre ?? id;
     fichas.push({ texto: nombre, quitar: () => set({ lugares: f.lugares.filter((x) => x !== id) }) });
   }
-  if (f.soloCerca) fichas.push({ texto: 'Solo cerca de casa', quitar: () => set({ soloCerca: false }) });
+  if (f.soloCerca) {
+    const cerca = sitio(f.desde);
+    fichas.push({
+      texto: cerca ? `A menos de ${RADIO_CERCA_KM} km de ${cerca.nombre}` : TEXTO_SOLO_CERCA,
+      quitar: () => set({ soloCerca: false }),
+    });
+  }
   if (f.dia) fichas.push({ texto: `Cierra el ${fechaLarga(f.dia)}`, quitar: () => set({ dia: null }) });
 
   return (
@@ -311,10 +354,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 quedan: son lo que delimita qué hay aquí dentro. Dos líneas
                 como mucho —tres era lo que ahogaba la primera pantalla. */}
             <p className="mt-0.5 text-sm text-ink-3 max-sm:line-clamp-2 sm:truncate">
-              <span className="sm:hidden">Barcelona y alrededores · Generalitat · Diputación</span>
+              <span className="sm:hidden">Empleo público en toda Cataluña</span>
               <span className="hidden sm:inline">
-                Ayuntamientos a 25 km de Barcelona, Badalona y el Maresme sur
-                · Generalitat · Diputación
+                Ayuntamientos, consejos comarcales, Generalitat y diputaciones · Toda Cataluña
               </span>
             </p>
           </div>
@@ -413,7 +455,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
         <div className="mb-4 flex flex-col gap-4">
           <div className="no-imprimir">
-            <Filtros filtros={f} set={set} lugares={lugares} conteos={conteos} />
+            <Filtros filtros={f} set={set} lugares={lugares} municipios={municipios} conteos={conteos} />
           </div>
 
           {/* Las cifras y el gráfico describen lo que hay filtrado ahora
@@ -487,14 +529,14 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                     filtro" cuando lo que ha pasado es que la API no contesta
                     manda a buscar en el sitio equivocado. */}
                 <p className="display mb-1.5 text-xl font-semibold">
-                  {todas.length === 0
+                  {todas.length === 0 || faltanDatos
                     ? 'No se han podido cargar las convocatorias'
                     : f.pestana === 'guardadas' && guardadasVivas === 0
                       ? 'Todavía no has guardado ninguna plaza'
                       : 'No hay ninguna plaza que cumpla lo que pides'}
                 </p>
                 <p className="mx-auto max-w-[52ch] text-base text-ink-3">
-                  {todas.length === 0
+                  {todas.length === 0 || faltanDatos
                     ? (fallo
                         ? `El servidor de datos no ha contestado (${fallo}). Vuelve a intentarlo en un rato.`
                         : 'El servidor de datos no ha contestado. Vuelve a intentarlo en un rato.')
@@ -502,7 +544,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                       ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
                       : 'Prueba a quitar algún filtro.'}
                 </p>
-                {todas.length === 0 && (
+                {todas.length === 0 || faltanDatos && (
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
@@ -528,6 +570,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             ) : f.vista === 'tabla' ? (
               <Tabla
                 plazas={filtradas.slice(0, visibles)}
+                desde={f.desde}
                 guardadas={guardadas}
                 onGuardar={alternaGuardada}
                 onAbrir={setAbierta}
@@ -538,6 +581,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                   <Tarjeta
                     key={p.id}
                     plaza={p}
+                    desde={f.desde}
                     guardada={guardadas.has(p.id)}
                     onGuardar={alternaGuardada}
                     onAbrir={setAbierta}
@@ -562,15 +606,15 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">De dónde salen los datos.</strong> Del portal CIDO de la
             Diputació de Barcelona y de los portales Convoca de Badalona, El Masnou y Santa Coloma.
-            Entran los organismos con sede a menos de 25 km de Barcelona, Badalona o el Maresme
-            sur, así que verás ayuntamientos del Barcelonès, el Baix Llobregat, el Maresme y los
-            dos Vallès. Se actualiza solo varias veces al día.
+            Entran los ayuntamientos de las cuatro provincias, los consejos comarcales, la
+            Generalitat y las diputaciones: unas mil convocatorias vivas repartidas por toda
+            Cataluña. Se actualiza solo varias veces al día.
           </p>
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">Comprueba dos cosas antes de apuntarte.</strong> El lugar de
-            trabajo, porque hay organismos con sede en Barcelona que convocan plazas en otras
-            comarcas; y el plazo exacto, que manda lo que diga la convocatoria oficial y no esta
-            página.
+            trabajo: cuando el anuncio no lo dice, aquí verás el municipio del organismo con un
+            asterisco, y eso no es lo mismo —muchas bolsas cubren varios centros a la vez—; y el
+            plazo exacto, que manda lo que diga la convocatoria oficial y no esta página.
           </p>
           <p className="text-sm text-ink-3">
             No se incluyen plazas de policía, guardia urbana ni mossos. Tampoco universidades,
@@ -581,6 +625,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
       <Detalle
         plaza={abierta}
+        desde={f.desde}
         guardada={abierta ? guardadas.has(abierta.id) : false}
         onGuardar={alternaGuardada}
         onCerrar={() => setAbierta(null)}
