@@ -233,6 +233,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     () => (qDiferido === f.q ? f : { ...f, q: qDiferido }),
     [f, qDiferido],
   );
+  // Nota: la dependencia es `f` entero a propósito —cualquier filtro cambia el
+  // cálculo—, pero eso hace que el render urgente de cada tecla recalcule con
+  // la consulta anterior. Ese pase es desechable y se descarta abajo.
 
   const base = useMemo(() => {
     if (f.pestana === 'guardadas') return todas.filter((p) => guardadas.has(p.id));
@@ -427,7 +430,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 id={`pestana-${p.valor}`}
                 role="tab"
                 aria-selected={activa}
-                aria-controls="panel-plazas"
+                aria-controls="contenido"
                 // Una sola parada de tabulador para las cuatro: dentro se
                 // circula con las flechas.
                 tabIndex={activa ? 0 : -1}
@@ -501,7 +504,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           {hayFiltros(f) && (
             <button
               type="button"
-              onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista })}
+              onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista, desde: f.desde })}
               className="hover:text-ink text-xs font-semibold text-ink-3 underline underline-offset-2"
             >
               Quitar todos
@@ -517,9 +520,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         </p>
 
         <div
-          id="panel-plazas"
+          id="contenido"
           role="tabpanel"
           aria-labelledby={`pestana-${f.pestana}`}
+          tabIndex={-1}
           className={atenua ? 'revalidando' : undefined}
         >
           <Limite>
@@ -544,7 +548,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                       ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
                       : 'Prueba a quitar algún filtro.'}
                 </p>
-                {todas.length === 0 || faltanDatos && (
+                {(todas.length === 0 || faltanDatos) && (
                   <button
                     type="button"
                     onClick={() => window.location.reload()}
@@ -560,7 +564,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 {todas.length > 0 && hayFiltros(f) && (
                   <button
                     type="button"
-                    onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista })}
+                    onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista, desde: f.desde })}
                     className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
                   >
                     Quitar todos los filtros
@@ -576,7 +580,10 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 onAbrir={setAbierta}
               />
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-3.5">
+              // `minmax(300px,1fr)` no puede encoger por debajo de su mínimo, así
+              // que en un móvil de 320 la rejilla medía 300 dentro de 288 y se
+              // salía doce píxeles.
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-3.5">
                 {filtradas.slice(0, visibles).map((p) => (
                   <Tarjeta
                     key={p.id}

@@ -19,6 +19,8 @@ import { normaliza } from './formato';
 export const SIN_LUGAR = 'sin-indicar';
 export const TEXTO_SIN_LUGAR = 'Sin lugar indicado';
 export const TEXTO_SOLO_CERCA = 'Solo cerca de casa';
+/** Lo que significa el asterisco de la columna «Dónde». */
+export const AVISO_SEDE = '(es la sede del organismo; el anuncio no dice dónde se trabaja)';
 
 /* --------------------------------------------------- claves e identificadores */
 

@@ -94,7 +94,7 @@ function Menu({
       onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) coloca(); }}
     >
       <summary
-        className={`hover:border-pine/50 flex cursor-pointer list-none items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3 ${
+        className={`hover:border-pine/50 flex min-w-0 max-w-[min(15rem,60vw)] cursor-pointer list-none items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3 ${
           activos > 0 ? 'border-pine/45 bg-pine-soft text-pine-ink' : 'border-line bg-surface text-ink-2'
         }`}
       >
@@ -102,13 +102,16 @@ function Menu({
             filtros se repartían en cuatro renglones; con estos caben en dos
             y siguen todos a la vista, que es lo que importa en una barra de
             filtros: si hay que deslizar para descubrirlos, no se usan. */}
+        {/* Los rótulos con nombre de municipio dentro —«Desde Santa Maria de
+            Palautordera»— pueden ser larguísimos, así que se recortan en vez de
+            empujar la fila fuera de la pantalla. */}
         {corto ? (
           <>
-            <span className="sm:hidden">{corto}</span>
-            <span className="hidden sm:inline">{titulo}</span>
+            <span className="truncate sm:hidden">{corto}</span>
+            <span className="hidden truncate sm:inline">{titulo}</span>
           </>
         ) : (
-          titulo
+          <span className="truncate">{titulo}</span>
         )}
         {activos > 0 && (
           <span className="bg-pine rounded-full px-1.5 text-2xs font-bold text-white tabular-nums">
@@ -153,6 +156,39 @@ function Opcion({
       </span>
       <span className="flex-1 leading-tight">{texto}</span>
       <span className="font-mono text-2xs text-ink-3 tabular-nums">{n}</span>
+    </button>
+  );
+}
+
+/**
+ * Para elegir una sola cosa, como el municipio de referencia. Es un botón de
+ * radio de verdad: redondo, `aria-checked` y dentro de un `radiogroup`. Antes
+ * se reutilizaba `Opcion`, que es una casilla de selección múltiple y además
+ * **se deshabilita cuando el contador vale cero**: eso dejaba fuera a los 804
+ * municipios de Cataluña sin convocatorias hoy, que son justamente los que
+ * necesitan buscarse a mano.
+ */
+function OpcionUnica({
+  marcada, texto, pista, onClick,
+}: { marcada: boolean; texto: string; pista?: number; onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      role="radio"
+      aria-checked={marcada}
+      onClick={onClick}
+      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-base transition-colors"
+    >
+      <span
+        aria-hidden="true"
+        className={`grid size-4 shrink-0 place-items-center rounded-full border transition-colors ${
+          marcada ? 'border-pine bg-pine' : 'border-line-soft bg-surface-2'
+        }`}
+      >
+        {marcada && <span className="size-1.5 rounded-full bg-white" />}
+      </span>
+      <span lang="ca" className="flex-1 leading-tight">{texto}</span>
+      {pista ? <span className="font-mono text-2xs text-ink-3 tabular-nums">{pista}</span> : null}
     </button>
   );
 }
@@ -233,14 +269,31 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
     [municipios, f.desde],
   );
 
-  /** Los municipios entre los que se elige el punto de referencia. */
-  const desdeVisibles = useMemo(() => {
+  /**
+   * Los municipios entre los que se elige el punto de referencia. Son los 987
+   * de Cataluña, así que se enseñan de cuarenta en cuarenta.
+   *
+   * Sin texto mandan los que más convocatorias tienen. Con texto manda el
+   * parecido: primero los que EMPIEZAN por lo escrito y luego el resto, en
+   * orden alfabético. Ordenar por número de convocatorias dejaba «Sant Climent
+   * de Llobregat» en el puesto 42 de los 123 que casan con «sant», o sea fuera
+   * de la lista, y son justo los pueblos pequeños los que hay que buscar
+   * escribiendo.
+   */
+  const desdeEncontrados = useMemo(() => {
     const texto = normaliza(buscaDesde.trim());
-    if (!texto) return municipios.filter((m) => m.tipo === 'municipio').slice(0, 40);
-    return municipios
-      .filter((m) => m.tipo === 'municipio' && normaliza(m.nombre).includes(texto))
-      .slice(0, 40);
+    const soloMunicipios = municipios.filter((m) => m.tipo === 'municipio');
+    if (!texto) return soloMunicipios;
+    return soloMunicipios
+      .filter((m) => normaliza(m.nombre).includes(texto))
+      .sort((a, b) => {
+        const ea = normaliza(a.nombre).startsWith(texto) ? 0 : 1;
+        const eb = normaliza(b.nombre).startsWith(texto) ? 0 : 1;
+        return ea - eb || a.nombre.localeCompare(b.nombre, 'es');
+      });
   }, [municipios, buscaDesde]);
+
+  const desdeVisibles = desdeEncontrados.slice(0, 40);
 
   return (
     <div className="flex flex-col gap-2.5">
@@ -413,7 +466,16 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
 
         {/* La cercanía necesita saber desde dónde. Sin municipio elegido el
             botón no filtra nada: abre el desplegable para elegirlo. */}
-        <Menu titulo={desde ? `A ${RADIO_CERCA_KM} km de ${desde.nombre}` : 'Cerca de dónde vives'} activos={f.soloCerca ? 1 : 0}>
+        {/* El rótulo dice lo que hay: con municipio elegido pero sin filtro,
+            «Desde X»; solo cuando el filtro está puesto se habla de kilómetros.
+            Antes anunciaba «A 30 km de X» aunque no se estuviera limitando nada. */}
+        <Menu
+          titulo={desde
+            ? (f.soloCerca ? `A ${RADIO_CERCA_KM} km de ${desde.nombre}` : `Desde ${desde.nombre}`)
+            : 'Cerca de dónde vives'}
+          corto={desde ? desde.nombre : 'Cerca'}
+          activos={f.soloCerca ? 1 : 0}
+        >
           <div className="sticky top-0 z-10 -mx-1.5 -mt-1.5 mb-1 border-b border-line-soft bg-surface px-1.5 pt-1.5 pb-1.5">
             <input
               type="search"
@@ -458,15 +520,27 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
             </p>
           )}
 
-          {desdeVisibles.map((m) => (
-            <Opcion
-              key={m.id}
-              marcada={f.desde === m.id}
-              texto={m.nombre}
-              n={m.n}
-              onClick={() => set({ desde: f.desde === m.id ? null : m.id, soloCerca: f.desde === m.id ? false : f.soloCerca })}
-            />
-          ))}
+          <div role="radiogroup" aria-label="Tu municipio">
+            {desdeVisibles.map((m) => (
+              <OpcionUnica
+                key={m.id}
+                marcada={f.desde === m.id}
+                texto={m.nombre}
+                pista={m.n}
+                onClick={() => set(f.desde === m.id
+                  // Al soltar el municipio se cae también lo que dependía de él:
+                  // el filtro de cercanía y el orden por cercanía, que si no
+                  // dejaba el desplegable de orden en blanco.
+                  ? { desde: null, soloCerca: false, orden: f.orden === 'cercania' ? 'fin' : f.orden }
+                  : { desde: m.id })}
+              />
+            ))}
+          </div>
+          {desdeEncontrados.length > desdeVisibles.length && (
+            <p className="border-t border-line-soft px-2 pt-2 pb-1 text-2xs text-ink-3">
+              Y {desdeEncontrados.length - desdeVisibles.length} más. Escribe para afinar.
+            </p>
+          )}
           {desdeVisibles.length === 0 && (
             <p className="px-2 py-3 text-sm text-ink-3">Ningún municipio se llama así.</p>
           )}

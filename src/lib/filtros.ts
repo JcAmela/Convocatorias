@@ -54,7 +54,11 @@ function textoBuscable(p: Plaza): string {
   let t = cacheTexto.get(p);
   if (t === undefined) {
     t = normaliza(
-      [p.titulo, p.empleador, lugaresTexto(p), p.nivelEstudios, p.titulacion, p.otrosRequisitos]
+      // `seleccion` y `tipoEtiqueta` llegan ya en español y no estaban aquí: por
+      // eso «oposición» daba cero teniendo 1.191 convocatorias con ese dato, y
+      // «interino» cero teniendo 313.
+      [p.titulo, p.empleador, lugaresTexto(p), p.nivelEstudios, p.titulacion,
+        p.otrosRequisitos, p.seleccion, p.tipoEtiqueta]
         .filter(Boolean)
         .join(' '),
     );
@@ -204,6 +208,7 @@ export function deQuery(query: string): Filtros {
   const orden = p.get('orden');
   const vista = p.get('vista');
   const dia = p.get('dia');
+  const desde = /^[a-z0-9-]{1,60}$/.test(p.get('desde') ?? '') ? p.get('desde') : null;
   return {
     ...FILTROS_INICIALES,
     pestana: (['abiertas', 'pendientes', 'cerradas', 'guardadas'] as const).includes(pestana as Pestana)
@@ -217,10 +222,15 @@ export function deQuery(query: string): Filtros {
     // el que no exista en el catálogo no casará con nada y se podrá quitar
     // desde su ficha.
     lugares: lista('donde').filter((v) => /^[a-z0-9-]{1,60}$/.test(v)),
-    desde: /^[a-z0-9-]{1,60}$/.test(p.get('desde') ?? '') ? p.get('desde') : null,
-    soloCerca: p.get('cerca') === '1',
+    desde,
+    // Sin municipio de referencia no hay nada que medir: `?cerca=1` a secas
+    // dejaba un filtro marcado que no filtraba nada y sin forma de apagarlo.
+    soloCerca: Boolean(desde) && p.get('cerca') === '1',
     dia: dia && /^\d{4}-\d{2}-\d{2}$/.test(dia) ? dia : null,
+    // Ordenar por cercanía sin saber desde dónde dejaba el desplegable de orden
+    // en blanco, con la lista ordenada por un criterio que no se veía.
     orden: (['fin', 'fin-lejos', 'plazas', 'publicado', 'nivel', 'cercania'] as const).includes(orden as Orden)
+      && (orden !== 'cercania' || desde)
       ? (orden as Orden) : 'fin',
     vista: vista === 'tabla' ? 'tabla' : 'tarjetas',
   };

@@ -81,7 +81,11 @@ export function saneaTablero(d: Tablero): Tablero {
     pendientes: d.pendientes.map(sanea),
     cerradas: d.cerradas.map(sanea),
     sitios: d.sitios ?? {},
-    errores: d.errores ?? [],
+    // El servidor manda `{fuente, mensaje}` y las copias viejas del archivo
+    // mandan cadenas sueltas. Se aplana aquí: el aviso de la cabecera hacía
+    // `join('. ')` sobre objetos y pintaba «[object Object]».
+    errores: (d.errores ?? []).map((e) =>
+      typeof e === 'string' ? e : `${(e as { fuente?: string }).fuente ?? ''}: ${(e as { mensaje?: string }).mensaje ?? ''}`.replace(/^: /, '')),
   };
 }
 

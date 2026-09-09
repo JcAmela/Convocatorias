@@ -3,7 +3,7 @@ import type { Plaza } from '../lib/tipos';
 import {
   fechaLarga, partesEmpleador, tituloLimpio, esActualizacion, enEspanol,
 } from '../lib/formato';
-import { nombreLugar, esSoloSede } from '../lib/localizacion';
+import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
 import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoPin, IconoSalir } from './piezas';
 
@@ -77,9 +77,15 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
         {lugar && (
           <span className="inline-flex items-center gap-1">
             <IconoPin />
-            {lugar}
+            <span lang="ca">{lugar}</span>
+            {/* El asterisco solo lo ve quien ve. La frase va detrás, oculta a la
+                      vista pero no al lector de pantalla, porque es justo la
+                      advertencia que el pie llama imprescindible. */}
             {esSoloSede(plaza) && (
-              <abbr title="Es la sede del organismo; el anuncio no dice dónde se trabaja" className="cursor-help no-underline">*</abbr>
+              <>
+                <span aria-hidden="true" className="text-ink-3">*</span>
+                <span className="sr-only">{AVISO_SEDE}</span>
+              </>
             )}
             {km !== null && ` · a ${km} km`}
           </span>

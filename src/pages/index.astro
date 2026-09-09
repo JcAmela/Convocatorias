@@ -13,7 +13,5 @@ const datos = soloLoVisible(await leeTablero());
   titulo="Convocatorias — empleo público en Cataluña"
   descripcion="Plazas de empleo público con el plazo abierto en toda Cataluña: ayuntamientos de las cuatro provincias, consejos comarcales, Generalitat y diputaciones. Filtra por municipio, comarca, distancia desde tu pueblo, estudios y días que quedan."
 >
-  <div id="contenido">
-    <Tablero inicial={datos} client:load />
-  </div>
+  <Tablero inicial={datos} client:load />
 </Base>

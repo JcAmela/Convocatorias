@@ -1,6 +1,6 @@
 import type { Plaza } from '../lib/tipos';
 import { fechaCorta, partesEmpleador, tituloLimpio } from '../lib/formato';
-import { nombreLugar, esSoloSede } from '../lib/localizacion';
+import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
 import { PildoraPlazo, PildoraContrato, IconoEstrella } from './piezas';
 
@@ -75,11 +75,15 @@ export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
                 </td>
                 <td className="text-pine max-w-[190px] px-3 py-2.5 align-middle text-sm">{casa}</td>
                 <td className="px-3 py-2.5 align-middle text-sm text-ink-3">
-                  {lugar ?? '—'}
-                  {/* El asterisco avisa de que ese municipio es la sede del
-                      organismo y no el destino: el anuncio no lo dice. */}
+                  <span lang={lugar ? 'ca' : undefined}>{lugar ?? '—'}</span>
+                  {/* El asterisco solo lo ve quien ve. La frase va detrás, oculta a la
+                      vista pero no al lector de pantalla, porque es justo la
+                      advertencia que el pie llama imprescindible. */}
                   {lugar && esSoloSede(p) && (
-                    <abbr title="Es la sede del organismo; el anuncio no dice dónde se trabaja" className="ml-0.5 cursor-help no-underline text-ink-3">*</abbr>
+                    <>
+                      <span aria-hidden="true" className="ml-0.5 text-ink-3">*</span>
+                      <span className="sr-only">{AVISO_SEDE}</span>
+                    </>
                   )}
                   {km !== null && <span className="ml-1.5 font-mono text-2xs text-ink-3">{km} km</span>}
                 </td>
