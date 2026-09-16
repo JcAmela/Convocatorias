@@ -146,12 +146,19 @@ function porFecha(a: Plaza, b: Plaza, desc: boolean): number {
 export function ordena(plazas: Plaza[], orden: Orden, desde: string | null = null): Plaza[] {
   const copia = [...plazas];
   switch (orden) {
-    case 'cercania': return copia.sort((a, b) => {
+    case 'cercania': {
+      /**
+       * La distancia se mide una vez por plaza y no dentro del comparador.
+       * Ordenar setecientas llamaba a la trigonometría unas seis mil veces
+       * —n·log n— para calcular setecientos números que no cambian; y el
+       * orden se rehace en cada tecla del buscador, porque `filtradas`
+       * depende de la consulta.
+       */
+      const km = new Map<string, number>();
+      for (const p of copia) km.set(p.id, kmDesde(p, desde) ?? Infinity);
       // Las que no se sabe a qué distancia están van al final, no al principio.
-      const ka = kmDesde(a, desde) ?? Infinity;
-      const kb = kmDesde(b, desde) ?? Infinity;
-      return ka - kb || porFecha(a, b, false);
-    });
+      return copia.sort((a, b) => km.get(a.id)! - km.get(b.id)! || porFecha(a, b, false));
+    }
     case 'fin': return copia.sort((a, b) => porFecha(a, b, false));
     case 'fin-lejos': return copia.sort((a, b) => porFecha(a, b, true));
     case 'plazas': return copia.sort((a, b) => (b.plazas ?? 0) - (a.plazas ?? 0) || porFecha(a, b, false));

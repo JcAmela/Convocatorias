@@ -42,7 +42,12 @@ const RADIO_TIERRA_KM = 6371;
 
 /** Distancia en línea recta entre dos sitios, o `null` si a alguno le faltan coordenadas. */
 export function kmEntre(a: Sitio | null, b: Sitio | null): number | null {
-  if (!a?.lat || !a?.lon || !b?.lat || !b?.lon) return null;
+  // Lo que se pregunta es si la coordenada existe, no si vale distinto de
+  // cero. Hoy ningún municipio catalán da 0 —el meridiano cero pasa rozando
+  // por el oeste, y el punto más occidental de Cataluña está en 0,26—, pero
+  // `!a.lat` es una trampa puesta a mano para el día que el catálogo crezca
+  // o que alguien redondee: un 0 legítimo se leería como «no hay dato».
+  if (a?.lat == null || a.lon == null || b?.lat == null || b.lon == null) return null;
   const rad = (g: number) => (g * Math.PI) / 180;
   const dLat = rad(b.lat - a.lat);
   const dLon = rad(b.lon - a.lon);

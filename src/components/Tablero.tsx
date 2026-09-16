@@ -193,6 +193,25 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   );
 
   /**
+   * El panel de detalle guarda la plaza, no su identificador, así que se
+   * quedaba clavado en la copia con la que se abrió. Una pestaña que pasa la
+   * noche abierta revalida al volver a ella, y el panel seguía diciendo
+   * «Cierra mañana» de algo que ya había cerrado: justo el dato por el que se
+   * abre esta ficha. Se vuelve a buscar por id sobre los datos nuevos.
+   *
+   * Si ya no está en ninguna lista no se cierra solo —quitarle el panel de
+   * delante a quien estaba leyéndolo es peor—: se queda la última copia
+   * conocida, que es lo que había antes para todas.
+   */
+  useEffect(() => {
+    setAbierta((antes) => {
+      if (!antes) return antes;
+      const fresca = todas.find((p) => p.id === antes.id);
+      return fresca && fresca !== antes ? fresca : antes;
+    });
+  }, [todas]);
+
+  /**
    * El catálogo de sitios lo resuelve el servidor y viene con la respuesta. Se
    * fija antes de derivar nada, porque todo lo que sigue traduce
    * identificadores contra él.

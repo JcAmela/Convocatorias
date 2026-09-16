@@ -1,4 +1,4 @@
-import type { Localizacion, Plaza, Tablero } from './tipos';
+import type { Localizacion, Plaza, Sitio, Tablero } from './tipos';
 
 export const API = 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board';
 
@@ -73,6 +73,38 @@ function legadoDonde(q: Partial<Plaza>): Localizacion {
   return { sedeId: null, trabajoId: null, origen: q.lugar ? 'titulo' : 'desconocido' };
 }
 
+/**
+ * Cataluña, con un margen holgado. El catálogo llega del servidor y puede
+ * traer una coordenada rota: hoy mismo Sant Marçal viene con
+ * `lon: 27660452`, y eso no es un número raro que se quede quieto en un
+ * rincón —el desplegable «desde dónde mido» ofrece los 987 municipios, así
+ * que quien viva allí elige su pueblo y el tablero entero le anuncia
+ * distancias de diez mil kilómetros y le ordena la lista al revés.
+ *
+ * Una coordenada que no cae en Cataluña no es una coordenada de esta web. Se
+ * tira y el sitio se queda sin ella: sin distancia se puede vivir —no se
+ * enseña ninguna y no se esconde nada—, con una distancia falsa no.
+ */
+const CAJA_CATALUNA = { latMin: 40, latMax: 43.5, lonMin: -0.5, lonMax: 4 };
+
+function coordenada(v: unknown, min: number, max: number): number | null {
+  return typeof v === 'number' && Number.isFinite(v) && v >= min && v <= max ? v : null;
+}
+
+/** El catálogo de sitios, con las coordenadas imposibles descartadas. */
+export function saneaSitios(sitios: Record<string, Sitio> | undefined): Record<string, Sitio> {
+  const out: Record<string, Sitio> = {};
+  for (const [id, s] of Object.entries(sitios ?? {})) {
+    if (!s) continue;
+    const lat = coordenada(s.lat, CAJA_CATALUNA.latMin, CAJA_CATALUNA.latMax);
+    const lon = coordenada(s.lon, CAJA_CATALUNA.lonMin, CAJA_CATALUNA.lonMax);
+    // Las dos o ninguna: media coordenada no sitúa nada.
+    const situado = lat !== null && lon !== null;
+    out[id] = { ...s, lat: situado ? lat : null, lon: situado ? lon : null };
+  }
+  return out;
+}
+
 /** Deja el tablero con el contrato que promete `tipos.ts`. */
 export function saneaTablero(d: Tablero): Tablero {
   return {
@@ -80,7 +112,7 @@ export function saneaTablero(d: Tablero): Tablero {
     abiertas: d.abiertas.map(sanea),
     pendientes: d.pendientes.map(sanea),
     cerradas: d.cerradas.map(sanea),
-    sitios: d.sitios ?? {},
+    sitios: saneaSitios(d.sitios),
     // El servidor manda `{fuente, mensaje}` y las copias viejas del archivo
     // mandan cadenas sueltas. Se aplana aquí: el aviso de la cabecera hacía
     // `join('. ')` sobre objetos y pintaba «[object Object]».

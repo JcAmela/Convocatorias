@@ -132,8 +132,30 @@ Dos cosas se corrigen aquí porque en el origen no tienen arreglo:
 npm install
 npm run dev      # http://localhost:4321
 npm run check    # tipos de Astro, React y TypeScript
+npm run test     # las pruebas de la lógica (vitest)
 npm run build    # genera dist/
 ```
+
+### Qué se prueba
+
+Las pruebas viven junto al módulo que comprueban (`src/lib/*.test.ts`) y sus
+fábricas de datos en `src/lib/pruebas.ts`, porque una `Plaza` tiene veintiséis
+campos y escribirlos todos en cada caso esconde lo que cada prueba mira.
+
+Cubren la lógica pura, que es la que se rompe en silencio:
+
+| Fichero | Lo que sostiene |
+|---|---|
+| `oficios` | El puente español→catalán del buscador, regla a regla |
+| `filtros` | Filtrado, recuento por faceta, orden y la ida y vuelta de la URL |
+| `formato` | Fechas en local (no UTC), urgencia por tramos |
+| `cercania` | Distancias, y que una coordenada imposible no se convierta en una falsa |
+| `localizacion` | Qué sitio se enseña, el asterisco de sede y los identificadores |
+| `datos` | El saneado de lo que llega del servidor |
+
+No se prueban los componentes: lo que hacen es pintar, y eso se mira en el
+navegador. Lo que estas pruebas evitan es que un retoque en una regla del
+buscador o en el formato de la URL deje de encontrar cosas sin que se note.
 
 ## Despliegue
 

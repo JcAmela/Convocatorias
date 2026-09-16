@@ -269,6 +269,9 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
     [municipios, f.desde],
   );
 
+  /** Elegido, pero sin coordenadas con las que medir nada. */
+  const sinSituar = desde !== null && (desde.lat === null || desde.lon === null);
+
   /**
    * Los municipios entre los que se elige el punto de referencia. Son los 987
    * de Cataluña, así que se enseñan de cuarenta en cuarenta.
@@ -471,7 +474,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
             Antes anunciaba «A 30 km de X» aunque no se estuviera limitando nada. */}
         <Menu
           titulo={desde
-            ? (f.soloCerca ? `A ${RADIO_CERCA_KM} km de ${desde.nombre}` : `Desde ${desde.nombre}`)
+            ? (f.soloCerca && !sinSituar ? `A ${RADIO_CERCA_KM} km de ${desde.nombre}` : `Desde ${desde.nombre}`)
             : 'Cerca de dónde vives'}
           corto={desde ? desde.nombre : 'Cerca'}
           activos={f.soloCerca ? 1 : 0}
@@ -487,7 +490,17 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
             />
           </div>
 
-          {desde ? (
+          {desde && sinSituar ? (
+            /* El callejero no siempre trae las coordenadas del pueblo, y a
+               veces trae una imposible que el saneado descarta. Callar aquí
+               dejaba un menú que se abría, se marcaba y no hacía nada: el
+               rótulo decía «Desde X» y ni salían kilómetros ni se escondía
+               nada, sin un solo sitio donde enterarse de por qué. */
+            <p className="px-2 pt-1 pb-2 text-sm leading-snug text-ink-3">
+              De {desde.nombre} no tenemos las coordenadas, así que desde aquí no se pueden medir
+              distancias. Prueba con un municipio de al lado.
+            </p>
+          ) : desde ? (
             <>
               <button
                 type="button"
