@@ -85,7 +85,7 @@ export interface Localizacion {
 
 /**
  * Artículos y preposiciones que sobran para comparar dos nombres de sitio.
- * COPIA LITERAL de `PARTICULAS` en src/lib/lugar.ts.
+ * COPIA LITERAL de `PARTICULAS` en src/lib/localizacion.ts.
  */
 const PARTICULAS = new Set([
   "el", "la", "els", "les", "lo", "los", "de", "del", "dels", "da", "d", "l", "i", "a", "al", "als",
@@ -93,11 +93,11 @@ const PARTICULAS = new Set([
 
 /** COPIA LITERAL de `normaliza()` en src/lib/formato.ts. */
 export function normalizaTexto(t: string): string {
-  return t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
+  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
 }
 
 /**
- * COPIA LITERAL de `claveLugar()` en src/lib/lugar.ts, y tiene que seguir
+ * COPIA LITERAL de `claveLugar()` en src/lib/localizacion.ts, y tiene que seguir
  * siéndolo: de aquí sale el identificador que viaja en `?donde=` y que la
  * gente tiene guardado en marcadores y mandado por WhatsApp. Si las dos
  * versiones divergen, esos enlaces dejan de filtrar sin dar ningún error.
@@ -112,7 +112,7 @@ export function claveSitio(nombre: string): string {
     .join(" ");
 }
 
-/** COPIA LITERAL de `idDe()` en src/lib/lugar.ts. */
+/** COPIA LITERAL de `idDe()` en src/lib/localizacion.ts. */
 export function idSitio(clave: string): string {
   return clave.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
@@ -240,6 +240,20 @@ async function descargaCallejero(): Promise<Callejero> {
   return sitios;
 }
 
+/**
+ * El callejero vive cacheado en la base una semana, así que sanear solo al
+ * descargarlo dejaba la coordenada rota ahí dentro hasta siete días más. Se
+ * vuelve a pasar la rejilla al leerlo: es un recorrido sobre mil entradas, y
+ * la alternativa es servir distancias falsas mientras caduca.
+ */
+function saneaCallejero(c: Callejero): Callejero {
+  const out: Callejero = {};
+  for (const [clave, s] of Object.entries(c)) {
+    out[clave] = { ...s, ...coordenadasDe(s.lat, s.lon, CAJA_CATALUNA) };
+  }
+  return out;
+}
+
 /** El callejero guardado en la base, y cuándo toca volver a bajarlo. */
 async function cargaCallejero(puedeRefrescar: boolean): Promise<Callejero> {
   const guardado = await readSnapshot(2);
@@ -249,7 +263,7 @@ async function cargaCallejero(puedeRefrescar: boolean): Promise<Callejero> {
     (Date.now() - Date.parse(guardado.updated_at)) / 86400000 > CALLEJERO_TTL_DIAS;
 
   // Lo normal: hay callejero guardado y no toca renovarlo.
-  if (util && !(caducado && puedeRefrescar)) return util;
+  if (util && !(caducado && puedeRefrescar)) return saneaCallejero(util);
 
   // Se baja entero si no hay ninguno —sin él no habría lugares de trabajo— o
   // si alguien ha pedido un refresco y ya ha caducado. Nunca en una visita
@@ -264,7 +278,7 @@ async function cargaCallejero(puedeRefrescar: boolean): Promise<Callejero> {
   } catch {
     // Un callejero rancio resuelve igual de bien los municipios de siempre.
   }
-  return util ?? {};
+  return util ? saneaCallejero(util) : {};
 }
 
 function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: Callejero): Sitio | null {
@@ -285,7 +299,7 @@ function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: C
     tipo: "municipio",
     comarca: comarca || null,
     comarcaId: comarca ? idComarca(comarca) : null,
-    // Aqui vale la rejilla del mundo: este es el camino por el que entra un
+    // Aquí vale la rejilla del mundo: este es el camino por el que entra un
     // ente de fuera de Cataluña, y tirarle unas coordenadas buenas por no ser
     // catalanas sería descartar el dato correcto.
     ...coordenadasDe(a?.latitud, a?.longitud, CAJA_MUNDO),
