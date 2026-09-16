@@ -1,0 +1,43 @@
+# Lo que antes solo se comprobaba en el portátil de quien tocara el código.
+#
+# El proyecto llegó a tener 176 pruebas y ninguna se ejecutaba sola: un push
+# que las rompiera se desplegaba igual, porque Vercel construye sin
+# preguntarle a nadie si el código está sano. Aquí se ejecutan las tres
+# comprobaciones que ya existen, en el mismo orden en que fallan más rápido.
+#
+# `check` cubre también supabase/functions, que hasta ahora estaba fuera del
+# typecheck: es el fichero más grande del proyecto y el que decide qué datos
+# salen hacia el navegador.
+
+name: Comprobaciones
+
+on:
+  push:
+    branches: ['**']
+  pull_request:
+
+jobs:
+  comprobar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+
+      # `ci` y no `install`: instala exactamente lo que dice el lockfile, que
+      # es lo que se probó, en vez de resolver versiones nuevas hoy.
+      - run: npm ci
+
+      - name: Tipos de Astro, React, TypeScript y la función de Supabase
+        run: npm run check
+
+      - name: Pruebas
+        run: npm test
+
+      # Construir aquí evita enterarse de que el build está roto por la web
+      # caída, que es donde se enteraba antes.
+      - name: Build
+        run: npm run build

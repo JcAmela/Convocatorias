@@ -4,3 +4,8 @@ dist/
 .vercel/
 .DS_Store
 *.log
+
+# Volcados de la API que se guardan para mirarlos a mano. Son 1,7 MB de datos
+# que caducan en horas y que el repositorio no tiene por qué recordar; estaban
+# sueltos en la raíz, a un `git add -A` distraído de acabar dentro.
+board.json

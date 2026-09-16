@@ -92,7 +92,7 @@ const PARTICULAS = new Set([
 ]);
 
 /** COPIA LITERAL de `normaliza()` en src/lib/formato.ts. */
-function normalizaTexto(t: string): string {
+export function normalizaTexto(t: string): string {
   return t.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 }
 
@@ -102,7 +102,7 @@ function normalizaTexto(t: string): string {
  * gente tiene guardado en marcadores y mandado por WhatsApp. Si las dos
  * versiones divergen, esos enlaces dejan de filtrar sin dar ningún error.
  */
-function claveSitio(nombre: string): string {
+export function claveSitio(nombre: string): string {
   return normalizaTexto(nombre)
     .replace(/[’´`]/g, "'")
     .replace(/'/g, "' ")
@@ -113,16 +113,59 @@ function claveSitio(nombre: string): string {
 }
 
 /** COPIA LITERAL de `idDe()` en src/lib/lugar.ts. */
-function idSitio(clave: string): string {
+export function idSitio(clave: string): string {
   return clave.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
 }
 
 /** Las comarcas llevan prefijo para no chocar nunca con un municipio homónimo. */
-function idComarca(nombre: string): string {
+export function idComarca(nombre: string): string {
   return `comarca-${idSitio(claveSitio(nombre))}`;
 }
 
 const PROVINCIAS_CATALANAS = new Set(["Barcelona", "Girona", "Lleida", "Tarragona"]);
+
+/* ------------------------------------------------------------ coordenadas */
+
+/**
+ * El callejero de CIDO trae coordenadas rotas. Hoy mismo, Sant Marçal
+ * (Vallès Oriental) llega con `lon: 27660452`: no es una longitud, es un
+ * número que se coló. Aceptarlo por ser `typeof "number"` no es validarlo.
+ *
+ * Y no se queda quieto. La web ofrece los 987 municipios para elegir desde
+ * cuál se miden las distancias, así que quien viva en ese pueblo verá cada
+ * convocatoria a diez mil kilómetros y la lista ordenada al revés. Una
+ * coordenada falsa es peor que ninguna: sin ella no se enseña distancia y no
+ * se esconde nada, con ella se miente con dos decimales.
+ *
+ * Dos rejillas, porque no todo lo que pasa por aquí es catalán:
+ *   - CAJA_CATALUNA para el callejero, que ya viene filtrado por las cuatro
+ *     provincias y por tanto no puede caer fuera;
+ *   - CAJA_MUNDO para la sede de un ente que sí puede estar fuera (la
+ *     delegación del Govern en Madrid), donde lo único que se puede exigir
+ *     es que sea una coordenada de este planeta.
+ */
+const CAJA_CATALUNA = { latMin: 40, latMax: 43.5, lonMin: -0.5, lonMax: 4 };
+const CAJA_MUNDO = { latMin: -90, latMax: 90, lonMin: -180, lonMax: 180 };
+
+type Caja = { latMin: number; latMax: number; lonMin: number; lonMax: number };
+
+/**
+ * Las dos coordenadas de un sitio, o ninguna. Media coordenada no sitúa nada,
+ * así que si una de las dos no vale se descartan las dos: un punto con
+ * latitud y sin longitud produciría distancias inventadas igual que el valor
+ * roto que se acaba de tirar.
+ */
+export function coordenadasDe(
+  lat: unknown,
+  lon: unknown,
+  caja: Caja,
+): { lat: number | null; lon: number | null } {
+  const dentro = (v: unknown, min: number, max: number) =>
+    typeof v === "number" && Number.isFinite(v) && v >= min && v <= max ? v : null;
+  const la = dentro(lat, caja.latMin, caja.latMax);
+  const lo = dentro(lon, caja.lonMin, caja.lonMax);
+  return la !== null && lo !== null ? { lat: la, lon: lo } : { lat: null, lon: null };
+}
 
 type Callejero = Record<string, Sitio>;
 
@@ -170,8 +213,7 @@ async function descargaCallejero(): Promise<Callejero> {
           tipo: "municipio",
           comarca: comarca || null,
           comarcaId: comarca ? idComarca(comarca) : null,
-          lat: typeof a.latitud === "number" ? a.latitud : null,
-          lon: typeof a.longitud === "number" ? a.longitud : null,
+          ...coordenadasDe(a.latitud, a.longitud, CAJA_CATALUNA),
         };
         esAyuntamiento[clave] = ayto;
       }
@@ -243,12 +285,14 @@ function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: C
     tipo: "municipio",
     comarca: comarca || null,
     comarcaId: comarca ? idComarca(comarca) : null,
-    lat: typeof a?.latitud === "number" ? a.latitud : null,
-    lon: typeof a?.longitud === "number" ? a.longitud : null,
+    // Aqui vale la rejilla del mundo: este es el camino por el que entra un
+    // ente de fuera de Cataluña, y tirarle unas coordenadas buenas por no ser
+    // catalanas sería descartar el dato correcto.
+    ...coordenadasDe(a?.latitud, a?.longitud, CAJA_MUNDO),
   };
 }
 
-function parentheticals(titol: string): string[] {
+export function parentheticals(titol: string): string[] {
   return [...titol.matchAll(/\(([^()]{2,60})\)/g)].map((m) => m[1].trim());
 }
 
@@ -276,7 +320,7 @@ const COLA_TERRITORIAL = new RegExp(
  * pueblo, y de los 361 títulos municipales solo 7 tienen paréntesis, todos con
  * códigos internos del ayuntamiento.
  */
-function lugarDelTitulo(titol: string, ambito: string, callejero: Callejero): Sitio | null {
+export function lugarDelTitulo(titol: string, ambito: string, callejero: Callejero): Sitio | null {
   if (ambito === "municipal" || ambito === "comarcal") return null;
 
   const candidatos = parentheticals(titol);
@@ -329,14 +373,14 @@ const CIDO_MAX_ROWS = 5000;
 
 type Item = Record<string, unknown> & { id: string };
 
-function asText(v: unknown): string {
+export function asText(v: unknown): string {
   if (v == null) return "";
   if (typeof v === "string") return v;
   if (typeof v === "object") return Object.values(v as Record<string, string>).join(" ");
   return String(v);
 }
 
-function isExcluded(...vals: unknown[]): boolean {
+export function isExcluded(...vals: unknown[]): boolean {
   const hay = vals.map(asText).join(" ").toLowerCase();
   return EXCLUDE_KEYWORDS.some((k) => hay.includes(k));
 }
@@ -345,13 +389,13 @@ function todayMadrid(): string {
   return new Date().toLocaleDateString("en-CA", { timeZone: "Europe/Madrid" });
 }
 
-function ymdOf(s: unknown): string | null {
+export function ymdOf(s: unknown): string | null {
   if (!s || typeof s !== "string") return null;
   const t = s.slice(0, 10);
   return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : null;
 }
 
-function daysBetween(from: string, to: string): number {
+export function daysBetween(from: string, to: string): number {
   return Math.round((Date.parse(to) - Date.parse(from)) / 86400000);
 }
 
@@ -380,7 +424,7 @@ const NIVEL_ESTUDIOS: Record<string, string> = {
   "AP": "Sin titulación mínima",
 };
 
-function grupoCodigo(grup: string | null): string | null {
+export function grupoCodigo(grup: string | null): string | null {
   if (!grup) return null;
   if (/agrupacions/i.test(grup)) return "AP";
   const m = grup.match(/^([A-E][12]?)\s*-/);
@@ -626,7 +670,7 @@ async function fetchCido(s: CidoSource, callejero: Callejero): Promise<Item[]> {
 
 /** El nombre del organismo, en español donde se puede y con el separador que
  * espera la web: "casa · organismo". */
-function employerLabel(institucio: string): string {
+export function employerLabel(institucio: string): string {
   return institucio
     .replace(/^Ajuntament /, "Ayuntamiento ")
     .replace(/^Consell Comarcal /, "Consejo Comarcal ")

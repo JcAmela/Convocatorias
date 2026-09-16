@@ -153,9 +153,39 @@ Cubren la lógica pura, que es la que se rompe en silencio:
 | `localizacion` | Qué sitio se enseña, el asterisco de sede y los identificadores |
 | `datos` | El saneado de lo que llega del servidor |
 
+Y en `pruebas/`, lo que no vive junto a su módulo:
+
+| Fichero | Lo que sostiene |
+|---|---|
+| `servidor` | La función de Supabase: coordenadas, identificadores, el lugar que se saca del título, el filtro de policía, fechas y grupos |
+| `contrato-identificadores` | Que el servidor y la web fabriquen **el mismo** identificador de municipio |
+
+Ese contrato merece explicación. El identificador de un sitio se calcula dos
+veces, una en Deno y otra en el navegador, y el código lo advierte: «COPIA
+LITERAL […] y tiene que seguir siéndolo». De ahí salen los `?donde=` que la
+gente guarda en marcadores, así que si las dos copias divergen los enlaces
+dejan de filtrar **sin dar ningún error**: la página carga, el menú va, y
+simplemente no sale lo que se quería enseñar. La prueba compara las dos
+implementaciones sobre cuarenta topónimos reales elegidos por difíciles
+—apóstrofes, guiones interiores, artículos, dos pueblos unidos por «i»— y
+falla en cuanto se separan.
+
+La función de Supabase se prueba importándola tal cual, sin copiarla ni
+trocearla: `vitest.config.ts` resuelve su import de `jsr:` a un módulo vacío y
+`pruebas/entorno-deno.ts` finge las tres cosas del global `Deno` que toca al
+cargarse. Lo que se prueba es exactamente lo que se despliega. Y con
+`pruebas/deno.d.ts` entra además en `npm run check`, del que estuvo excluida
+desde el principio.
+
 No se prueban los componentes: lo que hacen es pintar, y eso se mira en el
 navegador. Lo que estas pruebas evitan es que un retoque en una regla del
 buscador o en el formato de la URL deje de encontrar cosas sin que se note.
+
+### Integración continua
+
+`.github/workflows/comprobaciones.yml` ejecuta `check`, `test` y `build` en
+cada push y cada pull request, con Node 24, que es el que usa Vercel. Antes no
+había nada: un push que rompiera las pruebas se desplegaba igual.
 
 ## Despliegue
 
