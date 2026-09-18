@@ -89,8 +89,30 @@ Para cambiar de endpoint, toca `API` en `src/lib/datos.ts`.
 
 El código de esa función vive en `supabase/functions/convoca-board/index.ts`.
 Estaba solo en Supabase, sin control de versiones; está aquí para poder leerlo
-y revisarlo con el resto. Se despliega con `supabase functions deploy
-convoca-board`.
+y revisarlo con el resto. Se despliega así:
+
+```bash
+npx supabase login          # una vez por máquina
+npx supabase functions deploy convoca-board   --project-ref tytcebxazuprhzyzntyy --no-verify-jwt
+```
+
+`--no-verify-jwt` no es opcional: la web llama a la función sin cabecera de
+autorización, así que activar la verificación tumbaría el tablero entero.
+
+**La rutina diaria** la dispara pg_cron dentro de Supabase, a las 04:00 UTC,
+antes del aviso por correo:
+
+```sql
+select cron.schedule('convoca-board-diario', '0 4 * * *',
+  $$ select net.http_get(
+       url := 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board?refresh=1',
+       timeout_milliseconds := 120000) $$);
+```
+
+Sin ella, la base solo se actualizaba cuando alguien entraba en la web y
+además había caducado la caché de tres horas: lo que abría y cerraba entre dos
+visitas no llegaba a existir. Se perdió así el Pla d'Ocupació 2026 de
+Badalona, más de cien plazas abiertas una semana de julio.
 
 **De dónde sale cada convocatoria.** Siete consultas a CIDO —ayuntamientos de
 Barcelona, Girona, Lleida y Tarragona, consejos comarcales, Generalitat y

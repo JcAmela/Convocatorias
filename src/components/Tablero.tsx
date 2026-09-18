@@ -403,6 +403,12 @@ export function Tablero({ inicial }: { inicial: Datos }) {
               ) : generado ? (
                 <>
                   <span className="sr-only sm:not-sr-only sm:mr-1">Actualizado a las</span>
+                  {/* La zona va fija a Madrid. Sin ella, esta hora la
+                      formateaba el servidor de Vercel en UTC al construir y
+                      el navegador en horario local al hidratar: 08:30 en el
+                      HTML contra 10:30 en pantalla, y React tiraba un error
+                      de hidratación en cada carga de producción. En local no
+                      se veía porque la máquina ya iba en esta zona. */}
                   {/* Solo la hora va en monoespaciada: es lo único que cambia
                       cada rato, y así no baila el ancho de la píldora. */}
                   {/* Por debajo de 360px ni la hora cabe: a 320 el nombre del
@@ -411,7 +417,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                       punto de color, y la hora sigue anunciándose para quien
                       use lector de pantalla. */}
                   <span className="font-mono tabular-nums max-[359px]:sr-only">
-                    {generado.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit' })}
+                    {generado.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
                   </span>
                 </>
               ) : (
