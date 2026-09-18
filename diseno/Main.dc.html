@@ -1,0 +1,621 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;450;500;600;700&family=IBM+Plex+Serif:wght@600&display=swap">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #0b0e0f;
+      color: #e9edea;
+      font-family: 'IBM Plex Sans', system-ui, 'Segoe UI', sans-serif;
+      font-size: 13px;
+      line-height: 1.45;
+      /* Sin `antialiased`: en oscuro adelgaza el trazo y es justo lo que
+         hacia ilegibles los titulos de la version anterior. */
+      -webkit-font-smoothing: auto;
+    }
+    a { color: #4fb79b; text-decoration: none; }
+    a:hover { color: #86d8c0; text-decoration: underline; }
+    button { font: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; text-align: left; }
+    .m { font-family: 'IBM Plex Mono', ui-monospace, 'SF Mono', Menlo, monospace; font-variant-numeric: tabular-nums; }
+    .vs { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: #79837f; }
+    .fila:hover { background: #12191a; }
+    .ca { font-feature-settings: 'ss01'; }
+  </style>
+</helmet>
+
+<div style="display: flex; flex-direction: column; width: 1440px; height: 1000px; overflow: hidden; background: #0b0e0f">
+
+  <!-- ══════ CABECERA ══════ -->
+  <div style="display: flex; align-items: center; gap: 24px; padding: 0 22px; height: 54px; border-bottom: 1px solid #1e2527; flex-shrink: 0">
+    <div style="display: flex; align-items: baseline; gap: 10px">
+      <span style="font-family: 'IBM Plex Serif', Georgia, serif; font-weight: 600; font-size: 19px; letter-spacing: -0.01em; color: #e9edea">Convocatorias</span>
+      <span class="m" style="font-size: 10px; color: #5f6866; letter-spacing: 0.04em">CATALUNYA</span>
+    </div>
+
+    <div style="width: 1px; height: 22px; background: #1e2527"></div>
+
+    <div style="display: flex; align-items: center; gap: 18px; font-size: 12px; color: #79837f">
+      <span>947 organismos</span>
+      <span>CIDO · Convoca Badalona · El Masnou · Santa Coloma</span>
+    </div>
+
+    <div style="flex-grow: 1"></div>
+
+    <div style="display: flex; align-items: center; gap: 8px">
+      <span style="width: 6px; height: 6px; border-radius: 50%; background: {{acento}}"></span>
+      <span class="m" style="font-size: 11px; color: #a7b0ac">Actualizado 10:46</span>
+    </div>
+  </div>
+
+  <!-- ══════ CINTA DE CIERRES — 45 DIAS, ANCHO COMPLETO ══════ -->
+  <div style="display: flex; align-items: flex-end; gap: 20px; padding: 14px 22px 10px; border-bottom: 1px solid #1e2527; flex-shrink: 0; background: #0d1112">
+    <div style="width: 202px; flex-shrink: 0">
+      <div class="vs" style="margin-bottom: 4px">Cierres por día</div>
+      <div style="font-size: 12px; color: #79837f; line-height: 1.35">621 convocatorias vencen en los próximos 30 días. Pulsa un día para aislarlo.</div>
+    </div>
+
+    <div style="flex-grow: 1; display: flex; flex-direction: column; gap: 5px">
+      <div style="display: flex; align-items: flex-end; gap: 2px; height: 62px">
+        <sc-for list="{{barras}}" as="b" hint-placeholder-count="45">
+          <div style="flex-grow: 1; display: flex; flex-direction: column; justify-content: flex-end; height: 100%">
+            <div style="height: {{b.alto}}px; background: {{b.color}}; border-radius: 1px 1px 0 0; min-height: 1px"></div>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display: flex; justify-content: space-between; border-top: 1px solid #1e2527; padding-top: 4px">
+        <span class="m" style="font-size: 10px; color: #5f6866">hoy · 15 sep</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">22 sep</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">29 sep</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">6 oct</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">13 oct</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">20 oct</span>
+        <span class="m" style="font-size: 10px; color: #5f6866">27 oct</span>
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 26px; flex-shrink: 0; padding-bottom: 2px">
+      <div>
+        <div class="m" style="font-size: 26px; font-weight: 500; color: #e58b72; line-height: 1">74</div>
+        <div class="vs" style="margin-top: 2px; color: #e58b72">cierran hoy</div>
+      </div>
+      <div>
+        <div class="m" style="font-size: 26px; font-weight: 500; color: #dca648; line-height: 1">348</div>
+        <div class="vs" style="margin-top: 2px; color: #dca648">esta semana</div>
+      </div>
+      <div>
+        <div class="m" style="font-size: 26px; font-weight: 500; color: #e9edea; line-height: 1">896</div>
+        <div class="vs" style="margin-top: 2px">puestos</div>
+      </div>
+      <div>
+        <div class="m" style="font-size: 26px; font-weight: 500; color: #e9edea; line-height: 1">123</div>
+        <div class="vs" style="margin-top: 2px">plaza fija</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════ CUERPO: RAIL + REGISTRO ══════ -->
+  <div style="display: flex; flex-grow: 1; min-height: 0">
+
+    <!-- ─── RAIL DE FILTROS ─── -->
+    <div class="scroll" style="width: 244px; flex-shrink: 0; border-right: 1px solid #1e2527; padding: 16px 18px 20px; overflow-y: auto; background: #0d1112">
+
+      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px">
+        <span class="vs">Filtros</span>
+        <button type="button" onClick="{{limpiar}}" style="font-size: 11px; color: {{acento}}">Quitar todos</button>
+      </div>
+
+      <div style="margin-bottom: 20px">
+        <div class="vs" style="margin-bottom: 7px">Quién convoca</div>
+        <div style="display: flex; flex-direction: column; gap: 1px">
+          <sc-for list="{{ambitos}}" as="a" hint-placeholder-count="5">
+            <button type="button" onClick="{{a.pick}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 3px; background: {{a.fondo}}">
+              <span style="width: 11px; height: 11px; border-radius: 2px; border: 1px solid {{a.borde}}; background: {{a.relleno}}; flex-shrink: 0"></span>
+              <span style="flex-grow: 1; font-size: 12.5px; color: {{a.tinta}}">{{a.texto}}</span>
+              <span class="m" style="font-size: 11px; color: #6b7471">{{a.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px">
+        <div class="vs" style="margin-bottom: 7px">Estudios exigidos</div>
+        <div style="display: flex; flex-direction: column; gap: 1px">
+          <sc-for list="{{niveles}}" as="n" hint-placeholder-count="6">
+            <button type="button" onClick="{{n.pick}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 3px; background: {{n.fondo}}">
+              <span class="m" style="width: 22px; flex-shrink: 0; font-size: 10.5px; font-weight: 600; color: {{n.codigoTinta}}">{{n.codigo}}</span>
+              <span style="flex-grow: 1; font-size: 12.5px; color: {{n.tinta}}">{{n.texto}}</span>
+              <span class="m" style="font-size: 11px; color: #6b7471">{{n.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px">
+        <div class="vs" style="margin-bottom: 7px">Tipo de plaza</div>
+        <div style="display: flex; flex-direction: column; gap: 1px">
+          <sc-for list="{{tipos}}" as="t" hint-placeholder-count="3">
+            <button type="button" onClick="{{t.pick}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 3px; background: {{t.fondo}}">
+              <span style="width: 11px; height: 11px; border-radius: 2px; border: 1px solid {{t.borde}}; background: {{t.relleno}}; flex-shrink: 0"></span>
+              <span style="flex-grow: 1; font-size: 12.5px; color: {{t.tinta}}">{{t.texto}}</span>
+              <span class="m" style="font-size: 11px; color: #6b7471">{{t.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 20px">
+        <div class="vs" style="margin-bottom: 7px">Tiempo que queda</div>
+        <div style="display: flex; flex-direction: column; gap: 1px">
+          <sc-for list="{{plazos}}" as="p" hint-placeholder-count="5">
+            <button type="button" onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 8px; padding: 5px 7px; border-radius: 3px; background: {{p.fondo}}">
+              <span style="width: 3px; height: 13px; border-radius: 1px; background: {{p.tono}}; flex-shrink: 0"></span>
+              <span style="flex-grow: 1; font-size: 12.5px; color: {{p.tinta}}">{{p.texto}}</span>
+              <span class="m" style="font-size: 11px; color: #6b7471">{{p.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="border-top: 1px solid #1e2527; padding-top: 14px">
+        <div class="vs" style="margin-bottom: 7px">Cerca de casa</div>
+        <div style="display: flex; align-items: center; gap: 7px; padding: 7px 9px; border: 1px solid #262e30; border-radius: 3px; background: #101516">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79837f" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink: 0">
+            <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z"></path><circle cx="12" cy="10" r="3"></circle>
+          </svg>
+          <span style="flex-grow: 1; font-size: 12.5px; color: #e9edea">Badalona</span>
+          <span class="m" style="font-size: 10.5px; color: #6b7471">cambiar</span>
+        </div>
+        <div style="margin-top: 8px; font-size: 11.5px; color: #6b7471; line-height: 1.4">Las distancias de la columna <span style="color: #a7b0ac">km</span> se miden desde aquí.</div>
+      </div>
+    </div>
+
+    <!-- ─── REGISTRO ─── -->
+    <div style="flex-grow: 1; display: flex; flex-direction: column; min-width: 0">
+
+      <!-- barra de pestañas + buscador -->
+      <div style="display: flex; align-items: center; gap: 16px; padding: 0 20px; height: 50px; border-bottom: 1px solid #1e2527; flex-shrink: 0">
+        <div style="display: flex; align-items: stretch; gap: 2px; height: 100%">
+          <sc-for list="{{pestanas}}" as="p" hint-placeholder-count="4">
+            <button type="button" onClick="{{p.pick}}" style="display: flex; align-items: center; gap: 7px; padding: 0 11px; border-bottom: 2px solid {{p.linea}}; color: {{p.tinta}}">
+              <span style="font-size: 13px; font-weight: {{p.peso}}">{{p.texto}}</span>
+              <span class="m" style="font-size: 10.5px; padding: 1px 5px; border-radius: 9px; background: {{p.chipFondo}}; color: {{p.chipTinta}}">{{p.n}}</span>
+            </button>
+          </sc-for>
+        </div>
+
+        <div style="flex-grow: 1"></div>
+
+        <div style="display: flex; align-items: center; gap: 7px; width: 296px; padding: 0 10px; height: 30px; border: 1px solid #262e30; border-radius: 3px; background: #101516">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#79837f" stroke-width="2" stroke-linecap="round" style="flex-shrink: 0">
+            <circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path>
+          </svg>
+          <input value="{{q}}" onInput="{{buscar}}" placeholder="administrativo, educador, informática…" style="flex-grow: 1; min-width: 0; border: 0; outline: none; background: none; color: #e9edea; font-family: inherit; font-size: 12.5px">
+          <span class="m" style="font-size: 10px; color: #4f5755; border: 1px solid #262e30; border-radius: 2px; padding: 0 4px">/</span>
+        </div>
+
+        <div style="display: flex; align-items: center; gap: 2px">
+          <sc-for list="{{ordenes}}" as="o" hint-placeholder-count="3">
+            <button type="button" onClick="{{o.pick}}" style="padding: 5px 9px; border-radius: 3px; font-size: 11.5px; background: {{o.fondo}}; color: {{o.tinta}}">{{o.texto}}</button>
+          </sc-for>
+        </div>
+      </div>
+
+      <!-- fichas de filtro activas -->
+      <sc-if value="{{hayFiltros}}" hint-placeholder-val="{{ true }}">
+        <div style="display: flex; align-items: center; gap: 8px; padding: 8px 20px; border-bottom: 1px solid #1e2527; flex-shrink: 0; background: #0d1112">
+          <span class="vs">Filtrando por</span>
+          <sc-for list="{{fichas}}" as="f" hint-placeholder-count="2">
+            <button type="button" onClick="{{f.quitar}}" style="display: flex; align-items: center; gap: 6px; padding: 2px 7px 2px 8px; border: 1px solid {{acento}}; border-radius: 3px; font-size: 11.5px; color: {{acento}}">
+              <span>{{f.texto}}</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"></path></svg>
+            </button>
+          </sc-for>
+        </div>
+      </sc-if>
+
+      <!-- encabezado de columnas -->
+      <div style="display: grid; grid-template-columns: 58px 74px minmax(0, 1fr) 208px 156px 30px 46px 88px 34px; align-items: center; gap: 12px; padding: 0 20px 0 23px; height: 28px; border-bottom: 1px solid #262e30; flex-shrink: 0; background: #0d1112">
+        <span class="vs">Quedan</span>
+        <span class="vs">Cierra</span>
+        <span class="vs">Puesto</span>
+        <span class="vs">Quién convoca</span>
+        <span class="vs">Dónde</span>
+        <span class="vs" style="text-align: center">Niv</span>
+        <span class="vs" style="text-align: right">Puestos</span>
+        <span class="vs">Contrato</span>
+        <span class="vs"></span>
+      </div>
+
+      <!-- las filas -->
+      <div class="scroll" style="flex-grow: 1; overflow-y: auto; min-height: 0">
+        <sc-for list="{{filas}}" as="f" hint-placeholder-count="10">
+          <div style="border-bottom: 1px solid #171d1e; border-left: 3px solid {{f.tono}}; background: {{f.fondoFila}}">
+
+            <div class="fila" onClick="{{f.abrir}}" style="display: grid; grid-template-columns: 58px 74px minmax(0, 1fr) 208px 156px 30px 46px 88px 34px; align-items: center; gap: 12px; padding: {{dens}}px 20px {{dens}}px 20px; cursor: pointer">
+              <span class="m" style="font-size: 12px; font-weight: 500; color: {{f.tono}}">{{f.quedan}}</span>
+              <span class="m" style="font-size: 11.5px; color: #a7b0ac">{{f.cierra}}</span>
+              <span style="display: flex; align-items: center; gap: 8px; min-width: 0">
+                <span lang="ca" style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 13.5px; font-weight: 450; color: #e9edea">{{f.titulo}}</span>
+                <sc-if value="{{f.esBolsa}}" hint-placeholder-val="{{ false }}">
+                  <span class="vs" style="flex-shrink: 0; padding: 0 4px; border: 1px solid #2f3a3c; border-radius: 2px; color: #8b9490; font-size: 9px">bolsa</span>
+                </sc-if>
+              </span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #8fb8ab">{{f.casa}}</span>
+              <span style="display: flex; align-items: baseline; gap: 6px; min-width: 0">
+                <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #a7b0ac">{{f.sitio}}</span>
+                <span class="m" style="flex-shrink: 0; font-size: 10.5px; color: #5f6866">{{f.km}}</span>
+              </span>
+              <span class="m" style="text-align: center; font-size: 10.5px; font-weight: 600; color: #8b9490">{{f.niv}}</span>
+              <span class="m" style="text-align: right; font-size: 12px; color: #a7b0ac">{{f.plazas}}</span>
+              <span style="font-size: 11.5px; color: {{f.contratoTinta}}">{{f.contrato}}</span>
+              <button type="button" onClick="{{f.guardar}}" style="display: flex; justify-content: flex-end">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="{{f.estrellaRelleno}}" stroke="{{f.estrellaTrazo}}" stroke-width="1.7" stroke-linejoin="round">
+                  <path d="m12 3.6 2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 17l-5.25 2.75 1-5.85L3.5 9.75l5.9-.85Z"></path>
+                </svg>
+              </button>
+            </div>
+
+            <!-- ── DETALLE DESPLEGADO EN LA PROPIA FILA ── -->
+            <sc-if value="{{f.abierta}}" hint-placeholder-val="{{ false }}">
+              <div style="padding: 4px 20px 18px 20px; background: #0f1516">
+                <div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0 24px; border-top: 1px solid #262e30; padding-top: 14px">
+
+                  <div style="grid-column: span 2; display: flex; flex-direction: column; gap: 12px">
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Titulación que pide</div>
+                      <div lang="ca" style="font-size: 12.5px; color: #cdd4d1; line-height: 1.5">{{f.titulacion}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Otros requisitos</div>
+                      <div lang="ca" style="font-size: 12.5px; color: #cdd4d1; line-height: 1.5">{{f.otros}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Cómo se selecciona</div>
+                      <div style="font-size: 12.5px; color: #cdd4d1; line-height: 1.5">{{f.seleccion}}</div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 12px">
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Plazo de solicitud</div>
+                      <div class="m" style="font-size: 12.5px; color: #cdd4d1">{{f.plazoLargo}}</div>
+                      <div style="margin-top: 2px; font-size: 11.5px; color: {{f.tono}}">{{f.plazoAviso}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Anuncio publicado</div>
+                      <div class="m" style="font-size: 12.5px; color: #cdd4d1">{{f.publicado}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Nivel de estudios</div>
+                      <div style="font-size: 12.5px; color: #cdd4d1; line-height: 1.45">{{f.nivelLargo}}</div>
+                    </div>
+                  </div>
+
+                  <div style="display: flex; flex-direction: column; gap: 12px">
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Tipo de contrato</div>
+                      <div style="font-size: 12.5px; color: #cdd4d1; line-height: 1.45">{{f.contratoLargo}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Organismo</div>
+                      <div lang="ca" style="font-size: 12.5px; color: #cdd4d1; line-height: 1.45">{{f.organismo}}</div>
+                    </div>
+                    <div>
+                      <div class="vs" style="margin-bottom: 3px">Dónde se trabaja</div>
+                      <div style="font-size: 12.5px; color: #cdd4d1">{{f.dondeLargo}}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 10px; margin-top: 16px">
+                  <a href="#" style="display: flex; align-items: center; gap: 7px; padding: 0 14px; height: 32px; border-radius: 3px; background: {{acento}}; color: #07100d; font-size: 12.5px; font-weight: 600; text-decoration: none">
+                    Ir a apuntarte
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4h6v6M20 4 10 14M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></svg>
+                  </a>
+                  <a href="#" style="display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 32px; border: 1px solid #2f3a3c; border-radius: 3px; color: #a7b0ac; font-size: 12.5px; text-decoration: none">Ficha oficial en CIDO</a>
+                  <button type="button" onClick="{{f.guardar}}" style="display: flex; align-items: center; gap: 7px; padding: 0 12px; height: 32px; border: 1px solid #2f3a3c; border-radius: 3px; color: #a7b0ac; font-size: 12.5px">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="{{f.estrellaRelleno}}" stroke="{{f.estrellaTrazo}}" stroke-width="1.7" stroke-linejoin="round"><path d="m12 3.6 2.6 5.3 5.9.85-4.25 4.15 1 5.85L12 17l-5.25 2.75 1-5.85L3.5 9.75l5.9-.85Z"></path></svg>
+                    {{f.guardarTexto}}
+                  </button>
+                  <div style="flex-grow: 1"></div>
+                  <span class="m" style="font-size: 10.5px; color: #4f5755">{{f.id}}</span>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{vacio}}" hint-placeholder-val="{{ false }}">
+          <div style="display: flex; flex-direction: column; align-items: center; gap: 10px; padding: 64px 20px">
+            <div style="font-size: 14px; color: #a7b0ac">Ninguna convocatoria pasa estos filtros.</div>
+            <button type="button" onClick="{{limpiar}}" style="padding: 7px 14px; border: 1px solid {{acento}}; border-radius: 3px; color: {{acento}}; font-size: 12.5px">Quitar todos los filtros</button>
+          </div>
+        </sc-if>
+      </div>
+
+      <!-- pie -->
+      <div style="display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 38px; border-top: 1px solid #1e2527; flex-shrink: 0; background: #0d1112">
+        <span class="m" style="font-size: 11.5px; color: #a7b0ac">{{pie}}</span>
+        <span style="font-size: 11.5px; color: #5f6866">El asterisco marca el municipio del organismo, no el puesto de trabajo.</span>
+        <div style="flex-grow: 1"></div>
+        <span style="font-size: 11.5px; color: #5f6866">Sin policía, guardia urbana ni mossos · Sin universidades ni hospitales</span>
+      </div>
+    </div>
+  </div>
+</div>
+</x-dc>
+
+<script data-dc-script data-props='{"acento":{"editor":"color","default":"#4fb79b","options":["#4fb79b","#d8a13f","#7f9fd4","#c98b7a"],"section":"Estilo"},"densidad":{"editor":"enum","options":["compacta","cómoda"],"default":"compacta","section":"Estilo"}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      pestana: 'abiertas',
+      q: '',
+      ambito: null,
+      nivel: null,
+      tipo: null,
+      plazo: null,
+      orden: 'cierra',
+      abierta: 'cido-22152449',
+      guardadas: ['cido-22153303'],
+    };
+  }
+
+  // Los 18 registros son reales: salen de la respuesta de convoca-board del
+  // 15/09/2026 a las 10:46, con los titulos en catalan tal como llegan.
+  datos() {
+    return [
+      { id: 'cido-22138695', t: 'Auxiliar administratiu', casa: 'Ayuntamiento de Navarcles', org: 'Ayuntamiento de Navarcles', amb: 'municipal', sitio: 'Navarcles', km: '46 km', dias: 0, fin: '15 sep', finLargo: 'hasta el 15 de septiembre de 2026', pub: '3 de septiembre de 2026', plazas: '1', niv: 'C2', nivL: 'ESO o Formación Profesional de grado medio', titulacion: 'ESO o equivalent o Títol de Formació Professional de primer grau, Cicle formatiu o equivalent', otros: 'No consta ninguno más', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Temporal', contratoL: 'Temporal, contrato temporal (Laboral temporal)' },
+      { id: 'cido-22153303', t: "Tècnic superior d'Arquitectura", casa: 'Ayuntamiento de Barcelona', org: 'Fundació Mies van der Rohe', amb: 'municipal', sitio: 'Barcelona', km: '9 km', dias: 1, fin: '16 sep', finLargo: 'hasta el 16 de septiembre de 2026', pub: '10 de septiembre de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: "Estar en possessió del Grau en Estudis d'Arquitectura i del Màster Universitari en Arquitectura", otros: "Nivell C1 de català · Nivell B2 d'anglès", sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Temporal', contratoL: 'Temporal, contrato temporal (Laboral temporal)' },
+      { id: 'cido-22147021', t: 'Administratiu de gestió de personal', casa: 'Ayuntamiento de Sant Boi de Llobregat', org: "Corporació d'Empreses i Serveis de Sant Boi, SA (CORESSA)", amb: 'municipal', sitio: 'Sant Boi de Llobregat', km: '21 km', dias: 2, fin: '17 sep', finLargo: 'hasta el 17 de septiembre de 2026', pub: '8 de septiembre de 2026', plazas: '1', niv: 'C1', nivL: 'Bachillerato o Formación Profesional de grado superior', titulacion: 'Títol de Batxillerat, Cicle formatiu de grau superior o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'temporal', contrato: 'Temporal', contratoL: 'Temporal, contrato temporal (Laboral temporal)' },
+      { id: 'cido-22152449', t: "Periodista a l'Oficina de Comunicació al Gabinet del Conseller", casa: 'Generalitat de Catalunya', org: "Departament de Drets Socials i Inclusió", amb: 'generalitat', sitio: 'Barcelona', km: '9 km', dias: 2, fin: '17 sep', finLargo: 'del 7 al 17 de septiembre de 2026', pub: '7 de septiembre de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Disposar de la titulació que dona accés a la categoria esmentada', otros: 'Nivell C1 de català', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Interino', contratoL: 'Temporal, funcionario interino (Funcionari interí)' },
+      { id: 'cido-22140882', t: 'Enginyer tècnic', casa: 'Consejo Comarcal del Vallès Oriental', org: 'Consejo Comarcal del Vallès Oriental', amb: 'comarcal', sitio: 'Granollers', km: '22 km', dias: 2, fin: '17 sep', finLargo: 'hasta el 17 de septiembre de 2026', pub: '4 de septiembre de 2026', plazas: '3', niv: 'A2', nivL: 'Universitario (diplomatura o grado)', titulacion: 'Títol de Grau en Enginyeria o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'temporal', contrato: 'Interino', contratoL: 'Temporal, funcionario interino (Funcionari interí)' },
+      { id: 'cido-22128444', t: "Tècnic superior en contractació pública", casa: 'Generalitat de Catalunya', org: "Institut Català de Recerca de l'Aigua (ICRA)", amb: 'generalitat', sitio: 'Girona', km: '87 km', dias: 0, fin: '15 sep', finLargo: 'hasta el 15 de septiembre de 2026', pub: '1 de septiembre de 2026', plazas: '1', niv: 'C1', nivL: 'Bachillerato o Formación Profesional de grado superior', titulacion: 'Títol de Batxillerat, Cicle formatiu de grau superior o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Temporal', contratoL: 'Temporal, contrato temporal (Laboral temporal)' },
+      { id: 'cido-22120117', t: "Peó pel 5è torn del Servei de Neteja Viària", casa: 'Ayuntamiento de Caldes de Montbui', org: 'Gestió Municipal de Serveis, SA', amb: 'municipal', sitio: 'Caldes de Montbui', km: '29 km', dias: 5, fin: '20 sep', finLargo: 'hasta el 20 de septiembre de 2026', pub: '29 de agosto de 2026', plazas: '1', niv: 'AP', nivL: 'Sin titulación mínima', titulacion: 'No se exige titulación', otros: 'Permís de conduir B', sel: 'Concurso-oposición: examen y méritos', tipo: 'fija', contrato: 'Fija', contratoL: 'Plaza fija (laboral indefinido)' },
+      { id: 'cido-22131009', t: 'Tècnic superior', casa: 'Generalitat de Catalunya', org: "Entitat Autònoma del Diari Oficial i de Publicacions (EADOP)", amb: 'generalitat', sitio: 'Barcelona', km: '9 km', dias: 5, fin: '20 sep', finLargo: 'hasta el 20 de septiembre de 2026', pub: '2 de septiembre de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Títol universitari de grau o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Interino', contratoL: 'Temporal, funcionario interino (Funcionari interí)' },
+      { id: 'cido-22118330', t: "Borsa de treball de places de Tècnic superior psicòleg de l'EAIA", casa: 'Consejo Comarcal del Vallès Occidental', org: 'Consejo Comarcal del Vallès Occidental', amb: 'comarcal', sitio: 'Terrassa', km: '27 km', dias: 6, fin: '21 sep', finLargo: 'hasta el 21 de septiembre de 2026', pub: '28 de agosto de 2026', plazas: '—', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Títol de Grau en Psicologia i col·legiació', otros: 'Nivell C1 de català · Col·legiació obligatòria', sel: 'Concurso-oposición: examen y méritos', tipo: 'bolsa', contrato: 'Bolsa', contratoL: 'Bolsa de trabajo: lista de espera para contratos temporales y sustituciones' },
+      { id: 'cido-22101557', t: "Borsa de treball de places de Peó de brigada d'obres", casa: 'Ayuntamiento de Monistrol de Calders', org: 'Ayuntamiento de Monistrol de Calders', amb: 'municipal', sitio: 'Monistrol de Calders', km: '52 km', dias: 8, fin: '23 sep', finLargo: 'hasta el 23 de septiembre de 2026', pub: '25 de agosto de 2026', plazas: '—', niv: 'AP', nivL: 'Sin titulación mínima', titulacion: 'No se exige titulación', otros: 'Permís de conduir B', sel: 'Concurso-oposición: examen y méritos', tipo: 'bolsa', contrato: 'Bolsa', contratoL: 'Bolsa de trabajo: lista de espera para contratos temporales y sustituciones' },
+      { id: 'cido-22112203', t: 'Administratiu al Centre de la Propietat Forestal', casa: 'Generalitat de Catalunya', org: "Departament d'Agricultura, Ramaderia, Pesca i Alimentació", amb: 'generalitat', sitio: 'Santa Perpètua de Mogoda', km: '17 km', dias: 8, fin: '23 sep', finLargo: 'hasta el 23 de septiembre de 2026', pub: '26 de agosto de 2026', plazas: '1', niv: 'C1', nivL: 'Bachillerato o Formación Profesional de grado superior', titulacion: 'Títol de Batxillerat, Cicle formatiu de grau superior o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'temporal', contrato: 'Interino', contratoL: 'Temporal, funcionario interino (Funcionari interí)' },
+      { id: 'cido-22110044', t: "Borsa de treball de places d'Administratiu", casa: 'Diputació de Girona', org: 'Organisme Autònom de Salut Pública (Dipsalut)', amb: 'diputacio', sitio: 'Girona', km: '87 km', dias: 8, fin: '23 sep', finLargo: 'hasta el 23 de septiembre de 2026', pub: '26 de agosto de 2026', plazas: '—', niv: 'C1', nivL: 'Bachillerato o Formación Profesional de grado superior', titulacion: 'Títol de Batxillerat, Cicle formatiu de grau superior o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'bolsa', contrato: 'Bolsa', contratoL: 'Bolsa de trabajo: lista de espera para contratos temporales y sustituciones' },
+      { id: 'cido-22099871', t: "Borsa de treball de places d'Auxiliar de la llar", casa: "Consejo Comarcal de la Ribera d'Ebre", org: "Consejo Comarcal de la Ribera d'Ebre", amb: 'comarcal', sitio: "Móra d'Ebre", km: '142 km', dias: 8, fin: '23 sep', finLargo: 'hasta el 23 de septiembre de 2026', pub: '22 de agosto de 2026', plazas: '—', niv: 'AP', nivL: 'Sin titulación mínima', titulacion: 'No se exige titulación', otros: 'Permís de conduir B i vehicle propi', sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'bolsa', contrato: 'Bolsa', contratoL: 'Bolsa de trabajo: lista de espera para contratos temporales y sustituciones' },
+      { id: 'cido-22093310', t: "Tècnic mitjà d'administració general (TAG)", casa: "Ayuntamiento d'Olèrdola", org: "Ayuntamiento d'Olèrdola", amb: 'municipal', sitio: 'Olèrdola', km: '58 km', dias: 15, fin: '30 sep', finLargo: 'hasta el 30 de septiembre de 2026', pub: '20 de agosto de 2026', plazas: '1', niv: 'A2', nivL: 'Universitario (diplomatura o grado)', titulacion: 'Títol de Grau en Dret, Ciències Polítiques, Econòmiques o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'fija', contrato: 'Fija', contratoL: 'Plaza fija (funcionario de carrera)' },
+      { id: 'cido-22088140', t: "Director de l'Àrea de Dades i IA", casa: 'Generalitat de Catalunya', org: "Agència de Qualitat i Avaluació Sanitàries de Catalunya", amb: 'generalitat', sitio: 'Barcelona', km: '9 km', dias: 15, fin: '30 sep', finLargo: 'hasta el 30 de septiembre de 2026', pub: '19 de agosto de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Títol universitari de grau o equivalent', otros: "Nivell C1 de català · Nivell B2 d'anglès", sel: 'Concurso: se valoran los méritos, sin examen', tipo: 'fija', contrato: 'Fija', contratoL: 'Plaza fija (laboral indefinido)' },
+      { id: 'cido-22085006', t: "Tècnic d'igualtat", casa: "Consejo Comarcal de l'Alt Urgell", org: "Consejo Comarcal de l'Alt Urgell", amb: 'comarcal', sitio: "La Seu d'Urgell", km: '168 km', dias: 20, fin: '5 oct', finLargo: 'hasta el 5 de octubre de 2026', pub: '18 de agosto de 2026', plazas: '1', niv: 'A2', nivL: 'Universitario (diplomatura o grado)', titulacion: 'Títol de Grau en Ciències Socials o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'bolsa', contrato: 'Bolsa', contratoL: 'Bolsa de trabajo: lista de espera para contratos temporales y sustituciones' },
+      { id: 'cido-22077412', t: 'Cap del Servei de Suport a la Captació i Gestió de Fons', casa: 'Diputació de Barcelona', org: 'Diputació de Barcelona', amb: 'diputacio', sitio: 'Barcelona', km: '9 km', dias: 21, fin: '6 oct', finLargo: 'hasta el 6 de octubre de 2026', pub: '14 de agosto de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Títol universitari de grau o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'fija', contrato: 'Fija', contratoL: 'Plaza fija (funcionario de carrera)' },
+      { id: 'cido-22065190', t: "Tècnic de l'Àrea #DeltebreTerritori", casa: 'Ayuntamiento de Deltebre', org: 'Ayuntamiento de Deltebre', amb: 'municipal', sitio: 'Deltebre', km: '168 km', dias: 34, fin: '19 oct', finLargo: 'hasta el 19 de octubre de 2026', pub: '10 de agosto de 2026', plazas: '1', niv: 'A1', nivL: 'Universitario (licenciatura o grado)', titulacion: 'Títol universitari de grau en Enginyeria, Arquitectura o equivalent', otros: 'Nivell C1 de català', sel: 'Concurso-oposición: examen y méritos', tipo: 'fija', contrato: 'Fija', contratoL: 'Plaza fija (funcionario de carrera)' }
+    ];
+  }
+
+  tono(dias) {
+    if (dias <= 3) return '#e58b72';
+    if (dias <= 7) return '#dca648';
+    if (dias <= 30) return '#4fb79b';
+    return '#6b7471';
+  }
+
+  quedan(dias) {
+    if (dias === 0) return 'hoy';
+    if (dias === 1) return '1 día';
+    return dias + ' días';
+  }
+
+  aviso(dias) {
+    if (dias === 0) return 'Último día para presentarla';
+    if (dias === 1) return 'Cierra mañana';
+    if (dias <= 3) return 'Quedan ' + dias + ' días';
+    if (dias <= 7) return 'Cierra esta semana';
+    return 'Quedan ' + dias + ' días';
+  }
+
+  norm(t) {
+    return t.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+  }
+
+  renderVals() {
+    const acento = this.props.acento || '#4fb79b';
+    const dens = (this.props.densidad === 'cómoda') ? 11 : 7;
+    const s = this.state;
+    const guardadas = s.guardadas;
+
+    const cierres = [74,13,48,59,0,19,114,21,20,22,43,13,6,18,12,17,8,11,2,31,19,5,5,8,21,0,0,0,6,6,0,0,0,0,1,0,0,1,0,0,0,0,0,0,0];
+    const barras = cierres.map((n, i) => ({
+      alto: Math.max(1, Math.round((n / 114) * 62)),
+      color: i <= 3 ? '#e58b72' : (i <= 7 ? '#dca648' : (n === 0 ? '#1e2527' : acento)),
+    }));
+
+    const activo = (llave, valor) => s[llave] === valor;
+    const conmuta = (llave, valor) => () => {
+      const nuevo = {};
+      nuevo[llave] = s[llave] === valor ? null : valor;
+      nuevo.abierta = null;
+      this.setState(nuevo);
+    };
+
+    const marca = (encendido) => ({
+      fondo: encendido ? '#16302a' : 'transparent',
+      borde: encendido ? acento : '#3a4446',
+      relleno: encendido ? acento : 'transparent',
+      tinta: encendido ? '#e9edea' : '#a7b0ac',
+    });
+
+    const ambitos = [
+      { v: 'municipal', texto: 'Ayuntamiento', n: 255 },
+      { v: 'generalitat', texto: 'Generalitat', n: 375 },
+      { v: 'comarcal', texto: 'Consejo comarcal', n: 43 },
+      { v: 'diputacio', texto: 'Diputación', n: 26 },
+    ].map((a) => Object.assign({}, a, marca(activo('ambito', a.v)), { pick: conmuta('ambito', a.v) }));
+
+    const niveles = [
+      { v: 'AP', codigo: 'AP', texto: 'Sin titulación', n: 58 },
+      { v: 'C2', codigo: 'C2', texto: 'ESO / grado medio', n: 76 },
+      { v: 'C1', codigo: 'C1', texto: 'Bachillerato / superior', n: 120 },
+      { v: 'A2', codigo: 'A2', texto: 'Diplomatura o grado', n: 175 },
+      { v: 'A1', codigo: 'A1', texto: 'Licenciatura o grado', n: 237 },
+    ].map((n) => {
+      const on = activo('nivel', n.v);
+      return Object.assign({}, n, {
+        fondo: on ? '#16302a' : 'transparent',
+        tinta: on ? '#e9edea' : '#a7b0ac',
+        codigoTinta: on ? acento : '#6b7471',
+        pick: conmuta('nivel', n.v),
+      });
+    });
+
+    const tipos = [
+      { v: 'fija', texto: 'Plaza fija', n: 123 },
+      { v: 'temporal', texto: 'Temporal o interino', n: 286 },
+      { v: 'bolsa', texto: 'Bolsa de trabajo', n: 290 },
+    ].map((t) => Object.assign({}, t, marca(activo('tipo', t.v)), { pick: conmuta('tipo', t.v) }));
+
+    const plazos = [
+      { v: 'hoy', texto: 'Cierra hoy', n: 74, tono: '#e58b72' },
+      { v: '3dias', texto: 'En 3 días o menos', n: 194, tono: '#e58b72' },
+      { v: 'semana', texto: 'Esta semana', n: 348, tono: '#dca648' },
+      { v: 'mes', texto: 'Este mes', n: 621, tono: acento },
+      { v: 'lejano', texto: 'Más de un mes', n: 78, tono: '#6b7471' },
+    ].map((p) => {
+      const on = activo('plazo', p.v);
+      return Object.assign({}, p, {
+        fondo: on ? '#16302a' : 'transparent',
+        tinta: on ? '#e9edea' : '#a7b0ac',
+        pick: conmuta('plazo', p.v),
+      });
+    });
+
+    const pestanas = [
+      { v: 'abiertas', texto: 'Con plazo abierto', n: 699 },
+      { v: 'pendientes', texto: 'Sin plazo aún', n: 349 },
+      { v: 'cerradas', texto: 'Ya cerradas', n: 487 },
+      { v: 'guardadas', texto: 'Guardadas', n: guardadas.length },
+    ].map((p) => {
+      const on = s.pestana === p.v;
+      return Object.assign({}, p, {
+        linea: on ? acento : 'transparent',
+        tinta: on ? '#e9edea' : '#79837f',
+        peso: on ? 600 : 400,
+        chipFondo: on ? '#16302a' : '#171d1e',
+        chipTinta: on ? acento : '#79837f',
+        pick: () => this.setState({ pestana: p.v, abierta: null }),
+      });
+    });
+
+    const ordenes = [
+      { v: 'cierra', texto: 'Cierra antes' },
+      { v: 'cerca', texto: 'Más cerca' },
+      { v: 'puestos', texto: 'Más puestos' },
+    ].map((o) => {
+      const on = s.orden === o.v;
+      return Object.assign({}, o, {
+        fondo: on ? '#171d1e' : 'transparent',
+        tinta: on ? '#e9edea' : '#79837f',
+        pick: () => this.setState({ orden: o.v }),
+      });
+    });
+
+    let lista = this.datos();
+    if (s.pestana === 'guardadas') lista = lista.filter((p) => guardadas.indexOf(p.id) >= 0);
+    if (s.ambito) lista = lista.filter((p) => p.amb === s.ambito);
+    if (s.nivel) lista = lista.filter((p) => p.niv === s.nivel);
+    if (s.tipo) lista = lista.filter((p) => p.tipo === s.tipo);
+    if (s.plazo === 'hoy') lista = lista.filter((p) => p.dias === 0);
+    if (s.plazo === '3dias') lista = lista.filter((p) => p.dias <= 3);
+    if (s.plazo === 'semana') lista = lista.filter((p) => p.dias <= 7);
+    if (s.plazo === 'mes') lista = lista.filter((p) => p.dias <= 30);
+    if (s.plazo === 'lejano') lista = lista.filter((p) => p.dias > 30);
+    if (s.q.trim()) {
+      const palabras = this.norm(s.q).split(/\s+/).filter(Boolean);
+      lista = lista.filter((p) => {
+        const heno = this.norm(p.t + ' ' + p.casa + ' ' + p.org + ' ' + p.sitio);
+        return palabras.every((w) => heno.indexOf(w) >= 0);
+      });
+    }
+    if (s.orden === 'cierra') lista = lista.slice().sort((a, b) => a.dias - b.dias);
+    if (s.orden === 'cerca') lista = lista.slice().sort((a, b) => parseInt(a.km, 10) - parseInt(b.km, 10));
+    if (s.orden === 'puestos') lista = lista.slice().sort((a, b) => (parseInt(b.plazas, 10) || 0) - (parseInt(a.plazas, 10) || 0));
+
+    const filas = lista.map((p) => {
+      const abierta = s.abierta === p.id;
+      const guardada = guardadas.indexOf(p.id) >= 0;
+      return {
+        id: p.id,
+        titulo: p.t,
+        casa: p.casa,
+        organismo: p.org,
+        sitio: p.sitio,
+        km: p.km,
+        niv: p.niv,
+        nivelLargo: p.nivL,
+        plazas: p.plazas,
+        cierra: p.fin,
+        quedan: this.quedan(p.dias),
+        tono: this.tono(p.dias),
+        esBolsa: p.tipo === 'bolsa',
+        contrato: p.contrato,
+        contratoLargo: p.contratoL,
+        contratoTinta: p.tipo === 'fija' ? acento : '#8b9490',
+        titulacion: p.titulacion,
+        otros: p.otros,
+        seleccion: p.sel,
+        plazoLargo: p.finLargo,
+        plazoAviso: this.aviso(p.dias),
+        publicado: p.pub,
+        dondeLargo: p.sitio + ' · a ' + p.km + ' de Badalona',
+        abierta: abierta,
+        fondoFila: abierta ? '#10171a' : 'transparent',
+        estrellaRelleno: guardada ? '#dca648' : 'none',
+        estrellaTrazo: guardada ? '#dca648' : '#4f5755',
+        guardarTexto: guardada ? 'Quitar de guardadas' : 'Guardar',
+        abrir: () => this.setState({ abierta: abierta ? null : p.id }),
+        guardar: () => {
+          const y = guardadas.indexOf(p.id) >= 0
+            ? guardadas.filter((x) => x !== p.id)
+            : guardadas.concat([p.id]);
+          this.setState({ guardadas: y });
+        },
+      };
+    });
+
+    const fichas = [];
+    const etiqueta = (lista_, valor) => {
+      const hit = lista_.filter((x) => x.v === valor)[0];
+      return hit ? hit.texto : valor;
+    };
+    if (s.ambito) fichas.push({ texto: etiqueta(ambitos, s.ambito), quitar: conmuta('ambito', s.ambito) });
+    if (s.nivel) fichas.push({ texto: etiqueta(niveles, s.nivel), quitar: conmuta('nivel', s.nivel) });
+    if (s.tipo) fichas.push({ texto: etiqueta(tipos, s.tipo), quitar: conmuta('tipo', s.tipo) });
+    if (s.plazo) fichas.push({ texto: etiqueta(plazos, s.plazo), quitar: conmuta('plazo', s.plazo) });
+    if (s.q.trim()) fichas.push({ texto: '«' + s.q.trim() + '»', quitar: () => this.setState({ q: '' }) });
+
+    return {
+      acento: acento,
+      dens: dens,
+      q: s.q,
+      barras: barras,
+      ambitos: ambitos,
+      niveles: niveles,
+      tipos: tipos,
+      plazos: plazos,
+      pestanas: pestanas,
+      ordenes: ordenes,
+      filas: filas,
+      fichas: fichas,
+      hayFiltros: fichas.length > 0,
+      vacio: filas.length === 0,
+      pie: filas.length + ' de 699 convocatorias · 896 puestos en juego',
+      buscar: (e) => this.setState({ q: e.target.value, abierta: null }),
+      limpiar: () => this.setState({ q: '', ambito: null, nivel: null, tipo: null, plazo: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>

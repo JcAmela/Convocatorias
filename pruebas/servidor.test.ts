@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-  asText, claveSitio, coordenadasDe, daysBetween, employerLabel, grupoCodigo,
-  idComarca, idSitio, isExcluded, lugarDelTitulo, parentheticals, sePuedePedir, ymdOf,
+  asText, coordenadasDe, daysBetween, employerLabel, grupoCodigo,
+  isExcluded, lugarDelTitulo, parentheticals, sePuedePedir, ymdOf,
   type Sitio,
 } from '../supabase/functions/convoca-board/index.ts';
 
@@ -48,27 +48,6 @@ describe('coordenadasDe', () => {
 
   it('el cero es un número como cualquier otro dentro de su rejilla', () => {
     expect(coordenadasDe(0, 0, CAJA_MUNDO)).toEqual({ lat: 0, lon: 0 });
-  });
-});
-
-describe('identificadores de sitio', () => {
-  it('tira artículos y preposiciones', () => {
-    expect(claveSitio("L'Hospitalet de Llobregat")).toBe('hospitalet llobregat');
-  });
-
-  it('ignora acentos y mayúsculas', () => {
-    expect(claveSitio('Mataró')).toBe(claveSitio('MATARO'));
-  });
-
-  it('las comarcas llevan prefijo, para no chocar con un municipio homónimo', () => {
-    // «Barcelonès» la comarca y «Barcelona» el municipio no pueden compartir id.
-    expect(idComarca('Barcelonès')).toBe('comarca-barcelones');
-    expect(idSitio(claveSitio('Barcelona'))).toBe('barcelona');
-  });
-
-  it('produce identificadores aptos para una URL', () => {
-    expect(idSitio(claveSitio("Sant Julià de Ramis"))).toBe('sant-julia-ramis');
-    expect(idSitio(claveSitio("Vilanova i la Geltrú"))).toBe('vilanova-geltru');
   });
 });
 

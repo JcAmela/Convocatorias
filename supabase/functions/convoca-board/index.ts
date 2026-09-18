@@ -1,4 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+// Los identificadores de lugar: una sola copia, compartida con la web. Aquí
+// estaban duplicados bajo un comentario que pedía no separarlos nunca, que es
+// un aviso que no protege de nada.
+import { claveLugar, idComarca, idDe } from "../_shared/lugares.ts";
 
 // ============================================================================
 // convoca-board — alimenta el portal web.
@@ -83,48 +87,6 @@ export interface Localizacion {
   origen: OrigenLugar;
 }
 
-/**
- * Artículos y preposiciones que sobran para comparar dos nombres de sitio.
- * COPIA LITERAL de `PARTICULAS` en src/lib/localizacion.ts.
- */
-const PARTICULAS = new Set([
-  "el", "la", "els", "les", "lo", "los", "de", "del", "dels", "da", "d", "l", "i", "a", "al", "als",
-]);
-
-/** COPIA LITERAL de `normaliza()` en src/lib/formato.ts. */
-export function normalizaTexto(t: string): string {
-  return t.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
-}
-
-/**
- * COPIA LITERAL de `claveLugar()` en src/lib/localizacion.ts, y tiene que seguir
- * siéndolo: de aquí sale el identificador que viaja en `?donde=` y que la
- * gente tiene guardado en marcadores y mandado por WhatsApp. Si las dos
- * versiones divergen, esos enlaces dejan de filtrar sin dar ningún error.
- */
-export function claveSitio(nombre: string): string {
-  return normalizaTexto(nombre)
-    .replace(/[’´`]/g, "'")
-    .replace(/'/g, "' ")
-    // Los paréntesis separan como un espacio: ver el comentario gemelo en
-    // src/lib/localizacion.ts. «Masnou (El)» y «El Masnou» son el mismo
-    // pueblo y tienen que dar la misma clave.
-    .split(/[\s.,()]+/)
-    .map((palabra) => palabra.replace(/'$/, ""))
-    .filter((palabra) => palabra && !PARTICULAS.has(palabra))
-    .join(" ");
-}
-
-/** COPIA LITERAL de `idDe()` en src/lib/localizacion.ts. */
-export function idSitio(clave: string): string {
-  return clave.replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-
-/** Las comarcas llevan prefijo para no chocar nunca con un municipio homónimo. */
-export function idComarca(nombre: string): string {
-  return `comarca-${idSitio(claveSitio(nombre))}`;
-}
-
 const PROVINCIAS_CATALANAS = new Set(["Barcelona", "Girona", "Lleida", "Tarragona"]);
 
 /* ------------------------------------------------------------ coordenadas */
@@ -205,13 +167,13 @@ async function descargaCallejero(): Promise<Callejero> {
       if (!municipi || !PROVINCIAS_CATALANAS.has(provincia)) continue;
 
       const comarca = typeof a.comarca === "string" ? a.comarca.trim() : "";
-      const clave = claveSitio(municipi);
+      const clave = claveLugar(municipi);
       if (!clave) continue;
 
       const ayto = /^Ajuntament /i.test(String(a.institucioDesenvolupat ?? ""));
       if (!sitios[clave] || (ayto && !esAyuntamiento[clave])) {
         sitios[clave] = {
-          id: idSitio(clave),
+          id: idDe(clave),
           nombre: municipi,
           tipo: "municipio",
           comarca: comarca || null,
@@ -224,7 +186,7 @@ async function descargaCallejero(): Promise<Callejero> {
       // La comarca es un sitio más: hay anuncios que solo dicen la comarca
       // ("als Serveis Territorials al Vallès Occidental") y el menú «Dónde» se
       // agrupa por ella.
-      const claveCom = comarca ? claveSitio(comarca) : "";
+      const claveCom = comarca ? claveLugar(comarca) : "";
       if (claveCom && !sitios[`c:${claveCom}`]) {
         sitios[`c:${claveCom}`] = {
           id: idComarca(comarca),
@@ -287,7 +249,7 @@ async function cargaCallejero(puedeRefrescar: boolean): Promise<Callejero> {
 function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: Callejero): Sitio | null {
   const municipi = typeof a?.municipi === "string" ? a.municipi.trim() : "";
   if (!municipi) return null;
-  const clave = claveSitio(municipi);
+  const clave = claveLugar(municipi);
   if (!clave) return null;
   const conocido = callejero[clave];
   if (conocido) return conocido;
@@ -297,7 +259,7 @@ function sitioDeInstitucion(a: Record<string, unknown> | undefined, callejero: C
   // convocatoria no se quede sin sede.
   const comarca = typeof a?.comarca === "string" ? a.comarca.trim() : "";
   return {
-    id: idSitio(clave),
+    id: idDe(clave),
     nombre: municipi,
     tipo: "municipio",
     comarca: comarca || null,
@@ -347,7 +309,7 @@ export function lugarDelTitulo(titol: string, ambito: string, callejero: Calleje
   // Del final hacia el principio: la cola del título y el último paréntesis
   // son los que hablan del destino; los de en medio suelen ser la categoría.
   for (const candidato of candidatos.reverse()) {
-    const clave = claveSitio(candidato);
+    const clave = claveLugar(candidato);
     if (!clave) continue;
     const sitio = callejero[clave] ?? callejero[`c:${clave}`];
     if (sitio) return sitio;
@@ -537,7 +499,7 @@ async function fetchConvoca(m: ConvocaSource, callejero: Callejero): Promise<Ite
   }
 
   // Cada portal es un ayuntamiento, así que el pueblo se sabe por construcción.
-  const sede = callejero[claveSitio(m.nombre)] ?? null;
+  const sede = callejero[claveLugar(m.nombre)] ?? null;
   const donde: Localizacion = {
     sedeId: sede?.id ?? null,
     trabajoId: sede?.id ?? null,

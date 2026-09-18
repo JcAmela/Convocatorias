@@ -1,4 +1,7 @@
 import type { Plaza } from './tipos';
+// Una sola copia, compartida con la funcion de Supabase.
+export { normaliza } from '../../supabase/functions/_shared/texto.ts';
+import { normaliza } from '../../supabase/functions/_shared/texto.ts';
 
 const MESES = [
   'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio',
@@ -212,10 +215,6 @@ export function enEspanol(frase: string): { texto: string; traducida: boolean } 
   return { texto: partes.join('. '), traducida };
 }
 
-/** Quita acentos y pasa a minúsculas para que el buscador sea indulgente. */
-export function normaliza(t: string): string {
-  return t.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
 
 /**
  * Los títulos vienen en catalán y empiezan por el número de plazas

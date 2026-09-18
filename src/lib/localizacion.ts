@@ -1,5 +1,8 @@
 import type { Plaza, Sitio } from './tipos';
-import { normaliza } from './formato';
+// Los identificadores de lugar los fabrica el servidor y los lee la web: una
+// sola copia para los dos, en supabase/functions/_shared/.
+export { claveLugar, idDe } from '../../supabase/functions/_shared/lugares.ts';
+import { claveLugar, idDe } from '../../supabase/functions/_shared/lugares.ts';
 
 /**
  * Los lugares llegan resueltos del servidor: cada convocatoria dice en qué
@@ -24,35 +27,8 @@ export const AVISO_SEDE = '(es la sede del organismo; el anuncio no dice dónde 
 
 /* --------------------------------------------------- claves e identificadores */
 
-/** Artículos y preposiciones: sobran para comparar, "de" y "del" son lo mismo. */
-const PARTICULAS = new Set([
-  'el', 'la', 'els', 'les', 'lo', 'los', 'de', 'del', 'dels', 'da', 'd', 'l', 'i', 'a', 'al', 'als',
-]);
 
-/**
- * La misma regla que usa el servidor para fabricar los identificadores. Las
- * dos copias tienen que seguir siendo idénticas: de aquí salen los `?donde=`
- * que la gente guarda en marcadores y manda por WhatsApp.
- */
-export function claveLugar(nombre: string): string {
-  return normaliza(nombre)
-    .replace(/[’´`]/g, "'")
-    .replace(/'/g, "' ")
-    // Los paréntesis separan como un espacio. El callejero escribe el
-    // artículo de dos maneras —«El Masnou» y «Masnou (El)»— y sin esto la
-    // segunda forma daba la clave «masnou (el)», o sea un municipio
-    // distinto: veinte pueblos partidos en dos identificadores, el menú
-    // «Dónde» listándolos por duplicado y los enlaces ?donde= perdiéndose
-    // la mitad de las convocatorias.
-    .split(/[\s.,()]+/)
-    .map((palabra) => palabra.replace(/'$/, ''))
-    .filter((palabra) => palabra && !PARTICULAS.has(palabra))
-    .join(' ');
-}
 
-export function idDe(clave: string): string {
-  return clave.replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
 
 /* ------------------------------------------------------------------ catálogo */
 
