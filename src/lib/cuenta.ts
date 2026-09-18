@@ -44,15 +44,29 @@ export function guardaPendiente(p: Pendiente): void {
   }
 }
 
-export function recogePendiente(): Pendiente | null {
+/**
+ * Lee el borrador sin borrarlo. Se olvida con `olvidaPendiente()` y solo
+ * cuando la suscripción ya está guardada: si se borrase aquí y el guardado
+ * fallara —la red, una política, lo que sea— el visitante habría vuelto del
+ * correo para nada y tendría que rehacer los filtros sin saber por qué.
+ */
+export function leePendiente(): Pendiente | null {
   try {
     const crudo = localStorage.getItem(PENDIENTE);
     if (!crudo) return null;
-    localStorage.removeItem(PENDIENTE);
     const p = JSON.parse(crudo) as Pendiente;
     return typeof p?.filtros === 'string' ? p : null;
   } catch {
     return null;
+  }
+}
+
+export function olvidaPendiente(): void {
+  try {
+    localStorage.removeItem(PENDIENTE);
+  } catch {
+    // Si no se puede borrar, el peor caso es que se guarde dos veces y se
+    // quite una desde el perfil.
   }
 }
 

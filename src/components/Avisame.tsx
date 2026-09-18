@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   type Cadencia, type Pendiente, type Suscripcion,
   borraSuscripcion, cierraSesion, guardaSuscripcion, misSuscripciones,
-  pideEnlace, recogePendiente, supabase,
+  leePendiente, olvidaPendiente, pideEnlace, supabase,
 } from '../lib/cuenta';
 
 /**
@@ -59,14 +59,17 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
       setSesion(usuario?.email ? { id: usuario.id, email: usuario.email } : null);
       if (!usuario) { setMisBusquedas(null); return; }
 
-      // Se vuelve del correo: guardar lo que se estaba pidiendo.
-      const p = recogePendiente();
+      // Se vuelve del correo: guardar lo que se estaba pidiendo. El borrador
+      // no se olvida hasta que esta guardado de verdad.
+      const p = leePendiente();
       if (p) {
         try {
           await guardaSuscripcion(p, usuario.id);
+          olvidaPendiente();
           setEstado({ fase: 'guardada' });
         } catch (e) {
           setFallo((e as Error).message);
+          setEstado({ fase: 'formulario' });
         }
       }
       await recarga();

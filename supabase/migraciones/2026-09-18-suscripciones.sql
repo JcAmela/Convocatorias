@@ -61,3 +61,22 @@ create policy "cada uno borra las suyas" on public.convoca_suscripciones for del
 --     $$ select net.http_get(
 --          url := 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board?refresh=1',
 --          timeout_milliseconds := 120000) $$);
+
+-- Las dos rutinas, creadas el mismo dia. El token va en claro aqui porque
+-- pg_cron guarda el comando como texto en la base; es un secreto de segunda
+-- fila —solo abre la funcion de envio— y se puede rotar cambiando el secreto
+-- CORREO_TOKEN del proyecto y reprogramando este trabajo.
+--
+--   select cron.schedule('convoca-board-diario', '0 4 * * *',
+--     $$ select net.http_get(
+--          url := '.../functions/v1/convoca-board?refresh=1',
+--          timeout_milliseconds := 120000) $$);
+--
+--   -- 04:20: veinte minutos despues del refresco, para que el aviso salga
+--   -- con lo de hoy y no con lo de ayer.
+--   select cron.schedule('convoca-correo-diario', '20 4 * * *',
+--     $$ select net.http_post(
+--          url := '.../functions/v1/convoca-correo',
+--          headers := jsonb_build_object('Content-Type','application/json','x-token','...'),
+--          body := jsonb_build_object('tanda', true),
+--          timeout_milliseconds := 180000) $$);
