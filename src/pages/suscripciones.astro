@@ -1,0 +1,34 @@
+---
+import Base from '../layouts/Base.astro';
+import { MisSuscripciones } from '../components/MisSuscripciones';
+
+// A esta página apunta cada correo, así que tiene que abrirse desde el móvil
+// sin acordarse de nada: se entra con el mismo enlace por correo que en el
+// alta y no hay contraseña por medio.
+---
+
+<Base
+  titulo="Mis búsquedas — Convocatorias"
+  descripcion="Las búsquedas que te avisan por correo: cada cuánto llegan, pausarlas o borrarlas."
+>
+  <header class="border-b border-line bg-surface">
+    <div class="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-5 sm:py-4">
+      <div class="min-w-0 flex-1">
+        <h1 class="display-lg truncate text-xl font-bold sm:text-2xl">Mis búsquedas</h1>
+        <p class="mt-0.5 truncate text-sm text-ink-3">
+          Las que te avisan por correo cuando sale algo nuevo
+        </p>
+      </div>
+      <a
+        href="/"
+        class="hover:border-pine hover:text-pine shrink-0 rounded-lg border border-line px-3 py-2 text-sm font-medium text-ink-2 transition-colors"
+      >
+        Al tablero
+      </a>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-[1400px] px-4 py-5 sm:px-5">
+    <MisSuscripciones client:load />
+  </main>
+</Base>

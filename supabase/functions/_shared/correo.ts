@@ -44,6 +44,12 @@ export interface DatosCorreo {
   urlGestion: string;
   /** Baja inmediata, sin iniciar sesión. Obligatorio en todos los envíos. */
   urlBaja: string;
+  /**
+   * Cuántas encajaban en total. Si se mandan menos de las que hay —y sin
+   * filtros son cien y pico— el correo lo dice en vez de callárselo: quien
+   * recibe tiene que poder saber que está viendo una parte.
+   */
+  totalQueEncajan?: number;
 }
 
 export function asuntoCorreo(d: DatosCorreo): string {
@@ -112,6 +118,7 @@ function tarjeta(p: Plaza, d: DatosCorreo): string {
 export function correoHtml(d: DatosCorreo): string {
   const n = d.plazas.length;
   const hayAsterisco = d.plazas.some((p) => esSoloSede(d.catalogo, p));
+  const sobran = Math.max((d.totalQueEncajan ?? n) - n, 0);
 
   // La línea que Gmail enseña junto al asunto. Oculta en el cuerpo.
   const adelanto = n === 0
@@ -146,6 +153,13 @@ export function correoHtml(d: DatosCorreo): string {
     </td></tr>
 
     ${cuerpo}
+
+    ${sobran > 0 ? `
+    <tr><td style="padding:2px 2px 16px 2px">
+      <a href="${escapa(d.urlTablero)}" style="color:${PINO};font:600 14px/1.4 -apple-system,Segoe UI,Roboto,Arial,sans-serif">
+        Y ${sobran} más que también encajan &rarr;
+      </a>
+    </td></tr>` : ''}
 
     ${hayAsterisco ? `
     <tr><td style="padding:4px 2px 0 2px;font:400 12px/1.45 -apple-system,Segoe UI,Roboto,Arial,sans-serif;color:${TINTA_3}">
@@ -213,6 +227,9 @@ export function correoTexto(d: DatosCorreo): string {
     '',
     fichas.join('\n\n'),
     '',
+    ...((d.totalQueEncajan ?? n) > n
+      ? [`Y ${(d.totalQueEncajan ?? n) - n} más que también encajan: ${d.urlTablero}`, '']
+      : []),
     'Comprueba el plazo y el lugar en la convocatoria oficial, no aquí.',
     '',
     ...pie,
