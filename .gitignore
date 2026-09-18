@@ -12,3 +12,6 @@ board.json
 
 # Basura del CLI de Supabase: version descargada y proyecto enlazado.
 supabase/.temp/
+
+# Vista previa del correo, generada a mano para mirarla.
+vista-previa-correo.html
