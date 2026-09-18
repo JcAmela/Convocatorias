@@ -18,6 +18,7 @@ import { Tabla } from './Tabla';
 import { Detalle } from './Detalle';
 import { Tema } from './Tema';
 import { Limite } from './Limite';
+import { Avisame } from './Avisame';
 
 const CLAVE_GUARDADAS = 'convocatorias:guardadas';
 const PAGINA = 24;
@@ -514,6 +515,13 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         {/* --------------------------------------------- fichas activas */}
         <div className="mb-3 flex flex-wrap items-center gap-2">
           <p className="text-base text-ink-3">{pestanaActual.pie}</p>
+          {/* Va aqui, entre el pie y las fichas, porque es el momento en que
+              alguien ya ha afinado la búsqueda y ve cuántas quedan: pedir que
+              te avisen de esto tiene sentido justo ahora, no en la cabecera
+              antes de haber filtrado nada. */}
+          <span className="no-imprimir ml-auto">
+            <Avisame filtros={aQuery(f)} resumen={fichas.map((x) => x.texto).join(' · ')} />
+          </span>
           {fichas.map((ficha, i) => (
             <button
               key={`${ficha.texto}-${i}`}
