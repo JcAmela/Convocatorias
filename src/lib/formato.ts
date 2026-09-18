@@ -1,6 +1,10 @@
 import type { Plaza } from './tipos';
 // Una sola copia, compartida con la funcion de Supabase.
 export { normaliza } from '../../supabase/functions/_shared/texto.ts';
+export {
+  urgencia, ORDEN_NIVEL, ETIQUETA_AMBITO,
+  type Urgencia, type TonoUrgencia,
+} from '../../supabase/functions/_shared/plazos.ts';
 import { normaliza } from '../../supabase/functions/_shared/texto.ts';
 
 const MESES = [
@@ -47,42 +51,8 @@ export function claveDia(f: Date): string {
   return `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, '0')}-${String(f.getDate()).padStart(2, '0')}`;
 }
 
-export type TonoUrgencia = 'critica' | 'seria' | 'aviso' | 'calma' | 'sinfecha';
 
-export interface Urgencia {
-  tono: TonoUrgencia;
-  etiqueta: string;
-  /** Para agrupar en el filtro de "tiempo que queda". */
-  cubo: 'cerrada' | 'hoy' | '3dias' | 'semana' | 'mes' | 'lejano' | 'sinfecha';
-}
 
-export function urgencia(dias: number | null): Urgencia {
-  if (dias === null || dias === undefined) {
-    // «Sin plazo aún» decía dos cosas a la vez y una era falsa. Desde que el
-    // servidor clasifica por el estado que manda CIDO, una convocatoria sin
-    // fecha de cierre puede estar perfectamente abierta —156 lo estaban—, así
-    // que la píldora dice solo lo que sabe: que no hay fecha. Si se puede
-    // pedir o no lo dice la pestaña en la que está.
-    return { tono: 'sinfecha', etiqueta: 'Sin fecha de cierre', cubo: 'sinfecha' };
-  }
-  // Lo ya vencido no puede seguir gritando en rojo "Último día": en la pestaña
-  // de cerradas eso teñía de urgencia ciento y pico plazas a las que ya no
-  // llegas.
-  if (dias < 0) {
-    const pasados = -dias;
-    return {
-      tono: 'calma',
-      etiqueta: pasados === 1 ? 'Cerró ayer' : `Cerró hace ${pasados} días`,
-      cubo: 'cerrada',
-    };
-  }
-  if (dias === 0) return { tono: 'critica', etiqueta: 'Último día', cubo: 'hoy' };
-  if (dias === 1) return { tono: 'critica', etiqueta: 'Cierra mañana', cubo: '3dias' };
-  if (dias <= 3) return { tono: 'critica', etiqueta: `Quedan ${dias} días`, cubo: '3dias' };
-  if (dias <= 7) return { tono: 'seria', etiqueta: `Quedan ${dias} días`, cubo: 'semana' };
-  if (dias <= 30) return { tono: 'aviso', etiqueta: `Quedan ${dias} días`, cubo: 'mes' };
-  return { tono: 'calma', etiqueta: `Quedan ${dias} días`, cubo: 'lejano' };
-}
 
 /** "Generalitat · Departament de Cultura" → { casa, organismo }. */
 export function partesEmpleador(p: Plaza): { casa: string; organismo: string | null } {
@@ -91,12 +61,6 @@ export function partesEmpleador(p: Plaza): { casa: string; organismo: string | n
   return { casa: trozos[0], organismo: trozos.slice(1).join(' · ') };
 }
 
-export const ETIQUETA_AMBITO: Record<string, string> = {
-  municipal: 'Ayuntamiento',
-  comarcal: 'Consejo comarcal',
-  generalitat: 'Generalitat',
-  diputacio: 'Diputación',
-};
 
 /**
  * Los cubos del filtro «Tiempo que queda», en el orden en que se ofrecen. Vive
@@ -111,9 +75,6 @@ export const URGENCIAS: { valor: string; texto: string }[] = [
   { valor: 'lejano', texto: 'Más de un mes' },
 ];
 
-export const ORDEN_NIVEL: Record<string, number> = {
-  AP: 0, C2: 1, C1: 2, A2: 3, A: 4, A1: 5,
-};
 
 export const ETIQUETA_NIVEL: Record<string, string> = {
   AP: 'Sin titulación mínima',
