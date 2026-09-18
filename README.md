@@ -99,6 +99,19 @@ npx supabase functions deploy convoca-board   --project-ref tytcebxazuprhzyzntyy
 `--no-verify-jwt` no es opcional: la web llama a la función sin cabecera de
 autorización, así que activar la verificación tumbaría el tablero entero.
 
+**La segunda función, `convoca-correo`**, compone un aviso y lo manda por
+Resend. Se despliega igual, y necesita dos secretos del proyecto:
+
+| Secreto | Para qué |
+|---|---|
+| `RESEND_API_KEY` | Mandar los avisos. La **misma** clave va en Authentication → SMTP, que es la que manda los enlaces de acceso. Si se cambia en un sitio y no en el otro, la mitad deja de funcionar. |
+| `CORREO_TOKEN` | Protege la función. Un endpoint que manda correo a quien se lo pida es la vía rápida a las listas negras. |
+
+Mientras no haya dominio propio, el remitente es `onboarding@resend.dev`, el
+de pruebas de Resend: **solo entrega al titular de la cuenta** y tiene
+bastantes papeletas de caer en spam. Para abrirlo a otras personas hace falta
+un dominio con sus registros SPF y DKIM.
+
 **La rutina diaria** la dispara pg_cron dentro de Supabase, a las 04:00 UTC,
 antes del aviso por correo:
 
