@@ -9,3 +9,6 @@ dist/
 # que caducan en horas y que el repositorio no tiene por qué recordar; estaban
 # sueltos en la raíz, a un `git add -A` distraído de acabar dentro.
 board.json
+
+# Basura del CLI de Supabase: version descargada y proyecto enlazado.
+supabase/.temp/
