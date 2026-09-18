@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { terminosDe, variantes } from './oficios';
+import { terminosDe, variantes } from '../supabase/functions/_shared/oficios.ts';
 
 /**
  * El puente del español al catalán es lo que hace que el buscador encuentre

@@ -1,4 +1,4 @@
-import { normaliza } from './formato';
+import { normaliza } from './texto.ts';
 
 /**
  * La página está en español y los anuncios llegan en catalán. El buscador

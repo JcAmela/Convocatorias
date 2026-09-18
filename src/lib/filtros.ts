@@ -2,7 +2,7 @@ import type { Plaza, Grupo } from './tipos';
 import { normaliza, urgencia, ORDEN_NIVEL, ETIQUETA_AMBITO } from './formato';
 import { idsFiltroLugar, lugaresTexto } from './localizacion';
 import { estaCerca, kmDesde } from './cercania';
-import { terminosDe } from './oficios';
+import { terminosDe } from '../../supabase/functions/_shared/oficios.ts';
 
 export type Vista = 'tarjetas' | 'tabla';
 export type Orden = 'fin' | 'fin-lejos' | 'plazas' | 'publicado' | 'nivel' | 'cercania';
