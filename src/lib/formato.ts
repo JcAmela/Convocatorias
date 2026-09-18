@@ -55,7 +55,12 @@ export interface Urgencia {
 
 export function urgencia(dias: number | null): Urgencia {
   if (dias === null || dias === undefined) {
-    return { tono: 'sinfecha', etiqueta: 'Sin plazo aún', cubo: 'sinfecha' };
+    // «Sin plazo aún» decía dos cosas a la vez y una era falsa. Desde que el
+    // servidor clasifica por el estado que manda CIDO, una convocatoria sin
+    // fecha de cierre puede estar perfectamente abierta —156 lo estaban—, así
+    // que la píldora dice solo lo que sabe: que no hay fecha. Si se puede
+    // pedir o no lo dice la pestaña en la que está.
+    return { tono: 'sinfecha', etiqueta: 'Sin fecha de cierre', cubo: 'sinfecha' };
   }
   // Lo ya vencido no puede seguir gritando en rojo "Último día": en la pestaña
   // de cerradas eso teñía de urgencia ciento y pico plazas a las que ya no

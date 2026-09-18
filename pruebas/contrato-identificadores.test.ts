@@ -44,6 +44,41 @@ const TOPONIMOS = [
   'Barcelonès', 'Vallès Occidental', 'Baix Llobregat', "Pla d'Urgell", 'Terra Alta',
 ];
 
+/**
+ * Las dos formas en que el callejero escribe el artículo. Son el mismo pueblo
+ * y tienen que dar el mismo identificador: mientras no lo dieron, veinte
+ * municipios estuvieron partidos en dos, el menú «Dónde» los listaba por
+ * duplicado y un enlace ?donde=vendrell se dejaba fuera las convocatorias
+ * archivadas como "Vendrell (El)".
+ */
+const ARTICULO_POSPUESTO: [string, string][] = [
+  ['El Masnou', 'Masnou (El)'],
+  ['La Garriga', 'Garriga (La)'],
+  ['El Vendrell', 'Vendrell (El)'],
+  ["La Seu d'Urgell", "Seu d'Urgell (La)"],
+  ['Els Prats de Rei', 'Prats de Rei (Els)'],
+  ['La Pobla de Segur', 'Pobla de Segur (La)'],
+  ['El Catllar', 'Catllar (El)'],
+  ['La Sénia', 'Sénia (La)'],
+];
+
+describe('el artículo, delante o detrás, da el mismo pueblo', () => {
+  it.each(ARTICULO_POSPUESTO)('%s == %s', (delante, detras) => {
+    expect(idDe(claveLugar(detras))).toBe(idDe(claveLugar(delante)));
+    expect(idSitio(claveSitio(detras))).toBe(idSitio(claveSitio(delante)));
+  });
+
+  it('y el identificador es el de la forma normal, sin rastro del paréntesis', () => {
+    expect(idDe(claveLugar('Masnou (El)'))).toBe('masnou');
+    expect(idDe(claveLugar("Seu d'Urgell (La)"))).toBe('seu-urgell');
+  });
+
+  it('tampoco deja rastro el artículo apostrofado entre paréntesis', () => {
+    // Tal cual lo manda la fuente, con su errata incluida.
+    expect(idDe(claveLugar("Hospitalet de Llorbregat (L')"))).toBe('hospitalet-llorbregat');
+  });
+});
+
 describe('el identificador de un sitio es el mismo en el servidor y en la web', () => {
   it.each(TOPONIMOS)('%s', (nombre) => {
     expect(claveSitio(nombre)).toBe(claveLugar(nombre));

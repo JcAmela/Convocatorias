@@ -38,7 +38,13 @@ export function claveLugar(nombre: string): string {
   return normaliza(nombre)
     .replace(/[’´`]/g, "'")
     .replace(/'/g, "' ")
-    .split(/[\s.,]+/)
+    // Los paréntesis separan como un espacio. El callejero escribe el
+    // artículo de dos maneras —«El Masnou» y «Masnou (El)»— y sin esto la
+    // segunda forma daba la clave «masnou (el)», o sea un municipio
+    // distinto: veinte pueblos partidos en dos identificadores, el menú
+    // «Dónde» listándolos por duplicado y los enlaces ?donde= perdiéndose
+    // la mitad de las convocatorias.
+    .split(/[\s.,()]+/)
     .map((palabra) => palabra.replace(/'$/, ''))
     .filter((palabra) => palabra && !PARTICULAS.has(palabra))
     .join(' ');

@@ -106,7 +106,10 @@ export function claveSitio(nombre: string): string {
   return normalizaTexto(nombre)
     .replace(/[’´`]/g, "'")
     .replace(/'/g, "' ")
-    .split(/[\s.,]+/)
+    // Los paréntesis separan como un espacio: ver el comentario gemelo en
+    // src/lib/localizacion.ts. «Masnou (El)» y «El Masnou» son el mismo
+    // pueblo y tienen que dar la misma clave.
+    .split(/[\s.,()]+/)
     .map((palabra) => palabra.replace(/'$/, ""))
     .filter((palabra) => palabra && !PARTICULAS.has(palabra))
     .join(" ");
@@ -510,6 +513,9 @@ function buildItem(base: Record<string, unknown>): Item {
     enlace: base.enlace ?? null,
     fichaOficial: base.fichaOficial ?? null,
     fuente: base.fuente,
+    // El estado tal cual lo dice CIDO: "Termini obert" o "Pendent de termini".
+    // Los portales Convoca no lo tienen y llega undefined.
+    estadoOrigen: base.estat ?? null,
     _sitios: [sede, trabajo].filter(Boolean) as Sitio[],
   };
 }
@@ -622,7 +628,10 @@ async function fetchCido(s: CidoSource, callejero: Callejero): Promise<Item[]> {
   );
 
   const out: Item[] = [];
-  for (const data of paginas) {
+  for (const [i, data] of paginas.entries()) {
+    // De qué estado de CIDO viene esta página. Es el dato que decide si la
+    // convocatoria se puede pedir hoy, y hasta ahora se tiraba.
+    const estat = CIDO_STATES[i];
     for (const row of data) {
       const a = row.attributes as Record<string, unknown> | undefined;
       const rid = String((row as Record<string, unknown>).id ?? a?.identificador ?? "");
@@ -676,6 +685,7 @@ async function fetchCido(s: CidoSource, callejero: Callejero): Promise<Item[]> {
         enlace: a.accesTramit ?? a.urlWeb ?? a.urlCido ?? null,
         fichaOficial: a.urlCido ?? null,
         fuente: "cido",
+        estat,
       }));
     }
   }
@@ -753,6 +763,36 @@ async function writeSnapshot(id: number, data: unknown): Promise<void> {
   });
 }
 
+/**
+ * ¿Se puede solicitar hoy?
+ *
+ * Antes esto era `Boolean(it.fin)`: si la convocatoria no traía fecha de
+ * cierre se mandaba al cajón de «Sin plazo aún», cuya pestaña dice
+ * literalmente «todavía no se pueden pedir». Y era falso para 156 de las 355
+ * que había ahí: bolsas del Zoo de Barcelona, de Sabadell, de El Vendrell,
+ * con la fecha de inicio ya pasada y marcadas por CIDO como "Termini obert".
+ * Ninguna de las 355 tenía el inicio en el futuro, o sea que la premisa de la
+ * pestaña no se cumplía para nada de lo que contenía.
+ *
+ * Una bolsa abierta sin fecha de cierre anunciada es una bolsa abierta. Lo
+ * dice la fuente y ahora se le hace caso; `fin` solo decide para los portales
+ * Convoca y para las filas viejas del archivo, que no traen estado.
+ */
+export function sePuedePedir(it: Item): boolean {
+  const estat = it.estadoOrigen;
+  if (estat === "Termini obert") return true;
+  if (estat === "Pendent de termini") return false;
+  return Boolean(it.fin);
+}
+
+/** Por fecha de cierre, y las que no la tienen al final en vez de por «null». */
+function porFin(a: Item, b: Item): number {
+  if (!a.fin && !b.fin) return 0;
+  if (!a.fin) return 1;
+  if (!b.fin) return -1;
+  return String(a.fin).localeCompare(String(b.fin));
+}
+
 /* ========================= CONSTRUCCIÓN ========================= */
 
 async function build(today: string, puedeRefrescar: boolean) {
@@ -800,16 +840,23 @@ async function build(today: string, puedeRefrescar: boolean) {
     if (fin && fin < today) continue;
     const dias = fin ? daysBetween(today, fin) : null;
     (it as Record<string, unknown>).diasRestantes = dias;
-    if (fin) abiertas.push(it); else pendientes.push(it);
+    if (sePuedePedir(it)) abiertas.push(it); else pendientes.push(it);
   }
-  abiertas.sort((a, b) => String(a.fin).localeCompare(String(b.fin)));
+  abiertas.sort(porFin);
   pendientes.sort((a, b) => String(b.publicado ?? "").localeCompare(String(a.publicado ?? "")));
 
   // Las cerradas salen del archivo y sus identificadores de sitio resuelven
   // contra el callejero, que va entero en la respuesta. Las guardadas antes de
   // este cambio no traen `donde`: de esas se ocupa el modo de compatibilidad
   // de la web.
-  const cerradas = (await loadClosed(today)).filter((x) => !vistos.has(x.id)).map((x) => {
+  // Se descartan las que ya salen arriba, no las que hemos visto. Con
+  // `vistos` una convocatoria descargada ya cerrada desaparecía entera: fuera
+  // de abiertas y pendientes por tener el plazo pasado, y fuera de cerradas
+  // por haberla visto en esta pasada. A CIDO no le afectaba —solo se le piden
+  // las vivas— pero a los portales Convoca sí: sus procesos históricos se
+  // guardaban en el archivo y no se enseñaban nunca.
+  const mostradas = new Set([...abiertas, ...pendientes].map((x) => x.id));
+  const cerradas = (await loadClosed(today)).filter((x) => !mostradas.has(x.id)).map((x) => {
     delete (x as Record<string, unknown>)._sitios;
     return { ...x, diasRestantes: x.fin ? daysBetween(today, String(x.fin)) : null };
   });

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   asText, claveSitio, coordenadasDe, daysBetween, employerLabel, grupoCodigo,
-  idComarca, idSitio, isExcluded, lugarDelTitulo, parentheticals, ymdOf,
+  idComarca, idSitio, isExcluded, lugarDelTitulo, parentheticals, sePuedePedir, ymdOf,
   type Sitio,
 } from '../supabase/functions/convoca-board/index.ts';
 
@@ -201,5 +201,33 @@ describe('employerLabel', () => {
   it('el punto medio es lo que luego parte la ficha en casa y organismo', () => {
     expect(employerLabel("Generalitat de Catalunya - Departament d'Educació"))
       .toBe("Generalitat de Catalunya · Departament d'Educació");
+  });
+});
+
+describe('sePuedePedir', () => {
+  const item = (extra: Record<string, unknown> = {}) =>
+    ({ id: 'x', fin: null, estadoOrigen: null, ...extra }) as Parameters<typeof sePuedePedir>[0];
+
+  it('manda el estado que dice CIDO, no la fecha de cierre', () => {
+    // El caso de las 156: bolsas abiertas, sin fecha de cierre anunciada, que
+    // acababan en la pestaña que dice que todavía no se pueden pedir.
+    expect(sePuedePedir(item({ estadoOrigen: 'Termini obert', fin: null }))).toBe(true);
+    expect(sePuedePedir(item({ estadoOrigen: 'Pendent de termini', fin: null }))).toBe(false);
+  });
+
+  it('y el estado manda también cuando sí hay fecha', () => {
+    expect(sePuedePedir(item({ estadoOrigen: 'Pendent de termini', fin: '2026-12-01' }))).toBe(false);
+    expect(sePuedePedir(item({ estadoOrigen: 'Termini obert', fin: '2026-12-01' }))).toBe(true);
+  });
+
+  it('sin estado se cae a la regla vieja: la fecha', () => {
+    // Los portales Convoca no mandan estado, y el archivo guarda filas de
+    // antes de que este campo existiera.
+    expect(sePuedePedir(item({ fin: '2026-12-01' }))).toBe(true);
+    expect(sePuedePedir(item({ fin: null }))).toBe(false);
+  });
+
+  it('un estado que no conocemos no se interpreta: manda la fecha', () => {
+    expect(sePuedePedir(item({ estadoOrigen: 'Termini tancat', fin: '2026-12-01' }))).toBe(true);
   });
 });

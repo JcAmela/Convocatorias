@@ -68,6 +68,11 @@ describe('urgencia', () => {
   it('sin plazo tiene su propio cubo', () => {
     expect(urgencia(null).cubo).toBe('sinfecha');
   });
+
+  it('sin fecha de cierre no significa que no se pueda pedir', () => {
+    // Decía «Sin plazo aún», que afirmaba de más: eso lo dice la pestaña.
+    expect(urgencia(null).etiqueta).toBe('Sin fecha de cierre');
+  });
 });
 
 describe('partesEmpleador', () => {
