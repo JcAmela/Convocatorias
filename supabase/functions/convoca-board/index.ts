@@ -35,9 +35,11 @@ const CIDO_INSTITUCIONS_URL = "https://api.diba.cat/dadesobertes/cido/v1/institu
 
 const FETCH_TIMEOUT_MS = 20000;
 
-// Cuánto vale la respuesta cacheada. La fuente publica una o dos veces al día,
-// así que 3 horas no deja ver nada desactualizado y evita que cada visita
-// dispare diez consultas a las APIs de origen.
+// Cuánto vale la respuesta cacheada antes de marcarla como `stale`. Ya no
+// decide si se rasca de nuevo: eso solo lo hace `?refresh=1`, que es el cron.
+// Una visita que llegaba con la copia caducada relanzaba el scraping entero, y
+// con dos builds por push más cada navegador eso eran decenas de pasadas al
+// día contra las fuentes y contra el egress del plan gratuito.
 const CACHE_TTL_MIN = 180;
 
 // Cuántos días se conservan las cerradas en el listado (el archivo en base de
@@ -858,22 +860,27 @@ Deno.serve(async (req: Request) => {
     const refresh = new URL(req.url).searchParams.get("refresh") === "1";
     const today = todayMadrid();
 
+    // Sin `refresh=1` se sirve siempre la última copia, por vieja que sea. Si
+    // el cron de la mañana falla, la web enseña lo de ayer marcado `stale` en
+    // vez de rascar las fuentes en nombre de cada visitante.
     if (!refresh) {
       const snap = await readSnapshot(1);
-      if (snap) {
-        const edadMin = (Date.now() - Date.parse(snap.updated_at)) / 60000;
-        const mismoDia = (snap.data as { hoy?: string })?.hoy === today;
-        if (edadMin < CACHE_TTL_MIN && mismoDia) {
-          return new Response(JSON.stringify({ ...(snap.data as object), cache: "hit" }), {
-            headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=600" },
-          });
-        }
+      if (!snap) {
+        return new Response(JSON.stringify({ error: "Todavía no hay ninguna copia del tablero." }), {
+          status: 503, headers: { ...CORS, "Content-Type": "application/json", "Retry-After": "600" },
+        });
       }
+      const edadMin = (Date.now() - Date.parse(snap.updated_at)) / 60000;
+      const mismoDia = (snap.data as { hoy?: string })?.hoy === today;
+      const cache = edadMin < CACHE_TTL_MIN && mismoDia ? "hit" : "stale";
+      return new Response(JSON.stringify({ ...(snap.data as object), cache }), {
+        headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=600" },
+      });
     }
 
-    const data = await build(today, refresh);
+    const data = await build(today, true);
     await writeSnapshot(1, data);
-    return new Response(JSON.stringify({ ...data, cache: refresh ? "refresh" : "miss" }), {
+    return new Response(JSON.stringify({ ...data, cache: "refresh" }), {
       headers: { ...CORS, "Content-Type": "application/json", "Cache-Control": "public, max-age=600" },
     });
   } catch (err) {

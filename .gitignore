@@ -15,3 +15,10 @@ supabase/.temp/
 
 # Vista previa del correo, generada a mano para mirarla.
 vista-previa-correo.html
+
+# Secretos y sesiones: el repositorio es público.
+.env
+.env.*
+.wrangler/
+storageState*.json
+playwright/.auth/

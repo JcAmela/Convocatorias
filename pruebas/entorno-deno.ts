@@ -8,6 +8,8 @@
  * llegan a salir a la red. Aquí solo se prueba la lógica pura.
  */
 const servidas: ((req: Request) => Response | Promise<Response>)[] = [];
+// Los manejadores registrados, para las pruebas que llaman al servidor.
+(globalThis as Record<string, unknown>).__servidas = servidas;
 
 (globalThis as Record<string, unknown>).Deno = {
   env: { get: () => undefined },

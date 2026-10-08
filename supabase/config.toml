@@ -1,0 +1,14 @@
+# Solo lo que el CLI de Supabase no debe decidir por su cuenta.
+#
+# `verify_jwt` va a `false` en las dos funciones, que es como están
+# desplegadas. El CLI lo pone a `true` si no se dice nada, y entonces:
+#   - convoca-board devolvería 401 a la web, que la llama sin cabecera;
+#   - convoca-correo rechazaría al cron, que se autentica con su propio token
+#     y no con un JWT.
+project_id = "convocatorias"
+
+[functions.convoca-board]
+verify_jwt = false
+
+[functions.convoca-correo]
+verify_jwt = false
