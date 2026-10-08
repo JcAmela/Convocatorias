@@ -1,0 +1,40 @@
+# ¿Lo publicado es de hoy?
+#
+# La cadena diaria es larga y cada eslabón falla en silencio: el cron de las
+# 04:00 rasca las fuentes, el de las 04:40 dispara el deploy hook, Vercel
+# construye y el build se niega a publicar si los datos no son buenos. Si
+# cualquiera de ellos falla, la web sigue sirviendo lo de ayer y nadie se
+# entera. Este workflow mira el resultado al final de la cadena: si `generado`
+# en `/datos/meta.json` tiene más de 12 h, falla, y GitHub manda un correo.
+#
+# 12 h y a las 06:00 UTC: detecta un solo día fallido, y deja una hora y media
+# de margen al rebuild de las 04:40.
+#
+# Ojo: en un repositorio público GitHub desactiva los workflows programados
+# tras 60 días sin actividad. Si pasa, se reactiva desde la pestaña Actions.
+
+name: Frescura
+
+on:
+  schedule:
+    - cron: '0 6 * * *'
+  workflow_dispatch:
+
+jobs:
+  frescura:
+    runs-on: ubuntu-latest
+    steps:
+      - name: generado tiene menos de 12 h
+        env:
+          META: https://convocatorias-ten.vercel.app/datos/meta.json
+          HORAS_MAXIMAS: '12'
+        run: |
+          meta="$(curl -fsS --retry 3 --retry-delay 10 "$META")"
+          generado="$(printf '%s' "$meta" | jq -r '.generado')"
+          edad=$(( ( $(date -u +%s) - $(date -u -d "$generado" +%s) ) / 3600 ))
+          echo "generado: $generado (hace $edad h)"
+          echo "abiertas: $(printf '%s' "$meta" | jq -r '.recuentos.abiertas')"
+          if [ "$edad" -ge "$HORAS_MAXIMAS" ]; then
+            echo "::error::Los datos publicados tienen $edad h. Mira el cron de las 04:00, el rebuild de las 04:40 y el último build de Vercel."
+            exit 1
+          fi
