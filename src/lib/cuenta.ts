@@ -1,15 +1,13 @@
 import { createClient, type Session } from '@supabase/supabase-js';
+import { CLAVE_PUBLICA, URL_SUPABASE } from './supabase-publico';
 
 /**
  * La cuenta y las búsquedas guardadas.
  *
- * La clave que va aquí es la pública: está pensada para viajar en el
- * navegador y no abre nada por sí sola. Lo que protege los datos es la
- * política de la tabla —cada uno solo ve las suyas—, no esconder la clave.
+ * La clave que se usa es la pública (`supabase-publico.ts`). Lo que protege
+ * los datos es la política de la tabla —cada uno solo ve las suyas—, no
+ * esconder la clave.
  */
-
-const URL_SUPABASE = 'https://tytcebxazuprhzyzntyy.supabase.co';
-const CLAVE_PUBLICA = 'sb_publishable_FlAUQhKdvYCe2iAFu8oa7g_R2YQcL5a';
 
 export const supabase = createClient(URL_SUPABASE, CLAVE_PUBLICA, {
   auth: {

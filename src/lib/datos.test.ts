@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { esTablero, saneaTablero, soloLoVisible, tableroVacio } from './datos';
+import { esTablero, saneaTablero, soloLoVisible } from './datos';
 import { plaza, tablero } from './pruebas';
 import type { Plaza, Tablero } from './tipos';
 
@@ -66,13 +66,5 @@ describe('soloLoVisible', () => {
   it('conserva el resumen, que es de donde salen los números de las pestañas', () => {
     const t = soloLoVisible(tablero({ resumen: { ...tablero().resumen, pendientes: 352 } }));
     expect(t.resumen.pendientes).toBe(352);
-  });
-});
-
-describe('tableroVacio', () => {
-  it('es un tablero de verdad, para que el build nunca se caiga por la API', () => {
-    const t = tableroVacio('la API no contesta');
-    expect(esTablero(t)).toBe(true);
-    expect(t.errores).toEqual(['la API no contesta']);
   });
 });

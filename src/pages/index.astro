@@ -1,12 +1,13 @@
 ---
 import Base from '../layouts/Base.astro';
 import { Tablero } from '../components/Tablero';
-import { leeTablero, soloLoVisible } from '../lib/datos';
+import { soloLoVisible } from '../lib/datos';
+import { leeTableroEstricto } from '../lib/lectura';
 
 // Se lee en el build para que la primera pintada ya lleve plazas de verdad.
-// El navegador vuelve a pedirlo al montar la isla, así que lo que se ve
-// acaba siendo lo de hoy aunque el despliegue sea de la semana pasada.
-const datos = soloLoVisible(await leeTablero());
+// Si los datos no son publicables, el build falla y sigue servida la versión
+// anterior (`lectura.ts`).
+const datos = soloLoVisible(await leeTableroEstricto());
 ---
 
 <Base

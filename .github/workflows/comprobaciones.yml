@@ -38,6 +38,11 @@ jobs:
         run: npm test
 
       # Construir aquí evita enterarse de que el build está roto por la web
-      # caída, que es donde se enteraba antes.
+      # caída, que es donde se enteraba antes. Con el fixture y no con la API:
+      # lo que se comprueba es el código, no los datos de hoy, y así cada push
+      # no hace una lectura de más contra Supabase. El build con datos en vivo
+      # lo hace Vercel, y ese sí se niega a publicar datos malos.
       - name: Build
         run: npm run build
+        env:
+          DATOS: fixture

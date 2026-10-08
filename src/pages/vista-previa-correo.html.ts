@@ -1,4 +1,4 @@
-import { leeTablero } from '../lib/datos';
+import { leeTableroEstricto } from '../lib/lectura';
 import { aplica, deQuery } from '../../supabase/functions/_shared/filtros.ts';
 import { correoHtml } from '../../supabase/functions/_shared/correo.ts';
 
@@ -17,7 +17,7 @@ const FILTROS = 'estudios=C2,AP&tipo=fija&desde=badalona';
 const SITIO = 'https://convocatorias-ten.vercel.app';
 
 export async function GET() {
-  const datos = await leeTablero();
+  const datos = await leeTableroEstricto();
   const f = deQuery(FILTROS);
   const encajan = aplica(datos.sitios, datos.abiertas, f);
 
