@@ -14,7 +14,11 @@ import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 type Manejador = (req: Request) => Promise<Response>;
 let servir: Manejador;
 
+const TOKEN = 'token-de-prueba';
+
 beforeAll(async () => {
+  // La función lee el token al cargarse.
+  (globalThis as Record<string, unknown>).__entorno = { REFRESH_TOKEN: TOKEN };
   await import('../supabase/functions/convoca-board/index.ts');
   const servidas = (globalThis as Record<string, unknown>).__servidas as Manejador[];
   servir = servidas[servidas.length - 1];
@@ -38,7 +42,8 @@ function fuente(copia: { data: unknown; updated_at: string } | null) {
   return pedidas;
 }
 
-const pide = (q = '') => servir(new Request(`https://x.test/convoca-board${q}`));
+const pide = (q = '', cabeceras: Record<string, string> = {}) =>
+  servir(new Request(`https://x.test/convoca-board${q}`, { headers: cabeceras }));
 
 describe('convoca-board sin refresh', () => {
   it('sirve la copia de ayer marcada como stale, sin rascar nada', async () => {
@@ -94,11 +99,31 @@ describe('convoca-board sin refresh', () => {
     expect(pedidas).toHaveLength(1);
   });
 
-  it('con refresh=1 sí va a las fuentes', async () => {
+  it('con refresh=1 y el token del cron sí va a las fuentes', async () => {
     const pedidas = fuente(null);
 
-    await pide('?refresh=1');
+    await pide('?refresh=1', { 'x-token': TOKEN });
 
     expect(pedidas.some((u) => u.includes('diba.cat') || u.includes('convoca.online'))).toBe(true);
+  });
+});
+
+describe('convoca-board con refresh=1 sin el token', () => {
+  it('sin cabecera contesta 401 y no sale a ninguna parte', async () => {
+    const pedidas = fuente(null);
+
+    const res = await pide('?refresh=1');
+
+    expect(res.status).toBe(401);
+    expect(pedidas).toEqual([]);
+  });
+
+  it('con un token equivocado, igual', async () => {
+    const pedidas = fuente(null);
+
+    const res = await pide('?refresh=1', { 'x-token': 'otro' });
+
+    expect(res.status).toBe(401);
+    expect(pedidas).toEqual([]);
   });
 });

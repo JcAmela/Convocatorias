@@ -670,6 +670,8 @@ export function employerLabel(institucio: string): string {
 
 const SB_URL = Deno.env.get("SUPABASE_URL") ?? "";
 const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+/** Lo que tiene que traer `x-token` para que `refresh=1` rasque. Mismo valor que `board_token` en Vault. */
+const REFRESH_TOKEN = Deno.env.get("REFRESH_TOKEN") ?? "";
 const DB = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
 
 async function saveSeen(items: Item[]): Promise<void> {
@@ -859,6 +861,16 @@ Deno.serve(async (req: Request) => {
   try {
     const refresh = new URL(req.url).searchParams.get("refresh") === "1";
     const today = todayMadrid();
+
+    // Rascar es caro —diez fuentes ajenas, una escritura en la base, egress— y
+    // solo le toca al cron, que manda el token desde Vault. Sin token no se
+    // rasca, y si el secreto falta tampoco: mejor un día de datos viejos, que
+    // avisa `frescura.yml`, que una puerta abierta.
+    if (refresh && (!REFRESH_TOKEN || req.headers.get("x-token") !== REFRESH_TOKEN)) {
+      return new Response(JSON.stringify({ error: "refresh=1 necesita token" }), {
+        status: 401, headers: { ...CORS, "Content-Type": "application/json" },
+      });
+    }
 
     // Sin `refresh=1` se sirve siempre la última copia, por vieja que sea. Si
     // el cron de la mañana falla, la web enseña lo de ayer marcado `stale` en

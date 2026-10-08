@@ -5,6 +5,8 @@
 -- Supabase Vault y el comando solo dice dónde buscarlos:
 --   - `correo_token`: el `x-token` de convoca-correo. La función tiene el
 --     mismo valor como secreto `CORREO_TOKEN`.
+--   - `board_token`: el `x-token` que deja a convoca-board rascar con
+--     `refresh=1`. La función tiene el mismo valor como `REFRESH_TOKEN`.
 --   - `deploy_hook`: la URL del deploy hook de Vercel (rama master).
 -- Ninguno de los dos valores está en este repositorio.
 --
@@ -19,6 +21,8 @@
 select cron.schedule('convoca-board-diario', '0 4 * * *', $$
   select net.http_get(
     url := 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board?refresh=1',
+    headers := jsonb_build_object(
+      'x-token', (select decrypted_secret from vault.decrypted_secrets where name = 'board_token')),
     timeout_milliseconds := 120000)
 $$);
 

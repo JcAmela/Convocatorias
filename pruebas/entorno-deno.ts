@@ -11,8 +11,10 @@ const servidas: ((req: Request) => Response | Promise<Response>)[] = [];
 // Los manejadores registrados, para las pruebas que llaman al servidor.
 (globalThis as Record<string, unknown>).__servidas = servidas;
 
+// Las variables de entorno que una prueba quiera fingir, antes de importar la
+// función: `(globalThis as any).__entorno = { REFRESH_TOKEN: '…' }`.
 (globalThis as Record<string, unknown>).Deno = {
-  env: { get: () => undefined },
+  env: { get: (k: string) => ((globalThis as Record<string, unknown>).__entorno as Record<string, string> | undefined)?.[k] },
   serve: (handler: (req: Request) => Response | Promise<Response>) => {
     servidas.push(handler);
   },
