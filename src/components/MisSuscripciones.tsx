@@ -97,7 +97,8 @@ export function MisSuscripciones() {
             onSubmit={async (e) => {
               e.preventDefault();
               setFallo(null);
-              const err = await pideEnlace(email.trim(), { filtros: '', nombre: '', cadencia: 'diaria' });
+              // Solo entrar: aquí no se pide ningún aviso nuevo.
+              const err = await pideEnlace(email.trim());
               if (err) setFallo(err); else setEnviado(true);
             }}
           >

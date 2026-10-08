@@ -53,7 +53,16 @@ export function leePendiente(): Pendiente | null {
     const crudo = localStorage.getItem(PENDIENTE);
     if (!crudo) return null;
     const p = JSON.parse(crudo) as Pendiente;
-    return typeof p?.filtros === 'string' ? p : null;
+    if (typeof p?.filtros !== 'string') return null;
+    // Sin filtros y sin nombre no lo ha pedido nadie: es lo que dejaba el
+    // acceso desde «Mis búsquedas», que luego se guardaba como «todo
+    // Cataluña, cada día». Avísame siempre pone nombre. Se tira, y así se
+    // limpian también los que quedaron en los navegadores.
+    if (!p.filtros.trim() && !p.nombre?.trim()) {
+      olvidaPendiente();
+      return null;
+    }
+    return p;
   } catch {
     return null;
   }
@@ -78,9 +87,12 @@ export interface Suscripcion {
   creada_en: string;
 }
 
-/** Manda el enlace de acceso y deja anotado a qué volver. */
-export async function pideEnlace(email: string, pendiente: Pendiente): Promise<string | null> {
-  guardaPendiente(pendiente);
+/**
+ * Manda el enlace de acceso. Con `pendiente`, deja anotada la búsqueda que
+ * se guardará al volver; sin él es solo entrar, y no se anota nada.
+ */
+export async function pideEnlace(email: string, pendiente?: Pendiente): Promise<string | null> {
+  if (pendiente) guardaPendiente(pendiente);
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: { emailRedirectTo: window.location.href },
