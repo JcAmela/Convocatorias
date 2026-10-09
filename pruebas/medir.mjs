@@ -44,7 +44,11 @@ function lighthouse() {
     lcp: a['largest-contentful-paint'].numericValue,
     tbt: a['total-blocking-time'].numericValue,
     fcp: a['first-contentful-paint'].numericValue,
-    elementoLcp: a['largest-contentful-paint-element']?.details?.items?.[0]?.items?.[0]?.node?.snippet ?? null,
+    // Lighthouse 12 lo da en «largest-contentful-paint-element»; el 13, en
+    // el desglose del LCP.
+    elementoLcp: a['largest-contentful-paint-element']?.details?.items?.[0]?.items?.[0]?.node?.snippet
+      ?? /"snippet":"([^"]*)/.exec(JSON.stringify(a['lcp-breakdown-insight']?.details ?? {}))?.[1]
+      ?? null,
   };
 }
 

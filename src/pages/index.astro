@@ -2,6 +2,7 @@
 import Base from '../layouts/Base.astro';
 import { Tablero } from '../components/Tablero';
 import { datosPublicos, paraCalendario, primeras, sitiosDe } from '../lib/publicos';
+import { jsonLdPortada } from '../lib/seo';
 
 // El HTML solo lleva lo que se ve al abrir: el resumen, las primeras 24
 // abiertas con sus sitios y lo mínimo para el calendario. El resto lo pide la
@@ -21,7 +22,8 @@ const parcial = { calendario: paraCalendario(tablero.abiertas, tablero.hoy) };
 
 <Base
   titulo="Convocatorias — empleo público en Cataluña"
-  descripcion="Plazas de empleo público con el plazo abierto en toda Cataluña: ayuntamientos de las cuatro provincias, consejos comarcales, Generalitat y diputaciones. Filtra por municipio, comarca, distancia desde tu pueblo, estudios y días que quedan."
+  descripcion="Empleo público con el plazo abierto en toda Cataluña: ayuntamientos, consejos comarcales, Generalitat y diputaciones. Filtra por municipio, estudios y plazo."
+  jsonld={jsonLdPortada()}
 >
   <Tablero inicial={inicial} parcial={parcial} client:load />
 </Base>

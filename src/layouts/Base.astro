@@ -1,18 +1,33 @@
 ---
 import '../styles/global.css';
+import { IMAGEN_OG, NOMBRE, recortaDescripcion, serializaJsonLd } from '../lib/seo';
 
 interface Props {
   titulo: string;
+  /** Se recorta a 160 caracteres, que es lo que enseña Google. */
   descripcion: string;
-  /** Páginas que no deben salir en los buscadores: el perfil, la 404. */
+  /** Páginas que no deben salir en los buscadores: el perfil, la 404 y, sin
+   * dominio propio, las fichas y los listados (`seo.ts`). */
   noindex?: boolean;
+  /** Ruta canónica si no es la de la propia página. */
+  canonica?: string;
+  ogType?: 'website' | 'article';
+  /** Datos estructurados: uno o varios objetos schema.org. */
+  jsonld?: unknown;
+  /** El texto del enlace para saltar al contenido, que va a `#contenido`. */
+  saltar?: string;
 }
 
-const { titulo, descripcion, noindex = false } = Astro.props;
+const {
+  titulo, descripcion, noindex = false, canonica: ruta, ogType = 'website', jsonld,
+  saltar = 'Saltar a los resultados',
+} = Astro.props;
 
 // `Astro.site` viene de astro.config.mjs; si no estuviera, se cae con elegancia
 // a la URL con la que se ha pedido la página.
-const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
+const canonica = new URL(ruta ?? Astro.url.pathname, Astro.site ?? Astro.url).href;
+const resumen = recortaDescripcion(descripcion);
+const datos = jsonld === undefined ? [] : Array.isArray(jsonld) ? jsonld : [jsonld];
 ---
 
 <!doctype html>
@@ -21,24 +36,30 @@ const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>{titulo}</title>
-    <meta name="description" content={descripcion} />
+    <meta name="description" content={resumen} />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="canonical" href={canonica} />
 
     <meta property="og:title" content={titulo} />
-    <meta property="og:description" content={descripcion} />
-    <meta property="og:type" content="website" />
+    <meta property="og:description" content={resumen} />
+    <meta property="og:type" content={ogType} />
     <meta property="og:url" content={canonica} />
     <meta property="og:locale" content="es_ES" />
-    <meta property="og:site_name" content="Convocatorias" />
-    <meta name="twitter:card" content="summary" />
+    <meta property="og:site_name" content={NOMBRE} />
+    <meta property="og:image" content={IMAGEN_OG.url} />
+    <meta property="og:image:width" content={String(IMAGEN_OG.ancho)} />
+    <meta property="og:image:height" content={String(IMAGEN_OG.alto)} />
+    <meta property="og:image:alt" content={IMAGEN_OG.alt} />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 
     {/* Sin webfonts: la letra es la del sistema (global.css). Las tres de
         Google retrasaban el primer pintado de cada visita. */}
     <meta name="theme-color" content="#f3f2ec" media="(prefers-color-scheme: light)" />
     <meta name="theme-color" content="#0e1112" media="(prefers-color-scheme: dark)" />
+
+    {datos.map((d) => <script type="application/ld+json" set:html={serializaJsonLd(d)} />)}
 
     {/* El tema elegido se aplica antes de pintar: sin esto, quien tiene el
         modo oscuro guardado vería un fogonazo blanco en cada carga. */}
@@ -55,7 +76,7 @@ const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
       href="#contenido"
       class="bg-pine sr-only rounded-br-md px-4 py-2 text-base font-semibold text-on-pine focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50"
     >
-      Saltar a los resultados
+      {saltar}
     </a>
     <slot />
   </body>
