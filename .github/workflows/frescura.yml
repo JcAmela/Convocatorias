@@ -9,7 +9,7 @@
 #
 # 12 h y a las 06:23 UTC: detecta un solo día fallido, y deja hora y media
 # de margen al rebuild de las 04:40. No en punto: a las 06:00 GitHub se
-# saltó la ejecución los dos primeros días; las horas en punto son las de
+# saltó la primera ejecución (9-10-2026); las horas en punto son las de
 # más cola y ahí descarta programados.
 #
 # Ojo: en un repositorio público GitHub desactiva los workflows programados
