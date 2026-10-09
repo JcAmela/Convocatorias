@@ -52,6 +52,7 @@ function sanea(p: Partial<Plaza> | null | undefined): Plaza {
     enlace: q.enlace ?? null,
     fichaOficial: q.fichaOficial ?? null,
     fuente: q.fuente,
+    slug: q.slug,
   };
 }
 

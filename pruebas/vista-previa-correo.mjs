@@ -24,7 +24,7 @@ const d = {
   desde: f.desde,
   nombreBusqueda: 'Fijas a mi alcance',
   urlTablero: `${SITIO}/?${filtros}`,
-  urlGestion: `${SITIO}/suscripciones?t=EJEMPLO`,
+  urlGestion: `${SITIO}/suscripciones/?t=EJEMPLO`,
   urlBaja: `${SITIO}/baja?t=EJEMPLO`,
 };
 

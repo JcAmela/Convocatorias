@@ -36,9 +36,10 @@ build que publique la web vacía, incompleta o vieja.
       aportaban nada que no estuviera en CIDO y se han quitado.
 - [x] Identificadores definitivos para cada convocatoria: `cido-<id>`, el
       mismo número que la ficha oficial de CIDO.
-- [ ] Rutas: `/convocatoria/<slug>-<id>/`, `/municipio/<id>/`,
+- [x] Rutas: `/convocatoria/<slug>-<id>/`, `/municipio/<id>/`,
       `/comarca/<nombre>/`, `/estudios/<nivel>/`, `/tipo/<clase>/`,
-      `/sin-titulacion/`. El slug se congela la primera vez que se ve la plaza.
+      `/sin-titulacion/` (`src/lib/rutas.ts`). El slug se congela la primera
+      vez que se ve la plaza.
 - [ ] Elegir y comprar el dominio.
 
 ## F2. Cimientos del diseño y tarjeta

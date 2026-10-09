@@ -3,6 +3,7 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 // estaban duplicados bajo un comentario que pedía no separarlos nunca, que es
 // un aviso que no protege de nada.
 import { claveLugar, idComarca, idDe } from "../_shared/lugares.ts";
+import { slugDe } from "../_shared/slug.ts";
 
 // ============================================================================
 // convoca-board — alimenta el portal web.
@@ -610,8 +611,15 @@ const SB_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
 const REFRESH_TOKEN = Deno.env.get("REFRESH_TOKEN") ?? "";
 const DB = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": "application/json" };
 
-async function saveSeen(items: Item[]): Promise<void> {
-  if (!items.length) return;
+/**
+ * Guarda lo visto en el archivo y devuelve el slug de cada plaza tal como ha
+ * quedado en la base. Se manda el slug calculado hoy, pero el trigger
+ * `congela_slug` conserva el de la primera vez que se vio: así la URL de la
+ * ficha no cambia aunque el organismo corrija el título.
+ */
+async function saveSeen(items: Item[]): Promise<Map<string, string>> {
+  const slugs = new Map<string, string>();
+  if (!items.length) return slugs;
   const now = new Date().toISOString();
   const rows = items.map((x) => ({
     item_id: x.id,
@@ -620,17 +628,21 @@ async function saveSeen(items: Item[]): Promise<void> {
     employer: x.empleador,
     kind: x.tipo,
     last_seen: now,
+    slug: slugDe(String(x.titulo ?? "")),
   }));
   const BATCH = 200;
   for (let i = 0; i < rows.length; i += BATCH) {
-    const res = await fetch(`${SB_URL}/rest/v1/convoca_board_items?on_conflict=item_id`, {
+    const res = await fetch(`${SB_URL}/rest/v1/convoca_board_items?on_conflict=item_id&select=item_id,slug`, {
       method: "POST",
-      headers: { ...DB, Prefer: "resolution=merge-duplicates" },
+      headers: { ...DB, Prefer: "resolution=merge-duplicates,return=representation" },
       body: JSON.stringify(rows.slice(i, i + BATCH)),
       signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
     });
     if (!res.ok) throw new Error(`Fallo guardando el archivo (${res.status}): ${await res.text()}`);
+    const guardadas = await res.json().catch(() => []) as { item_id: string; slug: string | null }[];
+    for (const g of guardadas) if (g.slug) slugs.set(g.item_id, g.slug);
   }
+  return slugs;
 }
 
 // Cerradas: las del archivo con fecha límite pasada. Se leen de la base y no de
@@ -639,12 +651,14 @@ async function loadClosed(today: string): Promise<Item[]> {
   const desde = new Date(Date.parse(today) - CLOSED_WINDOW_DAYS * 86400000)
     .toISOString().slice(0, 10);
   const res = await fetch(
-    `${SB_URL}/rest/v1/convoca_board_items?select=item&item_id=like.cido-*&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=${CLOSED_LIMIT}`,
+    `${SB_URL}/rest/v1/convoca_board_items?select=item,slug&item_id=like.cido-*&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=${CLOSED_LIMIT}`,
     { headers: DB, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
   );
   if (!res.ok) return [];
-  const rows = (await res.json()) as { item: Item }[];
-  return rows.map((r) => r.item);
+  const rows = (await res.json()) as { item: Item; slug: string | null }[];
+  // Una fila cerrada antes de que existiera la columna no tiene slug guardado;
+  // como ya no cambia, calcularlo de su título da siempre el mismo.
+  return rows.map((r) => ({ ...r.item, slug: r.slug ?? slugDe(String(r.item.titulo ?? "")) }));
 }
 
 async function readSnapshot(id: number): Promise<{ data: unknown; updated_at: string } | null> {
@@ -731,8 +745,13 @@ async function build(today: string, puedeRefrescar: boolean) {
     delete (it as Record<string, unknown>)._sitios;
   }
 
-  try { await saveSeen(todos); } catch (e) {
+  let slugs = new Map<string, string>();
+  try { slugs = await saveSeen(todos); } catch (e) {
     errores.push({ fuente: "(archivo)", mensaje: String((e as Error)?.message ?? e) });
+  }
+  // El slug congelado si la base lo devolvió; si el archivo falló, el de hoy.
+  for (const it of todos) {
+    (it as Record<string, unknown>).slug = slugs.get(it.id) ?? slugDe(String(it.titulo ?? ""));
   }
 
   const abiertas: Item[] = [];

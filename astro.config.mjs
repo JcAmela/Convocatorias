@@ -8,6 +8,9 @@ export default defineConfig({
   // De dónde se sirve el sitio: con esto Astro puede componer la URL canónica
   // y las de compartir. Se cambia en `_shared/sitio.ts`.
   site: SITIO,
+  // Todas las direcciones acaban en «/». Fijado antes de publicar las fichas
+  // (src/lib/rutas.ts): cambiarlo después rompería las URL ya conocidas.
+  trailingSlash: 'always',
   integrations: [react()],
   vite: { plugins: [tailwindcss()] },
   build: { inlineStylesheets: 'auto' },

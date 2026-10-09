@@ -138,8 +138,8 @@ function datosCorreo(s: Suscripcion, nuevas: Plaza[], tablero: Tablero): DatosCo
     desde: f.desde,
     nombreBusqueda: s.nombre,
     urlTablero: `${SITIO}/?${s.filtros}`,
-    urlGestion: `${SITIO}/suscripciones`,
-    urlBaja: `${SITIO}/suscripciones`,
+    urlGestion: `${SITIO}/suscripciones/`,
+    urlBaja: `${SITIO}/suscripciones/`,
   };
 }
 
@@ -246,8 +246,8 @@ async function envioSuelto(cuerpo: {
     desde: f.desde,
     nombreBusqueda: cuerpo.nombre ?? "Fijas a mi alcance",
     urlTablero: `${SITIO}/?${filtros}`,
-    urlGestion: `${SITIO}/suscripciones`,
-    urlBaja: `${SITIO}/suscripciones`,
+    urlGestion: `${SITIO}/suscripciones/`,
+    urlBaja: `${SITIO}/suscripciones/`,
   };
 
   await manda(para, d);

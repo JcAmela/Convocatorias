@@ -30,7 +30,7 @@ export async function GET() {
     desde: f.desde,
     nombreBusqueda: 'Fijas a mi alcance',
     urlTablero: `${SITIO}/?${FILTROS}`,
-    urlGestion: `${SITIO}/suscripciones?t=EJEMPLO`,
+    urlGestion: `${SITIO}/suscripciones/?t=EJEMPLO`,
     urlBaja: `${SITIO}/baja?t=EJEMPLO`,
   });
 

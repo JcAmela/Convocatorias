@@ -89,6 +89,9 @@ export interface Plaza {
   /** Ficha en el portal CIDO de la Diputació. */
   fichaOficial: string | null;
   fuente?: string;
+  /** La parte legible de la URL de su ficha, congelada la primera vez que se vio
+   * (`_shared/slug.ts`). Falta en lo que se guardó antes de existir. */
+  slug?: string;
 }
 
 export interface Resumen {
