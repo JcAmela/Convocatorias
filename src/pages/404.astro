@@ -1,0 +1,28 @@
+---
+import Base from '../layouts/Base.astro';
+
+// La que sirve Vercel (y servirá Cloudflare) para cualquier dirección que no
+// existe. Sin ella salía la página genérica del alojamiento, en inglés y sin
+// camino de vuelta.
+---
+
+<Base
+  titulo="Página no encontrada — Convocatorias"
+  descripcion="Esta dirección no existe en Convocatorias."
+  noindex
+>
+  <main class="mx-auto max-w-[40rem] px-4 py-16 sm:px-5">
+    <p class="text-sm font-semibold text-ink-3">Error 404</p>
+    <h1 class="mt-2 text-2xl font-semibold">Esta página no existe</h1>
+    <p class="mt-3 text-base leading-relaxed text-ink-2">
+      Puede que el enlace esté mal copiado o que la página ya no exista. Las
+      convocatorias abiertas están en el tablero.
+    </p>
+    <a
+      href="/"
+      class="bg-pine mt-6 inline-block rounded-lg px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
+    >
+      Ir al tablero
+    </a>
+  </main>
+</Base>

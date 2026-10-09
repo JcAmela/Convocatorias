@@ -1,5 +1,2 @@
 User-agent: *
 Allow: /
-
-# Andamio para revisar la plantilla del correo. No es una pagina del sitio.
-Disallow: /vista-previa-correo.html

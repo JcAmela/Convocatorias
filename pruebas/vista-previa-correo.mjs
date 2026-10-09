@@ -5,6 +5,7 @@
 import { writeFileSync } from 'node:fs';
 import { aplica, deQuery } from '../supabase/functions/_shared/filtros.ts';
 import { asuntoCorreo, correoHtml, correoTexto } from '../supabase/functions/_shared/correo.ts';
+import { SITIO } from '../supabase/functions/_shared/sitio.ts';
 
 const API = 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board';
 const datos = await (await fetch(API)).json();
@@ -22,9 +23,9 @@ const d = {
   catalogo: datos.sitios,
   desde: f.desde,
   nombreBusqueda: 'Fijas a mi alcance',
-  urlTablero: `https://convocatorias-ten.vercel.app/?${filtros}`,
-  urlGestion: 'https://convocatorias-ten.vercel.app/suscripciones?t=EJEMPLO',
-  urlBaja: 'https://convocatorias-ten.vercel.app/baja?t=EJEMPLO',
+  urlTablero: `${SITIO}/?${filtros}`,
+  urlGestion: `${SITIO}/suscripciones?t=EJEMPLO`,
+  urlBaja: `${SITIO}/baja?t=EJEMPLO`,
 };
 
 writeFileSync('vista-previa-correo.html', correoHtml(d), 'utf8');

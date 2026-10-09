@@ -4,9 +4,11 @@ import '../styles/global.css';
 interface Props {
   titulo: string;
   descripcion: string;
+  /** Páginas que no deben salir en los buscadores: el perfil, la 404. */
+  noindex?: boolean;
 }
 
-const { titulo, descripcion } = Astro.props;
+const { titulo, descripcion, noindex = false } = Astro.props;
 
 // `Astro.site` viene de astro.config.mjs; si no estuviera, se cae con elegancia
 // a la URL con la que se ha pedido la página.
@@ -31,7 +33,7 @@ const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
     <meta property="og:locale" content="es_ES" />
     <meta property="og:site_name" content="Convocatorias" />
     <meta name="twitter:card" content="summary" />
-    <meta name="robots" content="index, follow" />
+    <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />

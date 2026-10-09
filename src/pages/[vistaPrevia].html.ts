@@ -1,23 +1,25 @@
-import { leeTableroEstricto } from '../lib/lectura';
+import type { GetStaticPaths } from 'astro';
+import { datosPublicos } from '../lib/publicos';
 import { aplica, deQuery } from '../../supabase/functions/_shared/filtros.ts';
 import { correoHtml } from '../../supabase/functions/_shared/correo.ts';
+import { SITIO } from '../../supabase/functions/_shared/sitio.ts';
 
 /**
- * El aviso por correo, servido como página para poder mirarlo en el móvil.
+ * El aviso por correo, servido como página para poder mirarlo en el móvil:
+ * `/vista-previa-correo.html` con `npm run dev`.
  *
- * Es un andamio, no una pantalla del producto: se cae en cuanto el alta y el
- * envío estén montados. Mientras tanto evita la única forma de revisar una
- * plantilla de correo que es peor que esta, que es enviársela a alguien.
- *
- * Sale del build como fichero suelto, así que enseña las convocatorias que
- * había al desplegar. No se indexa: está en robots.txt.
+ * Es un andamio, no una pantalla del producto, así que solo existe en
+ * desarrollo. Es una ruta dinámica para eso: en el build de producción
+ * `getStaticPaths` no devuelve nada y no se genera ningún fichero, mientras
+ * que en `astro dev` sirve la única página que declara.
  */
+export const getStaticPaths = (() =>
+  import.meta.env.DEV ? [{ params: { vistaPrevia: 'vista-previa-correo' } }] : []) satisfies GetStaticPaths;
 
 const FILTROS = 'estudios=C2,AP&tipo=fija&desde=badalona';
-const SITIO = 'https://convocatorias-ten.vercel.app';
 
 export async function GET() {
-  const datos = await leeTableroEstricto();
+  const { tablero: datos } = await datosPublicos();
   const f = deQuery(FILTROS);
   const encajan = aplica(datos.sitios, datos.abiertas, f);
 

@@ -55,83 +55,120 @@ src/
     piezas.tsx       píldoras e iconos compartidos
   lib/
     tipos.ts         el contrato de la API
-    datos.ts         lectura en build, saneado de la respuesta y caída elegante
+    datos.ts         saneado de lo que llega del servidor
+    lectura.ts       la lectura del build, que se niega a publicar datos malos
+    publicos.ts      lo que se publica en /datos/ y lo que lleva el HTML
+    supabase-publico.ts  la URL de Supabase y la clave pública, una sola copia
     filtros.ts       filtrado, recuento por faceta, orden y estado en la URL
     formato.ts       fechas en español, urgencia, traducción de niveles
     localizacion.ts  resuelve el sitio de cada plaza contra el catálogo del servidor
     cercania.ts      tu municipio de referencia y la distancia hasta cada plaza
     oficios.ts       puentes entre el español que se teclea y el catalán del anuncio
   layouts/Base.astro
-  pages/index.astro
+  pages/
+    index.astro      la portada
+    suscripciones.astro  «Mis búsquedas»
+    404.astro
+    datos/           los JSON estáticos que lee la isla
 ```
 
 ## Los datos
+
+### El ciclo de cada día
+
+Todo pasa de madrugada y en este orden (UTC):
+
+| Hora | Qué | Dónde |
+|---|---|---|
+| 04:00 | `convoca-board?refresh=1` rasca las fuentes y guarda la copia | pg_cron → Edge Function |
+| 04:20 | `convoca-correo` manda los avisos con lo de hoy | pg_cron → Edge Function |
+| 04:40 | El deploy hook de Vercel reconstruye la web con la copia nueva | pg_cron → Vercel |
+| 06:00 | Se comprueba que lo publicado es de hoy (`generado` < 12 h) | GitHub Actions (`frescura.yml`) |
+
+Los tres trabajos de pg_cron están en `supabase/migraciones/2026-10-08-cron.sql`.
+Los dos secretos que usan (`deploy_hook` y `correo_token`) viven en **Supabase
+Vault**, no en el texto del cron ni en este repositorio.
+
+### La Edge Function
 
 ```
 https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board
 ```
 
-Edge Function de Supabase, pública, sin autenticación y con
-`Access-Control-Allow-Origin: *`. Devuelve `abiertas`, `pendientes`, `cerradas`,
-`resumen`, `errores` y la fecha de cálculo. Salen del portal CIDO de la Diputació
-de Barcelona y de los portales Convoca de Badalona, El Masnou y Santa Coloma.
+Pública y con `Access-Control-Allow-Origin: *`. Devuelve `abiertas`,
+`pendientes`, `cerradas`, `sitios`, `resumen`, `errores` y la fecha de cálculo.
+**Solo rasca las fuentes con `?refresh=1`**, que es lo que hace el cron; sin
+él sirve siempre la última copia guardada (`cache: "hit"` si es de hoy y
+reciente, `"stale"` si no). Así una visita nunca dispara una pasada contra las
+fuentes.
 
-**Se leen dos veces, a propósito.** Una en el build, para que la primera pintada
-ya lleve plazas de verdad en el HTML (bueno para el buscador de Google y para
-quien entra con mala conexión). Y otra en el navegador al montar la isla, que
-sustituye lo anterior por lo de hoy. Por eso un despliegue de hace un mes sigue
-enseñando datos frescos.
-
-Si la API no contesta durante el build, el build **no falla**: se genera con las
-listas vacías y el navegador las rellena.
-
-Para cambiar de endpoint, toca `API` en `src/lib/datos.ts`.
-
-El código de esa función vive en `supabase/functions/convoca-board/index.ts`.
-Estaba solo en Supabase, sin control de versiones; está aquí para poder leerlo
-y revisarlo con el resto. Se despliega así:
+El código vive en `supabase/functions/` y se despliega con el CLI:
 
 ```bash
-npx supabase login          # una vez por máquina
-npx supabase functions deploy convoca-board   --project-ref tytcebxazuprhzyzntyy --no-verify-jwt
+npx supabase functions deploy convoca-board --project-ref tytcebxazuprhzyzntyy --no-verify-jwt --use-api
 ```
 
-`--no-verify-jwt` no es opcional: la web llama a la función sin cabecera de
-autorización, así que activar la verificación tumbaría el tablero entero.
+`verify_jwt = false` está fijado en `supabase/config.toml` para las dos
+funciones: el CLI lo pone a `true` si no se dice nada, y eso dejaría la web y
+el cron del correo fuera. **Nunca `--prune`**: borraría funciones que no están
+en el repositorio.
 
-**La segunda función, `convoca-correo`**, compone un aviso y lo manda por
-Resend. Se despliega igual, y necesita dos secretos del proyecto:
+`convoca-correo` compone los avisos y los manda por Resend. Necesita dos
+secretos de la función: `RESEND_API_KEY` (la **misma** clave va en
+Authentication → SMTP, que manda los enlaces de acceso) y `CORREO_TOKEN`, que
+protege la función y tiene el mismo valor que `correo_token` en Vault.
+Mientras no haya dominio propio, el remitente es `onboarding@resend.dev`, que
+solo entrega al titular de la cuenta.
 
-| Secreto | Para qué |
+### El build
+
+La web es estática. El build lee la función una sola vez
+(`leeTableroEstricto()` en `src/lib/lectura.ts`) y **falla**, dejando servida
+la versión anterior, si:
+
+- la API no contesta o no devuelve un tablero;
+- llegan 0 abiertas;
+- las abiertas bajan más de un 30 % frente al último build publicado (lo lee
+  de `/datos/meta.json` en la web en vivo);
+- falla CIDO o su callejero;
+- los datos tienen más de 26 h.
+
+Si una bajada es real y está comprobada en las fuentes, se construye una vez
+con `PERMITIR_BAJADA=1`.
+
+Con lo leído escribe ficheros estáticos que sirve la CDN, cada uno con la
+atribución que pide la licencia:
+
+| Fichero | Qué |
 |---|---|
-| `RESEND_API_KEY` | Mandar los avisos. La **misma** clave va en Authentication → SMTP, que es la que manda los enlaces de acceso. Si se cambia en un sitio y no en el otro, la mitad deja de funcionar. |
-| `CORREO_TOKEN` | Protege la función. Un endpoint que manda correo a quien se lo pida es la vía rápida a las listas negras. |
+| `/datos/abiertas.json`, `pendientes.json`, `cerradas.json` | Las tres listas, sin los campos que el navegador no usa |
+| `/datos/sitios.json` | El callejero entero |
+| `/datos/meta.json` | `generado`, recuentos, resumen, errores y commit |
 
-Mientras no haya dominio propio, el remitente es `onboarding@resend.dev`, el
-de pruebas de Resend: **solo entrega al titular de la cuenta** y tiene
-bastantes papeletas de caer en spam. Para abrirlo a otras personas hace falta
-un dominio con sus registros SPF y DKIM.
+El HTML de la portada solo lleva el resumen, las 24 primeras abiertas y lo
+mínimo para el calendario. La isla pide las abiertas cuando el navegador queda
+libre o al primer gesto en los filtros, y pendientes y cerradas al abrir su
+pestaña. Al volver a una pestaña abierta hace rato mira `meta.json` y solo
+recarga si hay datos nuevos.
 
-**La rutina diaria** la dispara pg_cron dentro de Supabase, a las 04:00 UTC,
-antes del aviso por correo:
+También hace una lectura mínima con la clave pública (la fecha de la copia,
+`2026-10-08-latido-anon.sql`) para que el proyecto gratuito de Supabase no se
+pause por falta de actividad.
 
-```sql
-select cron.schedule('convoca-board-diario', '0 4 * * *',
-  $$ select net.http_get(
-       url := 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board?refresh=1',
-       timeout_milliseconds := 120000) $$);
-```
-
-Sin ella, la base solo se actualizaba cuando alguien entraba en la web y
-además había caducado la caché de tres horas: lo que abría y cerraba entre dos
-visitas no llegaba a existir. Se perdió así el Pla d'Ocupació 2026 de
-Badalona, más de cien plazas abiertas una semana de julio.
+| Variable | Para qué |
+|---|---|
+| `DATOS=fixture` | Construir con `pruebas/fixtures/tablero.json`, sin red. Es lo que hace la CI |
+| `CONVOCA_API` | Leer de otra URL |
+| `PERMITIR_BAJADA=1` | Dejar pasar un build con una bajada comprobada |
 
 **De dónde sale cada convocatoria.** Siete consultas a CIDO —ayuntamientos de
 Barcelona, Girona, Lleida y Tarragona, consejos comarcales, Generalitat y
-diputaciones— y los portales Convoca de Badalona, El Masnou y Santa Coloma. Se
-quedan fuera a propósito «Altres entitats públiques» (hospitales, universidades
-y centros de investigación) y los cuerpos de la Administración del Estado.
+diputaciones—, datos abiertos de la Diputació de Barcelona con licencia
+[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es). Se quedan
+fuera a propósito «Altres entitats públiques» (hospitales, universidades y
+centros de investigación) y los cuerpos de la Administración del Estado. La
+función lee también los portales Convoca de Badalona, El Masnou y Santa
+Coloma, pero sus plazas no se publican mientras se revisa esa fuente.
 
 ### Lo que llega no siempre está limpio
 
@@ -164,12 +201,16 @@ Dos cosas se corrigen aquí porque en el origen no tienen arreglo:
 ## Desarrollo
 
 ```bash
-npm install
-npm run dev      # http://localhost:4321
-npm run check    # tipos de Astro, React y TypeScript
-npm run test     # las pruebas de la lógica (vitest)
-npm run build    # genera dist/
+npm ci
+npm run dev                     # http://localhost:4321 (y /vista-previa-correo.html)
+npm run check                   # tipos de Astro, React, TypeScript y las funciones
+npm run test                    # las pruebas (vitest)
+DATOS=fixture npm run build     # genera dist/ sin salir a la red
+npm run build                   # genera dist/ con los datos en vivo
 ```
+
+La vista previa del correo solo existe con `npm run dev`; en producción no se
+genera.
 
 ### Qué se prueba
 
@@ -187,12 +228,16 @@ Cubren la lógica pura, que es la que se rompe en silencio:
 | `cercania` | Distancias, y que una coordenada imposible no se convierta en una falsa |
 | `localizacion` | Qué sitio se enseña, el asterisco de sede y los identificadores |
 | `datos` | El saneado de lo que llega del servidor |
+| `lectura` | Cuándo el build se niega a publicar, y que lee una sola vez |
+| `publicos` | Lo que va en `/datos/` y en el HTML: cuentas, primeras 24, sitios, calendario |
+| `cuenta` | Que entrar en «Mis búsquedas» no cree una suscripción que nadie pidió |
 
 Y en `pruebas/`, lo que no vive junto a su módulo:
 
 | Fichero | Lo que sostiene |
 |---|---|
 | `servidor` | La función de Supabase: coordenadas, identificadores, el lugar que se saca del título, el filtro de policía, fechas y grupos |
+| `snapshot` | Que una visita sin `refresh` sirva la copia y no rasque las fuentes |
 | `contrato-identificadores` | Que el servidor y la web fabriquen **el mismo** identificador de municipio |
 
 Ese contrato merece explicación. El identificador de un sitio se calcula dos
@@ -219,14 +264,17 @@ buscador o en el formato de la URL deje de encontrar cosas sin que se note.
 ### Integración continua
 
 `.github/workflows/comprobaciones.yml` ejecuta `check`, `test` y `build` en
-cada push y cada pull request, con Node 24, que es el que usa Vercel. Antes no
-había nada: un push que rompiera las pruebas se desplegaba igual.
+cada push y cada pull request, con Node 24, que es el que usa Vercel. El build
+de la CI usa el fixture: comprueba el código, no los datos del día.
+
+`.github/workflows/frescura.yml` mira cada mañana que lo publicado sea de hoy.
+GitHub desactiva los workflows programados de un repositorio público tras 60
+días sin actividad; si pasa, se reactiva desde la pestaña Actions.
 
 ## Despliegue
 
-Sitio estático, sin variables de entorno. En Vercel se importa el repositorio y
-se deja lo que detecta solo (`npm run build` → `dist`).
+Vercel construye `master` en cada push (`npm run build` → `dist`, Node 24) y
+cada mañana con el deploy hook. El dominio está escrito una sola vez, en
+`supabase/functions/_shared/sitio.ts`, salvo en `frescura.yml`, que es YAML.
 
-El HTML lleva incrustada la foto del día del build. Como el navegador revalida,
-no hace falta reconstruir a diario; si aun así lo quieres, crea un Deploy Hook en
-Vercel y llámalo desde un cron.
+Lo que queda por hacer, y en qué orden, está en `docs/hoja-de-ruta.md`.
