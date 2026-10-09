@@ -11,21 +11,24 @@ build que publique la web vacía, incompleta o vieja.
 - [x] `convoca-board` deja de rascar las fuentes cuando entra una visita:
       sin `?refresh=1` sirve siempre la última copia (`cache: "stale"` si es
       vieja). `verify_jwt` fijado en `supabase/config.toml`.
-- [ ] Build estricto: falla si la API no contesta, si llegan 0 abiertas, si
+- [x] Build estricto: falla si la API no contesta, si llegan 0 abiertas, si
       bajan más de un 30 % frente al último build publicado, si falla CIDO o
       si los datos tienen más de 26 h. Variables `CONVOCA_API` y
       `DATOS=fixture`; la CI construye con el fixture.
-- [ ] Rebuild diario con un deploy hook disparado por pg_cron a las
+- [x] Rebuild diario con un deploy hook disparado por pg_cron a las
       04:40 UTC, secretos en Vault, cron versionados y un workflow de GitHub
       que avisa si los datos publicados tienen más de 12 h.
-- [ ] JSON estático en `/datos/` servido desde la CDN; la portada deja de
-      llamar a la Edge Function y pesa 40 KB gzip o menos.
-- [ ] Alta de avisos: no se crea ninguna suscripción que nadie haya pedido.
-- [ ] Higiene: `noindex` en `/suscripciones`, vista previa del correo solo en
+- [x] JSON estático en `/datos/` servido desde la CDN; la portada deja de
+      llamar a la Edge Function y pesa 40 KB gzip o menos (18 KB).
+- [x] `refresh=1` solo con el token del cron, guardado en Vault.
+- [x] Alta de avisos: no se crea ninguna suscripción que nadie haya pedido.
+- [x] Higiene: `noindex` en `/suscripciones`, vista previa del correo solo en
       desarrollo, página 404, constante `SITIO` única, atribución CC BY con
       fecha en el pie y README al día.
-- [ ] Infraestructura reproducible: migración de línea base de las tablas del
-      tablero y copias semanales.
+- [x] Infraestructura reproducible: migración de línea base de las tablas del
+      tablero y repositorio privado de copias semanales.
+- [ ] Copias: falta el secreto de conexión en el repositorio privado.
+- [ ] El workflow de frescura sale en verde dos días seguidos.
 
 ## F1. Decisiones que fijan las URL
 

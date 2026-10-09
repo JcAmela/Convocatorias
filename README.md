@@ -86,8 +86,8 @@ Todo pasa de madrugada y en este orden (UTC):
 | 06:00 | Se comprueba que lo publicado es de hoy (`generado` < 12 h) | GitHub Actions (`frescura.yml`) |
 
 Los tres trabajos de pg_cron están en `supabase/migraciones/2026-10-08-cron.sql`.
-Los dos secretos que usan (`deploy_hook` y `correo_token`) viven en **Supabase
-Vault**, no en el texto del cron ni en este repositorio.
+Los tres secretos que usan (`board_token`, `correo_token` y `deploy_hook`)
+viven en **Supabase Vault**, no en el texto del cron ni en este repositorio.
 
 ### La Edge Function
 
@@ -97,8 +97,10 @@ https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-board
 
 Pública y con `Access-Control-Allow-Origin: *`. Devuelve `abiertas`,
 `pendientes`, `cerradas`, `sitios`, `resumen`, `errores` y la fecha de cálculo.
-**Solo rasca las fuentes con `?refresh=1`**, que es lo que hace el cron; sin
-él sirve siempre la última copia guardada (`cache: "hit"` si es de hoy y
+**Solo rasca las fuentes con `?refresh=1` y la cabecera `x-token`** que manda
+el cron (secreto `REFRESH_TOKEN` de la función, el mismo valor que
+`board_token` en Vault); sin ella contesta 401. Sin `refresh` sirve siempre la
+última copia guardada (`cache: "hit"` si es de hoy y
 reciente, `"stale"` si no). Así una visita nunca dispara una pasada contra las
 fuentes.
 
