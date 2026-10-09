@@ -7,8 +7,10 @@
 # entera. Este workflow mira el resultado al final de la cadena: si `generado`
 # en `/datos/meta.json` tiene más de 12 h, falla, y GitHub manda un correo.
 #
-# 12 h y a las 06:00 UTC: detecta un solo día fallido, y deja una hora y media
-# de margen al rebuild de las 04:40.
+# 12 h y a las 06:23 UTC: detecta un solo día fallido, y deja hora y media
+# de margen al rebuild de las 04:40. No en punto: a las 06:00 GitHub se
+# saltó la ejecución los dos primeros días; las horas en punto son las de
+# más cola y ahí descarta programados.
 #
 # Ojo: en un repositorio público GitHub desactiva los workflows programados
 # tras 60 días sin actividad. Si pasa, se reactiva desde la pestaña Actions.
@@ -17,7 +19,7 @@ name: Frescura
 
 on:
   schedule:
-    - cron: '0 6 * * *'
+    - cron: '23 6 * * *'
   workflow_dispatch:
 
 jobs:
