@@ -76,6 +76,17 @@ describe('el HTML', () => {
     const d = base([plaza({ enlace: null, fichaOficial: null })]);
     expect(correoHtml(d)).toContain('no trae enlace');
   });
+
+  it('enlaza a la ficha propia si ya está publicada; si no, al anuncio oficial', () => {
+    const publicada = plaza({ id: 'cido-1', fichaOficial: 'https://cido.diba.cat/oposicions/1' });
+    const nueva = plaza({ id: 'cido-2', fichaOficial: 'https://cido.diba.cat/oposicions/2' });
+    const d = { ...base([publicada, nueva]), fichas: { 'cido-1': 'https://ejemplo.test/convocatoria/x-cido-1/' } };
+    const html = correoHtml(d);
+    expect(html).toContain('href="https://ejemplo.test/convocatoria/x-cido-1/"');
+    expect(html).not.toContain('oposicions/1"');
+    expect(html).toContain('href="https://cido.diba.cat/oposicions/2"');
+    expect(correoTexto(d)).toContain('https://ejemplo.test/convocatoria/x-cido-1/');
+  });
 });
 
 describe('el texto plano', () => {

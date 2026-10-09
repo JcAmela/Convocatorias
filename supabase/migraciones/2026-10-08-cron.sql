@@ -15,8 +15,11 @@
 --
 -- Horario (UTC):
 --   04:00  convoca-board con refresh=1: rasca las fuentes y guarda la copia.
---   04:20  convoca-correo: manda los avisos con lo de hoy.
---   04:40  rebuild de la web: el build lee la copia de las 04:00 y publica.
+--   04:40  rebuild de la web: el build lee la copia de las 04:00 y publica,
+--          con /datos/indice.json.
+--   05:30  convoca-correo: manda los avisos con lo de hoy. Va después del
+--          rebuild para enlazar a las fichas propias ya publicadas (estaba a
+--          las 04:20 hasta el 9-10-2026).
 
 select cron.schedule('convoca-board-diario', '0 4 * * *', $$
   select net.http_get(
@@ -26,7 +29,7 @@ select cron.schedule('convoca-board-diario', '0 4 * * *', $$
     timeout_milliseconds := 120000)
 $$);
 
-select cron.schedule('convoca-correo-diario', '20 4 * * *', $$
+select cron.schedule('convoca-correo-diario', '30 5 * * *', $$
   select net.http_post(
     url := 'https://tytcebxazuprhzyzntyy.supabase.co/functions/v1/convoca-correo',
     headers := jsonb_build_object(

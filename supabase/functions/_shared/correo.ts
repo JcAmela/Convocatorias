@@ -50,6 +50,18 @@ export interface DatosCorreo {
    * recibe tiene que poder saber que está viendo una parte.
    */
   totalQueEncajan?: number;
+  /**
+   * La ficha propia de cada convocatoria que ya está publicada, con la URL
+   * entera (sale de `/datos/indice.json`). Las que no están —recién llegadas,
+   * que el build de hoy aún no ha publicado— enlazan al anuncio oficial: un
+   * correo nunca debe llevar a un 404.
+   */
+  fichas?: Record<string, string>;
+}
+
+/** A dónde lleva cada convocatoria: su ficha si ya existe; si no, el anuncio. */
+export function enlaceDe(p: Plaza, d: Pick<DatosCorreo, 'fichas'>): string | null {
+  return d.fichas?.[p.id] ?? p.fichaOficial ?? p.enlace ?? null;
 }
 
 export function asuntoCorreo(d: DatosCorreo): string {
@@ -76,7 +88,7 @@ function tarjeta(p: Plaza, d: DatosCorreo): string {
   const color = colorPlazo(p.diasRestantes);
   const s = sitioMostrado(d.catalogo, p);
   const km = kmDesde(d.catalogo, p, d.desde);
-  const enlace = p.fichaOficial ?? p.enlace;
+  const enlace = enlaceDe(p, d);
 
   const lugar = s
     ? escapa(s.nombre) + (esSoloSede(d.catalogo, p) ? ' *' : '') +
@@ -216,7 +228,7 @@ export function correoTexto(d: DatosCorreo): string {
       `* ${p.titulo}`,
       `  ${p.empleador} — ${lugar}`,
       `  ${urgencia(p.diasRestantes).etiqueta} · ${tipo}`,
-      `  ${p.fichaOficial ?? p.enlace ?? '(el anuncio no trae enlace)'}`,
+      `  ${enlaceDe(p, d) ?? '(el anuncio no trae enlace)'}`,
     ].join('\n');
   });
 

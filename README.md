@@ -24,6 +24,11 @@ No incluye plazas de policía, guardia urbana ni mossos.
   de la página.
 - **Ficha de detalle** en un panel lateral, con requisitos, avisos de plazo y los
   enlaces para presentar la solicitud.
+- **Una página por convocatoria** (`/convocatoria/<slug>-<id>/`), sin
+  JavaScript, con JobPosting para Google Empleos cuando los datos son fiables
+  (`src/lib/jsonld.ts`), y **listados** por municipio, comarca, estudios, tipo
+  de plaza y sin titulación. Llevan `noindex` mientras la web no tenga dominio
+  propio (`src/lib/seo.ts`).
 - **Guardadas** con la estrella, en `localStorage` de ese navegador.
 - **Estado en la URL**: cualquier combinación de filtros se puede guardar en
   marcadores o mandar por WhatsApp y se abre igual.
@@ -81,9 +86,9 @@ Todo pasa de madrugada y en este orden (UTC):
 | Hora | Qué | Dónde |
 |---|---|---|
 | 04:00 | `convoca-board?refresh=1` rasca las fuentes y guarda la copia | pg_cron → Edge Function |
-| 04:20 | `convoca-correo` manda los avisos con lo de hoy | pg_cron → Edge Function |
 | 04:40 | El deploy hook de Vercel reconstruye la web con la copia nueva | pg_cron → Vercel |
-| 06:00 | Se comprueba que lo publicado es de hoy (`generado` < 12 h) | GitHub Actions (`frescura.yml`) |
+| 05:30 | `convoca-correo` manda los avisos con lo de hoy, enlazando a las fichas ya publicadas | pg_cron → Edge Function |
+| 06:23 | Se comprueba que lo publicado es de hoy (`generado` < 12 h) | GitHub Actions (`frescura.yml`) |
 
 Los tres trabajos de pg_cron están en `supabase/migraciones/2026-10-08-cron.sql`.
 Los tres secretos que usan (`board_token`, `correo_token` y `deploy_hook`)

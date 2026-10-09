@@ -129,7 +129,26 @@ export function corteDe(s: Suscripcion): string {
   return s.ultimo_envio_en ?? s.creada_en;
 }
 
-function datosCorreo(s: Suscripcion, nuevas: Plaza[], tablero: Tablero): DatosCorreo {
+/**
+ * Las fichas propias ya publicadas, por id. Las lee del índice que publica el
+ * build (`/datos/indice.json`); el cron del correo va a las 05:30 UTC, después
+ * del rebuild de las 04:40, para que estén las de hoy. Si el índice no se
+ * puede leer, ninguna: los correos enlazan al anuncio oficial como siempre.
+ */
+export async function fichasPublicadas(): Promise<Record<string, string>> {
+  try {
+    const r = await fetch(`${SITIO}/datos/indice.json`, { signal: AbortSignal.timeout(10_000) });
+    if (!r.ok) return {};
+    const indice = await r.json() as { fichas?: { id: string; url: string }[] };
+    return Object.fromEntries((indice.fichas ?? []).map((f) => [f.id, `${SITIO}${f.url}`]));
+  } catch {
+    return {};
+  }
+}
+
+function datosCorreo(
+  s: Suscripcion, nuevas: Plaza[], tablero: Tablero, fichas: Record<string, string>,
+): DatosCorreo {
   const f = deQuery(s.filtros);
   return {
     plazas: nuevas.slice(0, TOPE_TARJETAS),
@@ -140,6 +159,7 @@ function datosCorreo(s: Suscripcion, nuevas: Plaza[], tablero: Tablero): DatosCo
     urlTablero: `${SITIO}/?${s.filtros}`,
     urlGestion: `${SITIO}/suscripciones/`,
     urlBaja: `${SITIO}/suscripciones/`,
+    fichas,
   };
 }
 
@@ -175,7 +195,7 @@ async function tandaDiaria() {
   const pendientes = suscripciones.filter((s) => toca(s, ahora));
   if (pendientes.length === 0) return { revisadas: suscripciones.length, enviados: 0, detalle: [] };
 
-  const tablero = await leeTablero();
+  const [tablero, fichas] = await Promise.all([leeTablero(), fichasPublicadas()]);
   // Un solo viaje al archivo, desde el corte más antiguo de todas.
   const corteMasViejo = pendientes.map(corteDe).sort()[0];
   const vistoPorPrimeraVez = await primeraVez(corteMasViejo);
@@ -206,7 +226,7 @@ async function tandaDiaria() {
         continue;
       }
 
-      await manda(para, datosCorreo(s, nuevas, tablero));
+      await manda(para, datosCorreo(s, nuevas, tablero, fichas));
       await fetch(`${SB_URL}/rest/v1/convoca_suscripciones?id=eq.${s.id}`, {
         method: "PATCH",
         headers: DB,
@@ -235,7 +255,7 @@ async function envioSuelto(cuerpo: {
 
   const filtros = cuerpo.filtros ?? "estudios=C2,AP&tipo=fija&desde=badalona";
   const cuantas = Math.min(Math.max(cuerpo.cuantas ?? TOPE_TARJETAS, 1), 20);
-  const tablero = await leeTablero();
+  const [tablero, fichas] = await Promise.all([leeTablero(), fichasPublicadas()]);
   const f = deQuery(filtros);
   const encajan = aplica(tablero.sitios, tablero.abiertas, f);
 
@@ -248,6 +268,7 @@ async function envioSuelto(cuerpo: {
     urlTablero: `${SITIO}/?${filtros}`,
     urlGestion: `${SITIO}/suscripciones/`,
     urlBaja: `${SITIO}/suscripciones/`,
+    fichas,
   };
 
   await manda(para, d);
