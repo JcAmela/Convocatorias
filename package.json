@@ -7,7 +7,9 @@
     "preview": "astro preview",
     "check": "astro check",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:visual": "playwright test",
+    "medir": "node pruebas/medir.mjs"
   },
   "author": "",
   "license": "ISC",
@@ -26,6 +28,9 @@
   "type": "module",
   "devDependencies": {
     "@astrojs/check": "^0.9.10",
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.64.0",
+    "lighthouse": "^13.5.0",
     "typescript": "^6.0.3",
     "vitest": "^4.1.11"
   }

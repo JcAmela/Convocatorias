@@ -1,0 +1,73 @@
+{
+  "url": "http://localhost:4322/",
+  "pasadas": 5,
+  "medianas": {
+    "rendimiento": 82,
+    "lcpMs": 1898,
+    "tbtMs": 662,
+    "fcpMs": 1781,
+    "cls": 0
+  },
+  "todas": {
+    "lighthouse": [
+      {
+        "rendimiento": 94,
+        "lcp": 1640.63,
+        "tbt": 254.76300000000037,
+        "fcp": 1640.63
+      },
+      {
+        "rendimiento": 72,
+        "lcp": 2009.593,
+        "tbt": 1372.4809999999995,
+        "fcp": 2009.593
+      },
+      {
+        "rendimiento": 73,
+        "lcp": 2288.37,
+        "tbt": 1097.4850000000015,
+        "fcp": 2288.37
+      },
+      {
+        "rendimiento": 98,
+        "lcp": 1706.01,
+        "tbt": 129.97299999999996,
+        "fcp": 1706.01
+      },
+      {
+        "rendimiento": 82,
+        "lcp": 1898.075,
+        "tbt": 661.5899999999997,
+        "fcp": 1781.452
+      }
+    ],
+    "cls": [
+      {
+        "cls": 0,
+        "cargoAbiertas": true
+      },
+      {
+        "cls": 0,
+        "cargoAbiertas": true
+      },
+      {
+        "cls": 0,
+        "cargoAbiertas": true
+      },
+      {
+        "cls": 0,
+        "cargoAbiertas": true
+      },
+      {
+        "cls": 0,
+        "cargoAbiertas": true
+      }
+    ]
+  },
+  "capturas": [
+    "docs\\linea-base\\movil-claro.png",
+    "docs\\linea-base\\movil-oscuro.png",
+    "docs\\linea-base\\escritorio-claro.png",
+    "docs\\linea-base\\escritorio-oscuro.png"
+  ]
+}

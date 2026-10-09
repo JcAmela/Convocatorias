@@ -25,5 +25,7 @@ export default defineConfig({
   },
   test: {
     setupFiles: ['./pruebas/entorno-deno.ts'],
+    // Las pruebas en el navegador son de Playwright (`npm run test:visual`).
+    exclude: ['**/node_modules/**', 'pruebas/visual/**'],
   },
 });

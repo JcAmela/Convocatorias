@@ -44,7 +44,7 @@ build que publique la web vacía, incompleta o vieja.
 
 ## F2. Cimientos del diseño y tarjeta
 
-- [ ] Línea base de rendimiento y capturas (`docs/linea-base.md`).
+- [x] Línea base de rendimiento y capturas (`docs/linea-base.md`).
 - [ ] Sin webfonts, tipografía del sistema, tokens nuevos y test de contraste.
 - [ ] Tarjeta nueva.
 
