@@ -12,7 +12,9 @@ import { defineConfig, devices } from '@playwright/test';
  *
  * En local usa el Chrome instalado; en la CI, el Chromium de Playwright.
  */
-const PUERTO = 4323;
+// Cada copia de trabajo que pruebe a la vez necesita el suyo: con el mismo
+// puerto, Playwright reutilizaría el servidor de otra y probaría otro build.
+const PUERTO = Number(process.env.PUERTO_PRUEBAS ?? 4323);
 
 export default defineConfig({
   testDir: 'pruebas/visual',
