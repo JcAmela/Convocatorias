@@ -22,3 +22,7 @@ vista-previa-correo.html
 .wrangler/
 storageState*.json
 playwright/.auth/
+
+# Resultados de Playwright (npm run test:visual).
+test-results/
+playwright-report/

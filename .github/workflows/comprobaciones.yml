@@ -46,3 +46,16 @@ jobs:
         run: npm run build
         env:
           DATOS: fixture
+
+      # Presupuesto del diseño (F2): el CSS no pasa de 10 KB comprimido.
+      - name: Peso del CSS
+        run: node pruebas/peso-css.mjs
+
+      # Lo que solo se ve pintando: alturas de la tarjeta, zonas de toque,
+      # accesibilidad con axe y ninguna petición a webfonts. Contra el build
+      # del fixture de arriba.
+      - name: Navegador para las pruebas visuales
+        run: npx playwright install --with-deps chromium
+
+      - name: Pruebas en el navegador
+        run: npm run test:visual

@@ -45,3 +45,31 @@ Las cifras de cada pasada están en `docs/linea-base/medidas.json`.
   (cabecera, pestañas, buscador, seis filtros, cuatro cifras y el
   calendario). F5 quiere la primera tarjeta en y ≤ 260.
 - Las tres webfonts de Google bloqueaban el pintado: F2 las quitó.
+
+## Después de F2 (letra del sistema y tarjeta nueva)
+
+Medido el 9 de octubre de 2026 con `pruebas/comparar.mjs`: el build de la
+línea base (`799e089`) y el de F2, servidos a la vez y medidos intercalados,
+9 pasadas cada uno.
+
+| Métrica | Antes | Después | Diferencia |
+|---|---|---|---|
+| LCP | 1.859 ms | 1.704 ms | −8 % |
+| TBT | 755 ms | 516 ms | −32 % |
+| FCP | 1.768 ms | 1.536 ms | −13 % |
+| CLS | 0 | 0 | — |
+
+Medir las dos versiones intercaladas es lo que vale a partir de ahora: dos
+tandas seguidas de la misma versión, medidas por separado, dieron un FCP de
+1.655 y de 2.063 ms. Intercaladas, la misma versión contra sí misma difiere
+un 1 %.
+
+```bash
+git worktree add ../antes <commit>          # y allí: DATOS=fixture npx astro build
+ASTRO_PREVIEW_BACKGROUND=1 npx astro preview --port 4330 --ignore-lock   # en ../antes
+ASTRO_PREVIEW_BACKGROUND=1 npx astro preview --port 4331 --ignore-lock   # aquí, tras el build
+node pruebas/comparar.mjs http://localhost:4330/ http://localhost:4331/ 9
+```
+
+`ASTRO_PREVIEW_BACKGROUND` impide que `astro preview` se vaya a segundo plano
+cuando lo lanza un agente de IA, y `--ignore-lock` deja abrir dos a la vez.

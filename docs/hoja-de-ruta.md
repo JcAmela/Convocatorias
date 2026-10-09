@@ -48,7 +48,9 @@ build que publique la web vacía, incompleta o vieja.
 - [x] Sin webfonts, tipografía del sistema, tokens nuevos y test de contraste
       (`pruebas/contraste.test.ts`), un solo componente `Icono` y respuesta
       al tocar. CSS: 7,0 KB gzip.
-- [ ] Tarjeta nueva.
+- [x] Tarjeta nueva: plazo, título, organismo y datos; 200 px o menos a
+      375 (`pruebas/visual/`). Frente a la línea base: LCP −8 %, TBT −32 %,
+      CLS 0. La CI mide el CSS y pasa axe.
 
 ## F3. Páginas para Google
 

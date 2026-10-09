@@ -17,6 +17,8 @@ const PUERTO = 4323;
 export default defineConfig({
   testDir: 'pruebas/visual',
   fullyParallel: true,
+  // Con más, cada Chrome se queda sin CPU y las páginas tardan más de 30 s.
+  workers: 2,
   retries: process.env.CI ? 1 : 0,
   reporter: process.env.CI ? 'github' : 'list',
   use: {
@@ -30,7 +32,12 @@ export default defineConfig({
     { name: 'escritorio', use: { viewport: { width: 1280, height: 800 } } },
   ],
   webServer: {
-    command: `npm run preview -- --port ${PUERTO}`,
+    // `astro preview` se va a segundo plano por su cuenta cuando cree que lo
+    // lanza un agente de IA, y Playwright lo da por muerto. Con
+    // ASTRO_PREVIEW_BACKGROUND se queda delante, y con `--ignore-lock` puede
+    // convivir con otra vista previa abierta.
+    command: `npm run preview -- --port ${PUERTO} --ignore-lock`,
+    env: { ASTRO_PREVIEW_BACKGROUND: '1' },
     url: `http://localhost:${PUERTO}/`,
     reuseExistingServer: !process.env.CI,
     timeout: 60_000,

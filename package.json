@@ -9,7 +9,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:visual": "playwright test",
-    "medir": "node pruebas/medir.mjs"
+    "medir": "node pruebas/medir.mjs",
+    "peso": "node pruebas/peso-css.mjs"
   },
   "author": "",
   "license": "ISC",
