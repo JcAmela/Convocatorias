@@ -1,0 +1,42 @@
+---
+import Categoria from '../../components/Categoria.astro';
+import type { ClaseContrato } from '../../lib/filtros';
+import { usaSitios } from '../../lib/localizacion';
+import { EXPLICA_CLASE, nConvocatorias, porClase } from '../../lib/paginas';
+import { datosPublicos } from '../../lib/publicos';
+import { rutaTipo } from '../../lib/rutas';
+
+/** `/tipo/fija/`, `/tipo/temporal/` y `/tipo/bolsa/`. */
+const CLASES: ClaseContrato[] = ['fija', 'temporal', 'bolsa'];
+
+export async function getStaticPaths() {
+  const { tablero } = await datosPublicos();
+  usaSitios(tablero.sitios);
+  const hay = porClase(tablero);
+  return (['fija', 'temporal', 'bolsa'] as const)
+    .filter((c) => hay.has(c))
+    .map((clase) => ({ params: { clase }, props: { clase } }));
+}
+
+const { clase } = Astro.props as { clase: ClaseContrato };
+const { tablero } = await datosPublicos();
+usaSitios(tablero.sitios);
+const hay = porClase(tablero);
+const otras = CLASES.filter((c) => c !== clase && hay.has(c)).map((c) => ({
+  nombre: EXPLICA_CLASE[c].titulo,
+  ruta: rutaTipo(c),
+  nota: nConvocatorias((hay.get(c)?.abiertas.length ?? 0) + (hay.get(c)?.pendientes.length ?? 0)),
+}));
+---
+
+<Categoria
+  tablero={tablero}
+  vivas={hay.get(clase)!}
+  ruta={rutaTipo(clase)}
+  titulo={EXPLICA_CLASE[clase].titulo}
+  quien={clase === 'bolsa' ? 'en bolsas de trabajo' : `de plaza ${clase}`}
+  explica={EXPLICA_CLASE[clase].texto}
+  filtro={`tipo=${clase}`}
+  otras={otras}
+  tituloOtras="Otros tipos de plaza"
+/>

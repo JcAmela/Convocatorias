@@ -11,6 +11,7 @@ import {
   SIN_LUGAR, TEXTO_SIN_LUGAR, TEXTO_SOLO_CERCA,
 } from '../lib/localizacion';
 import { estaCerca, referenciaGuardada, guardaReferencia, RADIO_CERCA_KM } from '../lib/cercania';
+import { rutaFicha, tieneFicha } from '../lib/rutas';
 import { Filtros } from './Filtros';
 import { Calendario } from './Calendario';
 import { Tarjeta } from './Tarjeta';
@@ -364,6 +365,13 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
     });
     setVisibles(PAGINA);
   }, []);
+
+  // La página propia de cada convocatoria, si este build la generó: las
+  // cerradas de hace más de un mes ya no la tienen (`rutas.ts`).
+  const enlaceFicha = useCallback(
+    (p: Plaza) => (tieneFicha(p, datos.hoy) ? rutaFicha(p) : undefined),
+    [datos.hoy],
+  );
 
   const alternaGuardada = useCallback((id: string) => {
     setGuardadas((antes) => {
@@ -851,6 +859,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                 guardadas={guardadas}
                 onGuardar={alternaGuardada}
                 onAbrir={setAbierta}
+                enlace={enlaceFicha}
               />
             ) : (
               // `minmax(300px,1fr)` no puede encoger por debajo de su mínimo, así
@@ -862,6 +871,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                     key={p.id}
                     plaza={p}
                     desde={f.desde}
+                    href={enlaceFicha(p)}
                     guardada={guardadas.has(p.id)}
                     onGuardar={alternaGuardada}
                     onAbrir={setAbierta}

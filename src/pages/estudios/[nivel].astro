@@ -1,0 +1,47 @@
+---
+import Categoria from '../../components/Categoria.astro';
+import { ETIQUETA_NIVEL, ORDEN_NIVEL } from '../../lib/formato';
+import { usaSitios } from '../../lib/localizacion';
+import { EXPLICA_NIVEL, nConvocatorias, porNivel } from '../../lib/paginas';
+import { datosPublicos } from '../../lib/publicos';
+import { RUTA_SIN_TITULACION, rutaEstudios } from '../../lib/rutas';
+
+/**
+ * `/estudios/<nivel>/`. El grupo AP (sin titulación) tiene su propia página,
+ * `/sin-titulacion/`, y no se repite aquí.
+ */
+const NIVELES = Object.keys(ORDEN_NIVEL).filter((k) => k !== 'AP');
+
+export async function getStaticPaths() {
+  const { tablero } = await datosPublicos();
+  usaSitios(tablero.sitios);
+  const hay = porNivel(tablero);
+  return Object.keys(ORDEN_NIVEL)
+    .filter((k) => k !== 'AP' && hay.has(k))
+    .map((k) => ({ params: { nivel: k.toLowerCase() }, props: { nivel: k } }));
+}
+
+const { nivel } = Astro.props as { nivel: string };
+const { tablero } = await datosPublicos();
+usaSitios(tablero.sitios);
+const hay = porNivel(tablero);
+const cuenta = (k: string) => (hay.get(k)?.abiertas.length ?? 0) + (hay.get(k)?.pendientes.length ?? 0);
+const otras = [...NIVELES.filter((k) => k !== nivel && hay.has(k)), ...(hay.has('AP') ? ['AP'] : [])].map((k) => ({
+  nombre: ETIQUETA_NIVEL[k],
+  ruta: k === 'AP' ? RUTA_SIN_TITULACION : rutaEstudios(k),
+  nota: nConvocatorias(cuenta(k)),
+}));
+const estudios = ETIQUETA_NIVEL[nivel].replace(/^Universitario/, 'estudios universitarios');
+---
+
+<Categoria
+  tablero={tablero}
+  vivas={hay.get(nivel)!}
+  ruta={rutaEstudios(nivel)}
+  titulo={`Empleo público con ${estudios} (${nivel})`}
+  quien={`para el grupo ${nivel}`}
+  explica={EXPLICA_NIVEL[nivel]}
+  filtro={`estudios=${nivel}`}
+  otras={otras}
+  tituloOtras="Otros niveles de estudios"
+/>

@@ -47,6 +47,12 @@ jobs:
         env:
           DATOS: fixture
 
+      # Lo que Google va a leer: ningún JobPosting en un listado ni en una
+      # cerrada, ninguno sin validThrough, noindex mientras no haya dominio,
+      # fichas sin JavaScript y dist por debajo de 18.000 ficheros.
+      - name: Revisión del build
+        run: node pruebas/revisa-dist.mjs
+
       # Presupuesto del diseño (F2): el CSS no pasa de 10 KB comprimido.
       - name: Peso del CSS
         run: node pruebas/peso-css.mjs

@@ -1,0 +1,45 @@
+---
+import Listado from './Listado.astro';
+import {
+  cifrasDe, dondeMas, FRASE_FICHAS, fraseCifras, fraseQuien, nConvocatorias, primerasDe, type Vivas,
+} from '../lib/paginas';
+import type { Tablero } from '../lib/tipos';
+
+/** Un listado por categoría: nivel de estudios, tipo de plaza o sin titulación. */
+interface Props {
+  tablero: Tablero;
+  vivas: Vivas;
+  ruta: string;
+  titulo: string;
+  /** «para el grupo C2», «de plaza fija». */
+  quien: string;
+  explica: string;
+  /** La query del tablero con el filtro puesto: `estudios=C2`. */
+  filtro: string;
+  otras: { nombre: string; ruta: string; nota?: string }[];
+  tituloOtras: string;
+}
+
+const { tablero, vivas, ruta, titulo, quien, explica, filtro, otras, tituloOtras } = Astro.props;
+const cifras = cifrasDe(vivas);
+const total = vivas.abiertas.length + vivas.pendientes.length;
+const intro = [explica, fraseCifras(cifras, quien), fraseQuien(vivas), FRASE_FICHAS]
+  .filter((x): x is string => Boolean(x));
+---
+
+<Listado
+  tituloPagina={`${titulo}: ${nConvocatorias(total)} en Cataluña — Convocatorias`}
+  titulo={`${titulo} en Cataluña`}
+  descripcion={`${explica} ${fraseCifras(cifras, 'en Cataluña')}`}
+  migas={[{ nombre: 'Convocatorias', ruta: '/' }, { nombre: titulo, ruta }]}
+  intro={intro}
+  cifras={cifras}
+  plazas={primerasDe(vivas)}
+  total={total}
+  tablero={{ ruta: `/?${filtro}`, texto: 'Ver todas en el tablero, con filtros' }}
+  secciones={[
+    { titulo: 'Dónde hay más', enlaces: dondeMas(vivas, tablero) },
+    { titulo: tituloOtras, enlaces: otras },
+  ]}
+  generado={tablero.generado}
+/>

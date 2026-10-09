@@ -1,0 +1,24 @@
+---
+import { ATRIBUCION } from '../lib/publicos';
+
+interface Props {
+  /** Cuándo se calcularon los datos (ISO 8601). */
+  generado: string;
+}
+
+const { generado } = Astro.props;
+const fecha = new Date(generado).toLocaleDateString('es-ES', {
+  day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Madrid',
+});
+---
+
+{/* Lo que pide la licencia: quién, con qué licencia, de cuándo y que hay
+    cambios. Y que no parezca oficial, que no lo es. */}
+<footer class="mt-10 border-t border-line pt-5 pb-8 text-sm leading-relaxed text-ink-3">
+  <p class="mb-2 font-medium text-ink-2">Web independiente, no oficial.</p>
+  <p>
+    Fuente: {ATRIBUCION.fuente},{' '}
+    <a class="underline underline-offset-2 hover:text-ink" href={ATRIBUCION.licenciaUrl} rel="license noopener">{ATRIBUCION.licencia}</a>,
+    datos del {fecha}. Seleccionados, clasificados y con etiquetas en castellano por Convocatorias.
+  </p>
+</footer>

@@ -1,0 +1,219 @@
+---
+import Base from '../../layouts/Base.astro';
+import Cabecera from '../../components/Cabecera.astro';
+import Pie from '../../components/Pie.astro';
+import FechaRelativa from '../../components/FechaRelativa.astro';
+import { FichaPlaza } from '../../components/FichaPlaza';
+import { Tarjeta } from '../../components/Tarjeta';
+import { Icono } from '../../components/piezas';
+import { AVISO_OFICIAL, fichaDe } from '../../lib/ficha';
+import { fechaLarga, NIVEL_CORTO, tituloLimpio, urgencia } from '../../lib/formato';
+import { jobPosting } from '../../lib/jsonld';
+import { usaSitios } from '../../lib/localizacion';
+import {
+  cierranProntoEn, comarcaDe, conFicha, masEn, municipioDe, parecidas, rutaDeSitio, type ConFicha,
+} from '../../lib/paginas';
+import { datosPublicos } from '../../lib/publicos';
+import { rutaFicha } from '../../lib/rutas';
+import { DOMINIO_PROPIO, jsonLdMigas } from '../../lib/seo';
+
+/**
+ * La página de cada convocatoria: `/convocatoria/<slug>-<id>/`.
+ *
+ * Sin islas ni JavaScript de `/_astro`: es lo que lee Google y lo que se abre
+ * desde un enlace compartido, y tiene que pintarse entera en el primer
+ * vistazo. Lo único que corre en el navegador es el script en línea que
+ * recalcula «quedan N días» si la página se lee otro día (`FechaRelativa`).
+ */
+export async function getStaticPaths() {
+  const { tablero } = await datosPublicos();
+  usaSitios(tablero.sitios);
+  return conFicha(tablero).map((f) => ({
+    params: { ficha: rutaFicha(f.plaza).slice('/convocatoria/'.length, -1) },
+    props: f,
+  }));
+}
+
+const { plaza, grupo } = Astro.props as ConFicha;
+const { tablero } = await datosPublicos();
+// El catálogo es global para el módulo de lugares (`localizacion.ts`), y la
+// portada lo deja con solo sus sitios: cada página fija el completo.
+usaSitios(tablero.sitios);
+
+const titulo = tituloLimpio(plaza);
+const ficha = fichaDe(plaza);
+const u = urgencia(plaza.diasRestantes);
+const municipio = municipioDe(plaza);
+const comarca = comarcaDe(plaza, tablero.sitios);
+const rutaLugar = (s: Parameters<typeof rutaDeSitio>[1]) => rutaDeSitio(tablero, s);
+const lugarNombre = municipio?.nombre ?? comarca?.nombre ?? null;
+
+const cerrada = grupo === 'cerradas';
+const vivas = [...tablero.abiertas, ...tablero.pendientes];
+const enMunicipio = cerrada ? [] : masEn(plaza, vivas);
+const pronto = cerrada ? [] : cierranProntoEn(plaza, tablero.abiertas, tablero.sitios, new Set(enMunicipio.map((p) => p.id)));
+const similares = cerrada ? parecidas(plaza, tablero.abiertas, tablero.sitios) : [];
+
+// Migas: solo los sitios que tienen página; el último es la propia ficha.
+const migas = [
+  { nombre: 'Convocatorias', ruta: '/' },
+  ...[comarca, municipio]
+    .filter((s): s is NonNullable<typeof s> => Boolean(s))
+    .map((s) => ({ nombre: s.nombre, ruta: rutaLugar(s) }))
+    .filter((m): m is { nombre: string; ruta: string } => m.ruta !== null),
+  { nombre: titulo, ruta: rutaFicha(plaza) },
+];
+
+const COLOR: Record<string, string> = {
+  critica: 'text-rust', seria: 'text-ochre', aviso: 'text-ink', calma: 'text-ink-2', sinfecha: 'text-ink-2',
+};
+
+const plazoTexto = cerrada
+  ? (plaza.fin ? `Plazo cerrado el ${fechaLarga(plaza.fin)}` : 'Plazo cerrado')
+  : grupo === 'pendientes'
+    ? 'Aún sin plazo para apuntarse'
+    : plaza.fin ? `Hasta el ${fechaLarga(plaza.fin)}` : 'Plazo abierto, sin fecha de cierre';
+
+const estudios = plaza.nivelCodigo ? NIVEL_CORTO[plaza.nivelCodigo] : null;
+const descripcion = [
+  `${ficha.casa}${lugarNombre && lugarNombre !== ficha.casa ? `, ${lugarNombre}` : ''}.`,
+  `${plazoTexto}.`,
+  plaza.plazas ? `${plaza.plazas} ${plaza.plazas === 1 ? 'puesto' : 'puestos'}.` : '',
+  estudios ? `${estudios}.` : '',
+  'Requisitos, plazo y enlace oficial.',
+].filter(Boolean).join(' ');
+
+const empleo = jobPosting(plaza, grupo, tablero.hoy);
+const jsonld = [jsonLdMigas(migas), ...(empleo ? [empleo] : [])];
+---
+
+<Base
+  titulo={`${titulo}${lugarNombre ? ` · ${lugarNombre}` : ''} — Convocatorias`}
+  descripcion={descripcion}
+  noindex={!DOMINIO_PROPIO}
+  ogType="article"
+  jsonld={jsonld}
+  saltar="Saltar a la convocatoria"
+>
+  <Cabecera />
+
+  <main id="contenido" class="mx-auto max-w-[44rem] px-4 pt-4 pb-32 sm:px-5" data-grupo={grupo}>
+    <nav aria-label="Migas de pan" class="mb-4 text-sm text-ink-3">
+      <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {migas.slice(0, -1).map((m) => (
+          <li class="flex items-center gap-1.5">
+            <a href={m.ruta} class="hover:text-ink underline-offset-2 hover:underline">{m.nombre}</a>
+            <span aria-hidden="true">›</span>
+          </li>
+        ))}
+        <li aria-current="page" class="min-w-0 truncate text-ink-2" lang="ca">{titulo}</li>
+      </ol>
+    </nav>
+
+    <p class={`text-base font-semibold ${cerrada ? 'text-ink-2' : grupo === 'pendientes' ? 'text-ink-2' : COLOR[u.tono]}`}>
+      {grupo === 'abiertas' && plaza.fin ? (
+        <>
+          <FechaRelativa fin={plaza.fin} texto={u.etiqueta} />
+          <span class="font-normal text-ink-3"> · hasta el {fechaLarga(plaza.fin)}</span>
+        </>
+      ) : plazoTexto}
+    </p>
+
+    {/* El título tal como lo publica el organismo, el mismo del JobPosting. */}
+    <h1 lang="ca" class="mt-1 text-2xl font-semibold text-balance">{plaza.titulo}</h1>
+
+    {cerrada && (
+      <div class="mt-4 rounded-lg border border-line bg-surface px-4 py-3.5">
+        <p class="text-base font-semibold">El plazo para apuntarse ya ha terminado.</p>
+        <p class="mt-1 text-base leading-relaxed text-ink-2">
+          En la ficha oficial salen las listas de admitidos, las fechas de las pruebas y si se vuelve
+          a abrir. Más abajo tienes convocatorias parecidas con el plazo abierto.
+        </p>
+      </div>
+    )}
+
+    <div class="mt-2">
+      <FichaPlaza ficha={ficha} rutaLugar={rutaLugar} />
+    </div>
+
+    <p class="text-sm leading-relaxed text-ink-3">{AVISO_OFICIAL}</p>
+
+    {similares.length > 0 && (
+      <section class="mt-10" aria-labelledby="parecidas">
+        <h2 id="parecidas" class="text-xl font-semibold">Parecidas con el plazo abierto</h2>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          {similares.map((p) => <Tarjeta plaza={p} desde={null} href={rutaFicha(p)} />)}
+        </div>
+      </section>
+    )}
+
+    {enMunicipio.length > 0 && municipio && (
+      <section class="mt-10" aria-labelledby="mas-en">
+        <h2 id="mas-en" class="text-xl font-semibold">Más en {municipio.nombre}</h2>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          {enMunicipio.map((p) => <Tarjeta plaza={p} desde={null} href={rutaFicha(p)} />)}
+        </div>
+        {rutaLugar(municipio) && (
+          <p class="mt-3 text-base">
+            <a href={rutaLugar(municipio)} class="text-pine font-semibold underline-offset-2 hover:underline">
+              Todas las de {municipio.nombre}
+            </a>
+          </p>
+        )}
+      </section>
+    )}
+
+    {pronto.length > 0 && comarca && (
+      <section class="mt-10" aria-labelledby="pronto">
+        <h2 id="pronto" class="text-xl font-semibold">Cierran pronto en {comarca.nombre}</h2>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">
+          {pronto.map((p) => <Tarjeta plaza={p} desde={null} href={rutaFicha(p)} />)}
+        </div>
+        {rutaLugar(comarca) && (
+          <p class="mt-3 text-base">
+            <a href={rutaLugar(comarca)} class="text-pine font-semibold underline-offset-2 hover:underline">
+              Todas las de {comarca.nombre}
+            </a>
+          </p>
+        )}
+      </section>
+    )}
+
+    <Pie generado={tablero.generado} />
+  </main>
+
+  {/* La barra de acción: fija abajo, con el material translúcido (uno de los
+      dos sitios donde va), y sin JavaScript. */}
+  {(plaza.enlace || plaza.fichaOficial) && (
+    <div class="fixed inset-x-0 bottom-0 z-20 border-t border-line bg-material backdrop-blur-xl backdrop-saturate-150">
+      <div class="mx-auto flex max-w-[44rem] gap-2 px-4 py-3 sm:px-5">
+        {!cerrada && plaza.enlace && (
+          <a
+            href={plaza.enlace}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="bg-pine inline-flex h-12 flex-1 items-center justify-center gap-2 rounded-md px-4 text-base font-semibold text-on-pine pulsa hover:opacity-90 sm:flex-none"
+          >
+            {grupo === 'pendientes' ? 'Ver la convocatoria' : 'Ir a apuntarte'}
+            <Icono nombre="salir" />
+          </a>
+        )}
+        {plaza.fichaOficial && (
+          <a
+            href={plaza.fichaOficial}
+            target="_blank"
+            rel="noopener noreferrer"
+            class={`inline-flex h-12 items-center justify-center gap-2 rounded-md border px-4 text-base font-semibold pulsa ${
+              cerrada || !plaza.enlace
+                ? 'bg-pine flex-1 border-transparent text-on-pine hover:opacity-90 sm:flex-none'
+                : 'hover:border-pine hover:text-pine border-line-strong bg-surface text-ink-2'
+            }`}
+          >
+            Ficha oficial
+            <Icono nombre="salir" />
+          </a>
+        )}
+      </div>
+    </div>
+  )}
+</Base>

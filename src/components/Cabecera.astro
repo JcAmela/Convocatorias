@@ -1,0 +1,30 @@
+---
+/**
+ * La cabecera de las páginas estáticas: la marca, que lleva al tablero, y
+ * nada más. El `h1` es de cada página, así que aquí la marca no lo es.
+ */
+---
+
+<header class="border-b border-line bg-surface">
+  <div class="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-5">
+    <a href="/" class="flex min-w-0 flex-1 items-center gap-3">
+      <span aria-hidden="true" class="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-surface-2">
+        <svg viewBox="0 0 24 24" class="size-5">
+          <rect x="3" y="4" width="18" height="4" rx="1.4" fill="var(--color-pine)"></rect>
+          <rect x="3" y="11" width="11" height="3" rx="1.4" fill="var(--color-ochre)"></rect>
+          <rect x="3" y="17" width="15" height="3" rx="1.4" fill="var(--color-ink-3)"></rect>
+        </svg>
+      </span>
+      <span class="min-w-0">
+        <span class="block truncate text-xl font-bold">Convocatorias</span>
+        <span class="block truncate text-sm text-ink-3">Empleo público en toda Cataluña</span>
+      </span>
+    </a>
+    <a
+      href="/"
+      class="hover:border-pine hover:text-pine shrink-0 rounded-md border border-line px-3 py-2 text-sm font-medium text-ink-2 pulsa"
+    >
+      Ver todas
+    </a>
+  </div>
+</header>

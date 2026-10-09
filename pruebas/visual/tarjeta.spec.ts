@@ -63,6 +63,6 @@ test('con el dedo, la estrella se toca en 44 px o más', async ({ page }, info) 
 
 test('el enlace para apuntarse ya no está en la tarjeta, sino en la ficha', async ({ page }) => {
   await expect(page.locator('article a', { hasText: 'Ir a apuntarte' })).toHaveCount(0);
-  await page.locator('article h3 button').first().click();
+  await page.locator('article h3 a, article h3 button').first().click();
   await expect(page.getByRole('link', { name: /Ir a apuntarte/ })).toBeVisible();
 });

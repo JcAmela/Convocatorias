@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import type { MouseEvent, ReactNode } from 'react';
 import type { Plaza } from '../lib/tipos';
 import { urgencia, type TonoUrgencia } from '../lib/formato';
 
@@ -117,3 +117,11 @@ export function Icono({ nombre, className = 'size-4', relleno = false }: {
     </svg>
   );
 }
+
+/**
+ * Un clic normal en el título se queda en el tablero y abre la ficha encima;
+ * con Ctrl, Cmd, Mayúsculas o la rueda, el enlace hace lo suyo: va a la
+ * página de la convocatoria o la abre en otra pestaña.
+ */
+export const esClicNormal = (e: MouseEvent) =>
+  e.button === 0 && !e.metaKey && !e.ctrlKey && !e.shiftKey && !e.altKey;

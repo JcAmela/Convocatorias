@@ -43,3 +43,23 @@ export const rutaTipo = (clase: ClaseContrato) => `/tipo/${clase}/`;
 
 /** Las que no piden titulación mínima (grupo AP). */
 export const RUTA_SIN_TITULACION = '/sin-titulacion/';
+
+/**
+ * Cuántos días sigue viva la ficha de una convocatoria cerrada: enseña «Plazo
+ * cerrado», el enlace oficial y otras parecidas abiertas. Pasado ese tiempo
+ * deja de generarse y la dirección da 404, que es una de las tres formas que
+ * acepta Google de retirar una oferta. Con 30 días son unas 800 fichas
+ * cerradas, lejos del tope de 20.000 ficheros por despliegue de Cloudflare
+ * (la CI falla a partir de 18.000).
+ */
+export const DIAS_FICHA_CERRADA = 30;
+
+/** El primer día de cierre que aún tiene ficha. */
+export function primerCierreConFicha(hoy: string): string {
+  return new Date(Date.parse(`${hoy}T00:00:00Z`) - DIAS_FICHA_CERRADA * 86_400_000).toISOString().slice(0, 10);
+}
+
+/** Si una convocatoria tiene página propia en este build. */
+export function tieneFicha(p: Pick<Plaza, 'fin'>, hoy: string): boolean {
+  return !p.fin || p.fin.slice(0, 10) >= primerCierreConFicha(hoy);
+}

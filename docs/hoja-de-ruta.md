@@ -54,12 +54,18 @@ build que publique la web vacía, incompleta o vieja.
 
 ## F3. Páginas para Google
 
-- [ ] Ficha estática por convocatoria, sin islas, con migas de pan.
-- [ ] JobPosting solo en las abiertas con fecha, lugar y descripción fiables.
-- [ ] Páginas de municipio, comarca, estudios, tipo y sin titulación.
-- [ ] SEO técnico: canonical, og:image, sitemap, `noindex` mientras no haya
-      dominio.
-- [ ] Página «Plazo cerrado» y caducidad de las cerradas.
+- [x] Ficha estática por convocatoria, sin islas, con migas de pan
+      (`src/pages/convocatoria/`). Lighthouse móvil 99–100, LCP en el h1.
+- [x] JobPosting solo en las abiertas con fecha, lugar y descripción fiables
+      (`src/lib/jsonld.ts`; hoy 472 de 938).
+- [ ] JobPosting validado con el Rich Results Test en 5–10 fichas.
+- [x] Páginas de municipio, comarca, estudios, tipo y sin titulación.
+- [x] SEO técnico: canonical, og:image, sitemap con `lastmod` real
+      (`/datos/indice.json`), `noindex` mientras no haya dominio.
+- [x] Página «Plazo cerrado» 30 días y 404 después; la CI falla con más de
+      18.000 ficheros (`pruebas/revisa-dist.mjs`).
+- [ ] Los correos enlazan a la ficha propia si ya está publicada; el cron
+      del correo pasa a las 05:30 UTC.
 
 ## F4. Dominio, Cloudflare Pages y Search Console
 

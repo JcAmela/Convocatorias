@@ -1,0 +1,30 @@
+---
+/**
+ * «Quedan 3 días», calculado en el build y corregido en el navegador si la
+ * página se lee otro día: la web se construye de madrugada y una ficha
+ * guardada en caché o compartida puede abrirse días después. Los textos son
+ * los de `urgencia()` (`_shared/plazos.ts`). Un solo uso por página.
+ */
+interface Props {
+  /** Fin del plazo, `YYYY-MM-DD`. */
+  fin: string;
+  /** El texto del día del build. */
+  texto: string;
+}
+
+const { fin, texto } = Astro.props;
+---
+
+<span data-fin={fin.slice(0, 10)}>{texto}</span>
+<script is:inline>
+  (function () {
+    var e = document.querySelector('[data-fin]');
+    if (!e) return;
+    var p = e.getAttribute('data-fin').split('-');
+    var h = new Date();
+    h.setHours(0, 0, 0, 0);
+    var d = Math.round((new Date(+p[0], p[1] - 1, +p[2]) - h) / 864e5);
+    e.textContent = d < -1 ? 'Cerró hace ' + -d + ' días' : d === -1 ? 'Cerró ayer' : d === 0 ? 'Último día'
+      : d === 1 ? 'Cierra mañana' : 'Quedan ' + d + ' días';
+  })();
+</script>

@@ -1,0 +1,61 @@
+---
+import Listado from '../../components/Listado.astro';
+import { usaSitios } from '../../lib/localizacion';
+import {
+  cercanos, cifrasDe, FRASE_FICHAS, fraseCifras, fraseQuien, nConvocatorias, porLugar, primerasDe,
+} from '../../lib/paginas';
+import { datosPublicos } from '../../lib/publicos';
+import { rutaComarca, rutaMunicipio } from '../../lib/rutas';
+import type { Sitio } from '../../lib/tipos';
+
+/** `/municipio/<id>/`: solo los municipios con alguna abierta o pendiente. */
+export async function getStaticPaths() {
+  const { tablero } = await datosPublicos();
+  usaSitios(tablero.sitios);
+  return [...porLugar(tablero).keys()]
+    .map((id) => tablero.sitios[id])
+    .filter((s): s is Sitio => Boolean(s) && s.tipo === 'municipio')
+    .map((s) => ({ params: { id: s.id }, props: { id: s.id } }));
+}
+
+const { id } = Astro.props as { id: string };
+const { tablero } = await datosPublicos();
+usaSitios(tablero.sitios);
+const lugares = porLugar(tablero);
+const m = tablero.sitios[id];
+const vivas = lugares.get(id)!;
+const cifras = cifrasDe(vivas);
+const comarca = m.comarcaId ? tablero.sitios[m.comarcaId] : null;
+const total = vivas.abiertas.length + vivas.pendientes.length;
+
+const conPagina = [...lugares.keys()].map((k) => tablero.sitios[k]).filter((s): s is Sitio => Boolean(s));
+const vecinos = cercanos(m, conPagina).map(({ sitio, km }) => {
+  const v = lugares.get(sitio.id)!;
+  return { nombre: sitio.nombre, ruta: rutaMunicipio(sitio.id), nota: `${nConvocatorias(v.abiertas.length + v.pendientes.length)} · a ${km} km` };
+});
+
+const migas = [
+  { nombre: 'Convocatorias', ruta: '/' },
+  ...(comarca && lugares.has(comarca.id) ? [{ nombre: comarca.nombre, ruta: rutaComarca(comarca.id) }] : []),
+  { nombre: m.nombre, ruta: rutaMunicipio(m.id) },
+];
+const intro = [
+  fraseCifras(cifras, `en ${m.nombre}${comarca ? ` (${comarca.nombre})` : ''}`),
+  fraseQuien(vivas),
+  FRASE_FICHAS,
+].filter((x): x is string => Boolean(x));
+---
+
+<Listado
+  tituloPagina={`Empleo público en ${m.nombre}: ${nConvocatorias(total)} — Convocatorias`}
+  titulo={`Empleo público en ${m.nombre}`}
+  descripcion={`${fraseCifras(cifras, `en ${m.nombre}`)} Requisitos, plazos y enlace oficial de cada una.`}
+  migas={migas}
+  intro={intro}
+  cifras={cifras}
+  plazas={primerasDe(vivas)}
+  total={total}
+  tablero={{ ruta: `/?donde=${encodeURIComponent(m.id)}`, texto: `Filtrar las de ${m.nombre} en el tablero` }}
+  secciones={[{ titulo: 'Cerca, también con convocatorias', enlaces: vecinos }]}
+  generado={tablero.generado}
+/>

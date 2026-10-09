@@ -1,0 +1,31 @@
+---
+import Categoria from '../components/Categoria.astro';
+import { ETIQUETA_NIVEL, ORDEN_NIVEL } from '../lib/formato';
+import { usaSitios } from '../lib/localizacion';
+import { EXPLICA_NIVEL, nConvocatorias, porNivel } from '../lib/paginas';
+import { datosPublicos } from '../lib/publicos';
+import { RUTA_SIN_TITULACION, rutaEstudios } from '../lib/rutas';
+
+/** `/sin-titulacion/`: el grupo AP, las que no piden ningún título. */
+const { tablero } = await datosPublicos();
+usaSitios(tablero.sitios);
+const hay = porNivel(tablero);
+const vivas = hay.get('AP') ?? { abiertas: [], pendientes: [] };
+const otras = Object.keys(ORDEN_NIVEL).filter((k) => k !== 'AP' && hay.has(k)).map((k) => ({
+  nombre: ETIQUETA_NIVEL[k],
+  ruta: rutaEstudios(k),
+  nota: nConvocatorias((hay.get(k)?.abiertas.length ?? 0) + (hay.get(k)?.pendientes.length ?? 0)),
+}));
+---
+
+<Categoria
+  tablero={tablero}
+  vivas={vivas}
+  ruta={RUTA_SIN_TITULACION}
+  titulo="Empleo público sin titulación"
+  quien="sin pedir ningún título"
+  explica={EXPLICA_NIVEL.AP}
+  filtro="estudios=AP"
+  otras={otras}
+  tituloOtras="Si tienes estudios"
+/>

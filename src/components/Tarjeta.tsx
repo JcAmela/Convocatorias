@@ -6,16 +6,22 @@ import {
 } from '../lib/formato';
 import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
-import { Icono } from './piezas';
+import { esClicNormal, Icono } from './piezas';
 
 interface Props {
   plaza: Plaza;
   /** Municipio desde el que se miden las distancias. `null` = sin elegir. */
   desde: string | null;
-  guardada: boolean;
-  onGuardar: (id: string) => void;
-  onAbrir: (plaza: Plaza) => void;
+  /** La ficha propia. Con ella el título es un enlace de verdad, que se puede
+   * abrir en otra pestaña y que siguen los buscadores. */
+  href?: string;
+  /** Sin esto no hay estrella: en una página estática no hay dónde guardar. */
+  onGuardar?: (id: string) => void;
+  guardada?: boolean;
+  /** Abre la ficha encima del tablero en vez de ir a su página. */
+  onAbrir?: (plaza: Plaza) => void;
 }
+
 
 /** El color del plazo, que es lo único de la tarjeta que puede gritar. */
 const COLOR_PLAZO: Record<TonoUrgencia, string> = {
@@ -25,6 +31,9 @@ const COLOR_PLAZO: Record<TonoUrgencia, string> = {
   calma: 'text-ink-2',
   sinfecha: 'text-ink-2',
 };
+
+/** El título se estira con un `::before` hasta cubrir la tarjeta entera. */
+const CAPA = "foco-en-capa before:absolute before:inset-0 before:rounded-lg before:content-['']";
 
 /** La franja de la izquierda, solo cuando quedan 7 días o menos. */
 const FRANJA: Partial<Record<TonoUrgencia, string>> = {
@@ -42,7 +51,7 @@ const FRANJA: Partial<Record<TonoUrgencia, string>> = {
  * antes en el código, para que un lector de pantalla que salta de título en
  * título oiga primero el puesto, y la estrella va después del título.
  */
-function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
+function TarjetaBase({ plaza, desde, href, guardada = false, onGuardar, onAbrir }: Props) {
   const { casa, organismo } = partesEmpleador(plaza);
   const lugar = nombreLugar(plaza);
   const km = kmDesde(plaza, desde);
@@ -61,30 +70,38 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
           evita que un lector de pantalla lo pronuncie con las reglas del
           castellano. La tarjeta entera es pulsable, pero el botón real está en
           el título para que el foco y el lector lo encuentren donde se espera.
-          Sigue siendo un botón hasta que existan las fichas estáticas (F3). */}
+          Con ficha propia es un enlace; sin ella, un botón que abre la ficha. */}
       <h3 lang="ca" className="order-2 mt-1 text-lg font-semibold text-balance">
-        <button
-          type="button"
-          onClick={() => onAbrir(plaza)}
-          className="foco-en-capa text-left before:absolute before:inset-0 before:rounded-lg before:content-['']"
-        >
-          {/* El recorte va en un `span`: dentro de un botón, un `line-clamp`
-              puesto en el título no corta nada. */}
-          <span className="line-clamp-3">{tituloLimpio(plaza)}</span>
-        </button>
+        {/* El recorte va en un `span`: dentro de un botón o un enlace, un
+            `line-clamp` puesto en el título no corta nada. */}
+        {href ? (
+          <a
+            href={href}
+            onClick={onAbrir ? (e) => { if (esClicNormal(e)) { e.preventDefault(); onAbrir(plaza); } } : undefined}
+            className={CAPA}
+          >
+            <span className="line-clamp-3">{tituloLimpio(plaza)}</span>
+          </a>
+        ) : (
+          <button type="button" onClick={() => onAbrir?.(plaza)} className={`${CAPA} text-left`}>
+            <span className="line-clamp-3">{tituloLimpio(plaza)}</span>
+          </button>
+        )}
       </h3>
 
-      <button
-        type="button"
-        onClick={() => onGuardar(plaza.id)}
-        aria-pressed={guardada}
-        aria-label={guardada ? 'Quitar de guardadas' : 'Guardar esta plaza'}
-        className={`toque-amplio pulsa absolute top-2 right-2 z-10 rounded-sm p-1.5 ${
-          guardada ? 'text-ochre' : 'estrella text-ink-3 hover:text-ink'
-        }`}
-      >
-        <Icono nombre="estrella" relleno={guardada} className="size-5" />
-      </button>
+      {onGuardar && (
+        <button
+          type="button"
+          onClick={() => onGuardar(plaza.id)}
+          aria-pressed={guardada}
+          aria-label={guardada ? 'Quitar de guardadas' : 'Guardar esta plaza'}
+          className={`toque-amplio pulsa absolute top-2 right-2 z-10 rounded-sm p-1.5 ${
+            guardada ? 'text-ochre' : 'estrella text-ink-3 hover:text-ink'
+          }`}
+        >
+          <Icono nombre="estrella" relleno={guardada} className="size-5" />
+        </button>
+      )}
 
       {/* Una sola línea. La nota del origen, cuando no hay fecha, puede ser una
           frase entera («El termini s'obrirà l'endemà de la publicació…»):

@@ -28,7 +28,7 @@ for (const tema of ['light', 'dark'] as const) {
 
 test('axe: nada serio ni crítico con la ficha abierta', async ({ page }) => {
   await page.goto('/');
-  await page.locator('article h3 button').first().click();
+  await page.locator('article h3 a, article h3 button').first().click();
   await page.getByRole('link', { name: /Ir a apuntarte/ }).waitFor();
   // Con el panel aún entrando, axe mide el contraste a media opacidad.
   await page.waitForFunction(() => document.getAnimations().every((a) => a.playState !== 'running'));

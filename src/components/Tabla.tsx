@@ -2,7 +2,7 @@ import type { Plaza } from '../lib/tipos';
 import { fechaCorta, partesEmpleador, tituloLimpio } from '../lib/formato';
 import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
-import { PildoraPlazo, PildoraContrato, Icono } from './piezas';
+import { PildoraPlazo, PildoraContrato, Icono, esClicNormal } from './piezas';
 
 interface Props {
   plazas: Plaza[];
@@ -11,6 +11,8 @@ interface Props {
   guardadas: Set<string>;
   onGuardar: (id: string) => void;
   onAbrir: (plaza: Plaza) => void;
+  /** La página propia de una convocatoria, si la tiene. */
+  enlace?: (plaza: Plaza) => string | undefined;
 }
 
 /**
@@ -18,7 +20,7 @@ interface Props {
  * densa con la vista es más rápido que pasar tarjetas, y además es el
  * equivalente accesible del mismo conjunto de datos.
  */
-export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
+export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir, enlace }: Props) {
   return (
     <div className="overflow-x-auto rounded-lg border border-line bg-surface">
       <table className="w-full min-w-[760px] border-collapse text-base">
@@ -59,15 +61,27 @@ export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
                     celda, y la columna se dibujaba a 451px.) */}
                 <td className="px-3 py-2.5 align-middle">
                   <div className="flex items-start gap-2">
-                    <button
-                      type="button"
-                      lang="ca"
-                      title={tituloLimpio(p)}
-                      onClick={() => onAbrir(p)}
-                      className="hover:text-pine line-clamp-2 text-left font-medium transition-colors"
-                    >
-                      {tituloLimpio(p)}
-                    </button>
+                    {enlace?.(p) ? (
+                      <a
+                        href={enlace(p)}
+                        lang="ca"
+                        title={tituloLimpio(p)}
+                        onClick={(e) => { if (esClicNormal(e)) { e.preventDefault(); onAbrir(p); } }}
+                        className="hover:text-pine line-clamp-2 font-medium transition-colors"
+                      >
+                        {tituloLimpio(p)}
+                      </a>
+                    ) : (
+                      <button
+                        type="button"
+                        lang="ca"
+                        title={tituloLimpio(p)}
+                        onClick={() => onAbrir(p)}
+                        className="hover:text-pine line-clamp-2 text-left font-medium transition-colors"
+                      >
+                        {tituloLimpio(p)}
+                      </button>
+                    )}
                     <span className="mt-px shrink-0">
                       <PildoraContrato plaza={p} />
                     </span>

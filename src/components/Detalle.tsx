@@ -1,10 +1,8 @@
 import { useEffect, useRef } from 'react';
 import type { Plaza } from '../lib/tipos';
-import {
-  fechaLarga, partesEmpleador, tituloLimpio, esFinDeSemana, enEspanol, ETIQUETA_AMBITO,
-} from '../lib/formato';
-import { sitio, sitioSede, sitioTrabajo, esSoloSede } from '../lib/localizacion';
-import { kmDesde } from '../lib/cercania';
+import { tituloLimpio, ETIQUETA_AMBITO } from '../lib/formato';
+import { AVISO_OFICIAL, fichaDe } from '../lib/ficha';
+import { FichaPlaza } from './FichaPlaza';
 import { PildoraPlazo, Icono } from './piezas';
 
 interface Props {
@@ -14,15 +12,6 @@ interface Props {
   guardada: boolean;
   onGuardar: (id: string) => void;
   onCerrar: () => void;
-}
-
-function Fila({ termino, children }: { termino: string; children: React.ReactNode }) {
-  return (
-    <div className="border-t border-line-soft py-2.5">
-      <dt className="mb-1 text-sm font-medium text-ink-3">{termino}</dt>
-      <dd className="text-base leading-relaxed text-ink-2">{children}</dd>
-    </div>
-  );
 }
 
 /** Lo que un lector de pantalla o el tabulador pueden alcanzar dentro del panel. */
@@ -74,15 +63,7 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
 
   if (!plaza) return null;
 
-  const { casa, organismo } = partesEmpleador(plaza);
-  const trabajo = sitioTrabajo(plaza);
-  const sede = sitioSede(plaza);
-  const soloSede = esSoloSede(plaza);
-  const km = kmDesde(plaza, desde);
-  const referencia = sitio(desde);
-  const finDeSemana = esFinDeSemana(plaza.fin);
-  const nota = plaza.notaPlazo ? enEspanol(plaza.notaPlazo) : null;
-  const seleccion = plaza.seleccion ? enEspanol(plaza.seleccion) : null;
+  const ficha = fichaDe(plaza, desde);
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal="true" aria-label={tituloLimpio(plaza)}>
@@ -128,109 +109,7 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
         </header>
 
         <div className="px-5 pb-5">
-          <div className="py-3">
-            <p className="text-pine text-base font-semibold">{casa}</p>
-            {organismo && <p className="text-base text-ink-2">{organismo}</p>}
-          </div>
-
-          {nota && (
-            <p className="bg-ochre-soft text-ochre mb-3 rounded-md px-3 py-2.5 text-base leading-relaxed">
-              <strong className="font-semibold">Ojo con el plazo: </strong>
-              <span lang={nota.traducida ? undefined : 'ca'}>{nota.texto}</span>. Confirma la
-              fecha exacta en el enlace oficial.
-            </p>
-          )}
-
-          {finDeSemana && (
-            <p className="bg-surface-2 mb-3 rounded-md px-3 py-2.5 text-base leading-relaxed text-ink-2">
-              El plazo termina en fin de semana, así que es probable que se corra al lunes siguiente.
-              Aun así, no lo dejes para el final.
-            </p>
-          )}
-
-          <dl className="mb-4">
-            <Fila termino="Cuándo puedes apuntarte">
-              {plaza.fin ? (
-                <>
-                  {plaza.inicio
-                    ? <>Del <strong className="font-semibold text-ink">{fechaLarga(plaza.inicio)}</strong> al <strong className="font-semibold text-ink">{fechaLarga(plaza.fin)}</strong></>
-                    : <>Hasta el <strong className="font-semibold text-ink">{fechaLarga(plaza.fin)}</strong></>}
-                </>
-              ) : (
-                'Todavía no han publicado el plazo. La convocatoria ya está anunciada, pero aún no se pueden presentar solicitudes.'
-              )}
-            </Fila>
-
-            <Fila termino="Qué tipo de plaza es">
-              {plaza.tipoEtiqueta}
-              {plaza.tipo === 'bolsa' && (
-                <span className="mt-1 block text-sm text-ink-3">
-                  Una bolsa es una lista de espera: te apuntas una vez y te llaman cuando hace falta
-                  cubrir contratos temporales o sustituciones.
-                </span>
-              )}
-            </Fila>
-
-            {plaza.plazas ? (
-              <Fila termino="Cuántos puestos">
-                {plaza.plazas} {plaza.plazas === 1 ? 'puesto convocado' : 'puestos convocados'}
-              </Fila>
-            ) : null}
-
-            {/* Dos cosas distintas que antes iban revueltas. Cuando el anuncio
-                dice dónde se trabaja, eso es lo que manda; cuando calla, se
-                enseña la sede del organismo diciendo que es la sede. */}
-            {trabajo && !soloSede && (
-              <Fila termino="Dónde se trabaja">
-                {trabajo.nombre}
-                {trabajo.comarca && trabajo.comarca !== trabajo.nombre && (
-                  <span className="text-ink-3"> · {trabajo.comarca}</span>
-                )}
-                {km !== null && referencia && (
-                  <span className="mt-1 block text-sm text-ink-3">
-                    A {km} km de {referencia.nombre}, en línea recta.
-                  </span>
-                )}
-              </Fila>
-            )}
-
-            {soloSede && sede && (
-              <Fila termino="Dónde se trabaja">
-                <span className="text-ink-3">No consta en el anuncio.</span>
-                <span className="mt-1 block text-sm">
-                  El organismo tiene la sede en <strong className="font-semibold text-ink">{sede.nombre}</strong>,
-                  pero eso no dice dónde estaría el puesto. Suele pasar en las bolsas de trabajo, que
-                  cubren varios centros a la vez. Compruébalo en la convocatoria oficial.
-                </span>
-              </Fila>
-            )}
-
-            {sede && trabajo && !soloSede && sede.id !== trabajo.id && (
-              <Fila termino="Dónde está el organismo">
-                {sede.nombre}
-                {sede.comarca && sede.comarca !== sede.nombre && (
-                  <span className="text-ink-3"> · {sede.comarca}</span>
-                )}
-              </Fila>
-            )}
-
-            {plaza.nivelEstudios && <Fila termino="Estudios que piden">{plaza.nivelEstudios}</Fila>}
-
-            {plaza.titulacion && plaza.titulacion !== 'Vegeu les bases' && (
-              <Fila termino="Titulación concreta"><span lang="ca">{plaza.titulacion}</span></Fila>
-            )}
-
-            {plaza.otrosRequisitos && (
-              <Fila termino="Además necesitas"><span lang="ca">{plaza.otrosRequisitos}</span></Fila>
-            )}
-
-            {/* La forma de selección sí la traduce el origen salvo alguna
-                suelta, así que aquí no se marca idioma: lo que no esté en la
-                tabla ya viene en español. */}
-            {seleccion && <Fila termino="Cómo se entra">{seleccion.texto}</Fila>}
-
-            {plaza.publicado && <Fila termino="Se publicó el">{fechaLarga(plaza.publicado)}</Fila>}
-          </dl>
+          <FichaPlaza ficha={ficha} />
 
           <div className="flex flex-wrap items-center gap-2">
             {plaza.enlace && (
@@ -272,10 +151,7 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
             </button>
           </div>
 
-          <p className="mt-5 text-sm leading-relaxed text-ink-3">
-            Manda siempre lo que diga la convocatoria oficial. Esta ficha resume lo que publican
-            CIDO y los portales Convoca, y puede quedarse corta o desactualizada.
-          </p>
+          <p className="mt-5 text-sm leading-relaxed text-ink-3">{AVISO_OFICIAL}</p>
         </div>
       </div>
     </div>

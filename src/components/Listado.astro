@@ -1,0 +1,115 @@
+---
+import Base from '../layouts/Base.astro';
+import Cabecera from './Cabecera.astro';
+import Pie from './Pie.astro';
+import { Tarjeta } from './Tarjeta';
+import type { Cifras } from '../lib/paginas';
+import type { Plaza } from '../lib/tipos';
+import { rutaFicha } from '../lib/rutas';
+import { DOMINIO_PROPIO, jsonLdMigas } from '../lib/seo';
+
+/**
+ * Una página de listado: municipio, comarca, nivel de estudios o tipo de
+ * plaza. Un texto propio con sus cifras, hasta 30 tarjetas que enlazan a sus
+ * fichas, el enlace al tablero filtrado y los sitios o categorías de al lado.
+ * Sin JobPosting: Google lo prohíbe en los listados.
+ */
+interface Enlace {
+  nombre: string;
+  ruta: string;
+  /** Lo que va detrás, en gris: «12 convocatorias», «a 8 km». */
+  nota?: string;
+}
+
+interface Props {
+  /** El `<title>`. */
+  tituloPagina: string;
+  titulo: string;
+  descripcion: string;
+  migas: { nombre: string; ruta: string }[];
+  intro: string[];
+  cifras: Cifras;
+  plazas: Plaza[];
+  /** Todas las vivas, aunque solo se pinten 30. */
+  total: number;
+  tablero: { ruta: string; texto: string };
+  secciones?: { titulo: string; enlaces: Enlace[] }[];
+  generado: string;
+}
+
+const {
+  tituloPagina, titulo, descripcion, migas, intro, cifras, plazas, total, tablero, secciones = [], generado,
+} = Astro.props;
+
+const numeros = [
+  { n: cifras.abiertas, texto: 'con el plazo abierto' },
+  { n: cifras.pendientes, texto: 'esperando plazo' },
+  { n: cifras.cierranSemana, texto: 'cierran esta semana' },
+  { n: cifras.fijas, texto: cifras.fijas === 1 ? 'es plaza fija' : 'son plaza fija' },
+];
+---
+
+<Base titulo={tituloPagina} descripcion={descripcion} noindex={!DOMINIO_PROPIO} jsonld={jsonLdMigas(migas)} saltar="Saltar a la lista">
+  <Cabecera />
+
+  <main id="contenido" class="mx-auto max-w-[1100px] px-4 pt-4 pb-8 sm:px-5">
+    <nav aria-label="Migas de pan" class="mb-4 text-sm text-ink-3">
+      <ol class="flex flex-wrap items-center gap-x-1.5 gap-y-1">
+        {migas.slice(0, -1).map((m) => (
+          <li class="flex items-center gap-1.5">
+            <a href={m.ruta} class="hover:text-ink underline-offset-2 hover:underline">{m.nombre}</a>
+            <span aria-hidden="true">›</span>
+          </li>
+        ))}
+        <li aria-current="page" class="text-ink-2">{migas[migas.length - 1].nombre}</li>
+      </ol>
+    </nav>
+
+    <h1 class="text-2xl font-semibold text-balance sm:text-3xl">{titulo}</h1>
+    <div class="mt-3 max-w-[70ch] space-y-2 text-base leading-relaxed text-ink-2">
+      {intro.map((p) => <p>{p}</p>)}
+    </div>
+
+    <dl class="mt-5 grid grid-cols-2 gap-2.5 sm:grid-cols-4">
+      {numeros.map((c) => (
+        <div class="flex flex-col-reverse rounded-lg border border-line bg-surface px-3.5 py-3">
+          {/* En el DOM, el rótulo y luego la cifra; a la vista, al revés. */}
+          <dt class="text-sm text-ink-2">{c.texto}</dt>
+          <dd class="text-2xl font-semibold tabular-nums">{c.n}</dd>
+        </div>
+      ))}
+    </dl>
+
+    <h2 class="mt-8 text-xl font-semibold">
+      {total > plazas.length ? `Las ${plazas.length} que cierran antes` : total === 1 ? 'La convocatoria' : `Las ${total} convocatorias`}
+    </h2>
+    <div class="mt-3 grid grid-cols-[repeat(auto-fill,minmax(min(300px,100%),1fr))] gap-3.5">
+      {plazas.map((p) => <Tarjeta plaza={p} desde={null} href={rutaFicha(p)} />)}
+    </div>
+
+    <p class="mt-5">
+      <a
+        href={tablero.ruta}
+        class="hover:border-pine hover:text-pine inline-flex rounded-md border border-line-strong bg-surface px-4 py-2.5 text-base font-semibold text-ink-2 pulsa"
+      >
+        {tablero.texto}
+      </a>
+    </p>
+
+    {secciones.filter((s) => s.enlaces.length > 0).map((s) => (
+      <section class="mt-10">
+        <h2 class="text-xl font-semibold">{s.titulo}</h2>
+        <ul class="mt-3 grid gap-x-6 gap-y-1 sm:grid-cols-2 lg:grid-cols-3">
+          {s.enlaces.map((e) => (
+            <li class="flex items-baseline justify-between gap-3 rounded-md border-b border-line-soft py-2">
+              <a href={e.ruta} class="text-pine font-medium underline-offset-2 hover:underline">{e.nombre}</a>
+              {e.nota && <span class="shrink-0 text-sm text-ink-3 tabular-nums">{e.nota}</span>}
+            </li>
+          ))}
+        </ul>
+      </section>
+    ))}
+
+    <Pie generado={generado} />
+  </main>
+</Base>

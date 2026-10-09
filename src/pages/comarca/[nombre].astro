@@ -1,0 +1,64 @@
+---
+import Listado from '../../components/Listado.astro';
+import { usaSitios } from '../../lib/localizacion';
+import {
+  cifrasDe, FRASE_FICHAS, fraseCifras, fraseQuien, nConvocatorias, porLugar, primerasDe,
+} from '../../lib/paginas';
+import { datosPublicos } from '../../lib/publicos';
+import { rutaComarca, rutaMunicipio } from '../../lib/rutas';
+import type { Sitio } from '../../lib/tipos';
+
+/**
+ * `/comarca/<nombre>/`: solo las comarcas con alguna abierta o pendiente.
+ * Siempre «la comarca de…»: los nombres llevan artículo en catalán (el
+ * Maresme, la Garrotxa, les Garrigues) y el callejero no dice cuál.
+ */
+export async function getStaticPaths() {
+  const { tablero } = await datosPublicos();
+  usaSitios(tablero.sitios);
+  return [...porLugar(tablero).keys()]
+    .map((id) => tablero.sitios[id])
+    .filter((s): s is Sitio => Boolean(s) && s.tipo === 'comarca')
+    .map((s) => ({ params: { nombre: rutaComarca(s.id).split('/')[2] }, props: { id: s.id } }));
+}
+
+const { id } = Astro.props as { id: string };
+const { tablero } = await datosPublicos();
+usaSitios(tablero.sitios);
+const lugares = porLugar(tablero);
+const c = tablero.sitios[id];
+const vivas = lugares.get(id)!;
+const cifras = cifrasDe(vivas);
+const total = vivas.abiertas.length + vivas.pendientes.length;
+
+const municipios = [...lugares.entries()]
+  .map(([k, v]) => ({ s: tablero.sitios[k], n: v.abiertas.length + v.pendientes.length }))
+  .filter((x) => x.s && x.s.tipo === 'municipio' && x.s.comarcaId === id)
+  .sort((a, b) => b.n - a.n || a.s.nombre.localeCompare(b.s.nombre, 'ca'))
+  .map((x) => ({ nombre: x.s.nombre, ruta: rutaMunicipio(x.s.id), nota: nConvocatorias(x.n) }));
+
+const migas = [
+  { nombre: 'Convocatorias', ruta: '/' },
+  { nombre: c.nombre, ruta: rutaComarca(c.id) },
+];
+const intro = [
+  fraseCifras(cifras, `en la comarca de ${c.nombre}`),
+  municipios.length > 1 ? `Repartidas entre ${municipios.length} municipios.` : null,
+  fraseQuien(vivas),
+  FRASE_FICHAS,
+].filter((x): x is string => Boolean(x));
+---
+
+<Listado
+  tituloPagina={`Empleo público en la comarca de ${c.nombre}: ${nConvocatorias(total)} — Convocatorias`}
+  titulo={`Empleo público en la comarca de ${c.nombre}`}
+  descripcion={`${fraseCifras(cifras, `en la comarca de ${c.nombre}`)} Por municipio, con requisitos, plazos y enlace oficial.`}
+  migas={migas}
+  intro={intro}
+  cifras={cifras}
+  plazas={primerasDe(vivas)}
+  total={total}
+  tablero={{ ruta: `/?donde=${encodeURIComponent(c.id)}`, texto: 'Filtrar las de la comarca en el tablero' }}
+  secciones={[{ titulo: 'Por municipio', enlaces: municipios }]}
+  generado={tablero.generado}
+/>
