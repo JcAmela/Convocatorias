@@ -7,10 +7,8 @@ import { claveLugar, idComarca, idDe } from "../_shared/lugares.ts";
 // ============================================================================
 // convoca-board — alimenta el portal web.
 //
-// Diferencia clave con convoca-proxy: aquel devuelve SOLO novedades nunca
-// avisadas (su trabajo es no repetir mensajes de WhatsApp). Este devuelve
-// TODO lo que está abierto ahora mismo, se haya avisado o no, más el archivo
-// de lo ya cerrado. Son dos preguntas distintas sobre la misma fuente.
+// Devuelve TODO lo que está abierto ahora mismo en CIDO, más el archivo de lo
+// ya cerrado.
 //
 // LAS LOCALIZACIONES SE RESUELVEN AQUÍ. Antes se sacaban del último paréntesis
 // del título, y por ahí se colaban códigos de departamento —(TEI), (SIAD),
@@ -28,8 +26,6 @@ import { claveLugar, idComarca, idDe } from "../_shared/lugares.ts";
 // es, para que la web nunca presente una sede como si fuera un destino.
 // ============================================================================
 
-const CONVOCA_CLIENT_ID = "a97c8701-79d9-4744-9a84-c1726085a61e";
-const CONVOCA_BASE_URL = "https://apigw.convoca.online";
 const CIDO_BASE_URL = "https://api.diba.cat/dadesobertes/cido/v1/oposicions";
 const CIDO_INSTITUCIONS_URL = "https://api.diba.cat/dadesobertes/cido/v1/institucions";
 
@@ -321,20 +317,21 @@ export function lugarDelTitulo(titol: string, ambito: string, callejero: Calleje
 
 /* ============================ FUENTES ============================ */
 
-type ConvocaSource = { id: string; nombre: string; source: "convoca"; baseUrl: string };
 type CidoSource = { id: string; nombre: string; source: "cido"; ambit: string; ambito: string };
-type Source = ConvocaSource | CidoSource;
 
 /**
  * Todo el empleo público de Cataluña que publica CIDO, menos dos ámbitos que
  * se quedan fuera a propósito: «Altres entitats públiques» (hospitales,
  * universidades y centros de investigación) y «Cossos de l'Administració de
  * l'Estat» (ministerios, casi todos en Madrid).
+ *
+ * Hasta octubre de 2026 se leían también los portales Convoca de Badalona, El
+ * Masnou y Santa Coloma. Se compararon sus 162 procesos con el histórico de
+ * CIDO y todos los abiertos al público estaban también allí, con el mismo
+ * plazo (las únicas diferencias eran promociones internas, que no son ofertas
+ * para nadie de fuera). Leerlos no añadía ninguna plaza.
  */
-const SOURCES: Source[] = [
-  { id: "badalona", nombre: "Badalona", source: "convoca", baseUrl: "https://badalona.convoca.online" },
-  { id: "elmasnou", nombre: "El Masnou", source: "convoca", baseUrl: "https://elmasnou.convoca.online" },
-  { id: "santacoloma", nombre: "Santa Coloma de Gramenet", source: "convoca", baseUrl: "https://gramenet.convoca.online" },
+const SOURCES: CidoSource[] = [
   { id: "cido-bcn", nombre: "Ayuntamientos de Barcelona", source: "cido", ambit: "Municipis província de Barcelona i ens adscrits", ambito: "municipal" },
   { id: "cido-gir", nombre: "Ayuntamientos de Girona", source: "cido", ambit: "Municipis província de Girona i ens adscrits", ambito: "municipal" },
   { id: "cido-lle", nombre: "Ayuntamientos de Lleida", source: "cido", ambit: "Municipis província de Lleida i ens adscrits", ambito: "municipal" },
@@ -412,8 +409,6 @@ export function grupoCodigo(grup: string | null): string | null {
   return m ? m[1] : null;
 }
 
-const CONVOCA_GROUPS: Record<number, string> = { 0: "A1", 1: "A2", 2: "B", 3: "C1", 4: "C2", 5: "AP", 16: "AP" };
-
 const TIPO_CONTRATO: Record<string, { etiqueta: string; fijo: boolean }> = {
   "Funcionari": { etiqueta: "Fija, funcionario", fijo: true },
   "Laboral": { etiqueta: "Fija, contrato laboral indefinido", fijo: true },
@@ -478,71 +473,12 @@ function buildItem(base: Record<string, unknown>): Item {
     fichaOficial: base.fichaOficial ?? null,
     fuente: base.fuente,
     // El estado tal cual lo dice CIDO: "Termini obert" o "Pendent de termini".
-    // Los portales Convoca no lo tienen y llega undefined.
     estadoOrigen: base.estat ?? null,
     _sitios: [sede, trabajo].filter(Boolean) as Sitio[],
   };
 }
 
-/* ====================== FUENTE A: CONVOCA ====================== */
-
-async function fetchConvoca(m: ConvocaSource, callejero: Callejero): Promise<Item[]> {
-  const headers = {
-    "client-id": CONVOCA_CLIENT_ID,
-    "Origin": m.baseUrl,
-    "Referer": `${m.baseUrl}/`,
-  };
-  const [callsRes, bagsRes] = await Promise.all([
-    fetchJson(`${CONVOCA_BASE_URL}/calls`, { headers }),
-    fetchJson(`${CONVOCA_BASE_URL}/bags`, { headers }),
-  ]);
-  if (!Array.isArray(callsRes.body) || !Array.isArray(bagsRes.body)) {
-    throw new Error(`Convoca respondió mal (calls=${callsRes.status}, bags=${bagsRes.status})`);
-  }
-
-  // Cada portal es un ayuntamiento, así que el pueblo se sabe por construcción.
-  const sede = callejero[claveLugar(m.nombre)] ?? null;
-  const donde: Localizacion = {
-    sedeId: sede?.id ?? null,
-    trabajoId: sede?.id ?? null,
-    origen: "portal",
-  };
-
-  const build = (arr: unknown[], kind: "call" | "bag"): Item[] =>
-    (arr as Record<string, unknown>[])
-      .filter((i) => !isExcluded(i.title))
-      .map((i) => {
-        const titleCa = asText((i.title as Record<string, string>)?.["ca-ES"] ?? i.title);
-        // startDate→endDate es el plazo de SOLICITUD. claimsStartDate/
-        // claimsEndDate son las RECLAMACIONES posteriores: no sirven aquí.
-        const desc = asText((i.description as Record<string, string>)?.["ca-ES"] ?? i.description)
-          .replace(/\s+/g, " ").trim();
-        return buildItem({
-          id: String(i.id),
-          titulo: titleCa,
-          empleador: `Ayuntamiento de ${m.nombre}`,
-          ambito: "municipal",
-          donde,
-          sede,
-          trabajo: sede,
-          municipioLegado: m.nombre,
-          kind,
-          plazas: (i.vacancies as Record<string, number> | null)?.total ?? null,
-          inicio: ymdOf(i.startDate),
-          fin: ymdOf(i.endDate),
-          publicado: ymdOf(i.bopDate),
-          grupo: typeof i.group === "number" ? CONVOCA_GROUPS[i.group] ?? null : null,
-          titulacion: desc ? desc.slice(0, 600) : null,
-          enlace: `${m.baseUrl}/processDetail.html?id=${String(i.id)}&type=${kind === "bag" ? 1 : 0}`,
-          fichaOficial: `${m.baseUrl}/processDetail.html?id=${String(i.id)}&type=${kind === "bag" ? 1 : 0}`,
-          fuente: "convoca",
-        });
-      });
-
-  return [...build(callsRes.body, "call"), ...build(bagsRes.body, "bag")];
-}
-
-/* ======================== FUENTE B: CIDO ======================== */
+/* ============================= CIDO ============================= */
 
 function cidoUrl(ambit: string, extra: Record<string, string>): string {
   return `${CIDO_BASE_URL}?${new URLSearchParams({ "filter[ambit]": ambit, ...extra }).toString()}`;
@@ -703,7 +639,7 @@ async function loadClosed(today: string): Promise<Item[]> {
   const desde = new Date(Date.parse(today) - CLOSED_WINDOW_DAYS * 86400000)
     .toISOString().slice(0, 10);
   const res = await fetch(
-    `${SB_URL}/rest/v1/convoca_board_items?select=item&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=${CLOSED_LIMIT}`,
+    `${SB_URL}/rest/v1/convoca_board_items?select=item&item_id=like.cido-*&apply_end=lt.${today}&apply_end=gte.${desde}&order=apply_end.desc&limit=${CLOSED_LIMIT}`,
     { headers: DB, signal: AbortSignal.timeout(FETCH_TIMEOUT_MS) },
   );
   if (!res.ok) return [];
@@ -741,8 +677,8 @@ async function writeSnapshot(id: number, data: unknown): Promise<void> {
  * pestaña no se cumplía para nada de lo que contenía.
  *
  * Una bolsa abierta sin fecha de cierre anunciada es una bolsa abierta. Lo
- * dice la fuente y ahora se le hace caso; `fin` solo decide para los portales
- * Convoca y para las filas viejas del archivo, que no traen estado.
+ * dice la fuente y ahora se le hace caso; `fin` solo decide para las filas
+ * viejas del archivo, que no traen estado.
  */
 export function sePuedePedir(it: Item): boolean {
   const estat = it.estadoOrigen;
@@ -772,7 +708,7 @@ async function build(today: string, puedeRefrescar: boolean) {
   }
 
   const results = await Promise.allSettled(
-    SOURCES.map((s) => (s.source === "convoca" ? fetchConvoca(s, callejero) : fetchCido(s, callejero))),
+    SOURCES.map((s) => fetchCido(s, callejero)),
   );
   const vistos = new Map<string, Item>();
   results.forEach((r, i) => {
@@ -818,9 +754,7 @@ async function build(today: string, puedeRefrescar: boolean) {
   // Se descartan las que ya salen arriba, no las que hemos visto. Con
   // `vistos` una convocatoria descargada ya cerrada desaparecía entera: fuera
   // de abiertas y pendientes por tener el plazo pasado, y fuera de cerradas
-  // por haberla visto en esta pasada. A CIDO no le afectaba —solo se le piden
-  // las vivas— pero a los portales Convoca sí: sus procesos históricos se
-  // guardaban en el archivo y no se enseñaban nunca.
+  // por haberla visto en esta pasada.
   const mostradas = new Set([...abiertas, ...pendientes].map((x) => x.id));
   const cerradas = (await loadClosed(today)).filter((x) => !mostradas.has(x.id)).map((x) => {
     delete (x as Record<string, unknown>)._sitios;

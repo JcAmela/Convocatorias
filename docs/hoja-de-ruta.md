@@ -32,8 +32,10 @@ build que publique la web vacía, incompleta o vieja.
 
 ## F1. Decisiones que fijan las URL
 
-- [ ] Revisar qué aporta cada fuente de datos y con qué permiso.
-- [ ] Identificadores definitivos para cada convocatoria.
+- [x] Revisar qué aporta cada fuente de datos: los portales Convoca no
+      aportaban nada que no estuviera en CIDO y se han quitado.
+- [x] Identificadores definitivos para cada convocatoria: `cido-<id>`, el
+      mismo número que la ficha oficial de CIDO.
 - [ ] Rutas: `/convocatoria/<slug>-<id>/`, `/municipio/<id>/`,
       `/comarca/<nombre>/`, `/estudios/<nivel>/`, `/tipo/<clase>/`,
       `/sin-titulacion/`. El slug se congela la primera vez que se ve la plaza.

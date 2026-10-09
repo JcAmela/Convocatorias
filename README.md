@@ -168,9 +168,10 @@ Barcelona, Girona, Lleida y Tarragona, consejos comarcales, Generalitat y
 diputaciones—, datos abiertos de la Diputació de Barcelona con licencia
 [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/deed.es). Se quedan
 fuera a propósito «Altres entitats públiques» (hospitales, universidades y
-centros de investigación) y los cuerpos de la Administración del Estado. La
-función lee también los portales Convoca de Badalona, El Masnou y Santa
-Coloma, pero sus plazas no se publican mientras se revisa esa fuente.
+centros de investigación) y los cuerpos de la Administración del Estado.
+Hasta octubre de 2026 se leían también los portales Convoca de Badalona, El
+Masnou y Santa Coloma; comparados con el histórico de CIDO, no aportaban
+ninguna plaza abierta al público que no estuviera ya allí, y se quitaron.
 
 ### Lo que llega no siempre está limpio
 
