@@ -1,6 +1,6 @@
 import { useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from 'react';
-import type { Plaza, Tablero as Datos } from '../lib/tipos';
-import { API, esTablero, saneaTablero } from '../lib/datos';
+import type { Grupo, Plaza, Tablero as Datos } from '../lib/tipos';
+import { saneaPlazas, saneaSitios } from '../lib/datos';
 import {
   aplica, cuenta, cuentaVarias, ordena, hayFiltros, aQuery, deQuery, claseContrato,
   FILTROS_INICIALES, type Filtros as F, type Pestana,
@@ -21,9 +21,37 @@ import { Limite } from './Limite';
 import { Avisame } from './Avisame';
 
 const CLAVE_GUARDADAS = 'convocatorias:guardadas';
+/** Tiene que coincidir con `PRIMERA_PAGINA` en `lib/publicos.ts`, que elige las que trae el HTML. */
 const PAGINA = 24;
-/** Cuánto aguanta una copia antes de volver a pedirla al volver a la pestaña. */
+/** Cada cuánto, al volver a la pestaña, se mira si hay datos nuevos publicados. */
 const FRESCURA = 15 * 60 * 1000;
+
+/** Lo que se pide a `/datos/`. Las listas necesitan además los sitios para pintar el lugar. */
+type Carga = Grupo | 'sitios';
+
+/** Un fichero de `/datos/` leído: de qué publicación es y cómo meterlo en los datos. */
+interface Lectura {
+  generado: string | undefined;
+  aplicar: (d: Datos) => Datos;
+}
+
+/**
+ * Lo que trae la portada cuando no trae todas las abiertas: el HTML solo
+ * lleva las primeras 24 y, para el calendario, la fecha y los puestos de las
+ * que cierran en los próximos días.
+ */
+export interface Parcial {
+  calendario: Pick<Plaza, 'fin' | 'plazas'>[];
+}
+
+/**
+ * ¿Lo que se está viendo depende de tener todas las abiertas? Sin filtros, por
+ * fecha de cierre y en la primera página, las 24 del HTML son exactamente las
+ * que tocan. Cualquier otra cosa necesita la lista entera.
+ */
+function necesitaTodas(f: F): boolean {
+  return f.pestana !== 'abiertas' || hayFiltros(f) || f.orden !== FILTROS_INICIALES.orden;
+}
 
 const PESTANAS: { valor: Pestana; texto: string; pie: string }[] = [
   { valor: 'abiertas', texto: 'Con plazo abierto', pie: 'Puedes presentar la solicitud ahora mismo.' },
@@ -34,35 +62,48 @@ const PESTANAS: { valor: Pestana; texto: string; pie: string }[] = [
 
 /* ------------------------------------------------------------------ cifras */
 
-function Cifra({ valor, texto, urgente }: { valor: number; texto: string; urgente?: boolean }) {
+function Cifra({ valor, texto, urgente }: { valor: number | null; texto: string; urgente?: boolean }) {
   return (
     <div className="rounded-xl border border-line bg-surface px-3.5 py-3 sm:px-4 sm:py-3.5">
       {/* Cifra grande: sans y cifras proporcionales, que a este tamaño las
-          tabulares se ven sueltas. */}
+          tabulares se ven sueltas. Sin valor, los datos vienen de camino: un
+          número inventado sería peor que esperar. */}
       <p className={`text-2xl font-semibold tracking-tight sm:text-3xl ${urgente ? 'text-rust' : ''}`}>
-        {valor.toLocaleString('es-ES')}
+        {valor === null
+          ? <><span aria-hidden="true" className="text-ink-3">…</span><span className="sr-only">cargando</span></>
+          : valor.toLocaleString('es-ES')}
       </p>
       <p className="mt-1.5 text-sm leading-tight text-balance text-ink-3 sm:mt-2">{texto}</p>
     </div>
   );
 }
 
+/** «9 de octubre de 2026», en hora de Madrid: el build y el navegador escriben lo mismo. */
+function fechaDatos(generado: string): string {
+  const d = new Date(generado);
+  return Number.isNaN(d.getTime())
+    ? 'fecha desconocida'
+    : d.toLocaleDateString('es-ES', { day: 'numeric', month: 'long', year: 'numeric', timeZone: 'Europe/Madrid' });
+}
+
 /* ----------------------------------------------------------------- tablero */
 
-export function Tablero({ inicial }: { inicial: Datos }) {
+export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcial }) {
   const [datos, setDatos] = useState<Datos>(inicial);
   const [revalidando, setRevalidando] = useState(false);
   /**
-   * Atenuar la lista y estar releyendo no son lo mismo. La primera lectura
-   * ocurre sobre contenido que ya es real —viene servido con la página—, así
-   * que bajarlo al 55% durante el viaje de ida y vuelta a la API solo lo hace
-   * parecer roto: unos 280ms en una conexión buena, bastante más en un móvil.
-   * La píldora de la cabecera ya avisa de que se está buscando, y esa señal
-   * no estropea lo que se está leyendo.
+   * Atenuar la lista y estar releyendo no son lo mismo. Solo se atenúa al
+   * cambiar unos datos que ya estaban en pantalla por otros publicados
+   * después; cargar lo que aún no había no estropea lo que se está leyendo.
    */
   const [atenua, setAtenua] = useState(false);
-  const primeraLectura = useRef(true);
-  const [fallo, setFallo] = useState<string | null>(null);
+  /**
+   * Lo que falló, fichero a fichero. Con un solo «fallo» para todo, que
+   * llegaran bien los sitios borraba el error de las cerradas y la pestaña se
+   * quedaba en «Cargando…» para siempre, sin aviso y sin forma de reintentar.
+   * `meta` es la comprobación de datos nuevos al volver a la pestaña.
+   */
+  const [fallos, setFallos] = useState<Partial<Record<Carga | 'meta', string>>>({});
   const [f, setF] = useState<F>(FILTROS_INICIALES);
   const [guardadas, setGuardadas] = useState<Set<string>>(new Set());
   const [abierta, setAbierta] = useState<Plaza | null>(null);
@@ -70,6 +111,21 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   const montado = useRef(false);
   const pidiendo = useRef(false);
   const ultimaLectura = useRef(0);
+  const datosRef = useRef(datos);
+  const guardadasRef = useRef(guardadas);
+  useEffect(() => { datosRef.current = datos; }, [datos]);
+  useEffect(() => { guardadasRef.current = guardadas; }, [guardadas]);
+
+  /**
+   * Qué hay ya en memoria. Con `parcial`, el HTML solo trae las primeras
+   * abiertas y los sitios que necesitan; pendientes y cerradas no vienen
+   * nunca en el HTML.
+   */
+  const [cargadas, setCargadas] = useState<Record<Carga, boolean>>({
+    sitios: !parcial, abiertas: !parcial, pendientes: false, cerradas: false,
+  });
+  const cargadasRef = useRef(cargadas);
+  const enCurso = useRef(new Set<Carga>());
 
   /* --- arranque: filtros de la URL y guardadas del navegador ------------- */
 
@@ -86,42 +142,178 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     }
   }, []);
 
-  /* --- datos frescos: la página se sirve estática y se revalida al abrir - */
+  /* --- datos: ficheros estáticos de /datos/, pedidos cuando hacen falta - */
 
-  const refresca = useCallback(() => {
-    if (pidiendo.current) return;
-    pidiendo.current = true;
-    setRevalidando(true);
-    if (!primeraLectura.current) setAtenua(true);
-    fetch(API, { cache: 'no-store' })
-      .then((r) => (r.ok ? r.json() : Promise.reject(new Error(`el servidor respondió ${r.status}`))))
-      .then((d: unknown) => {
-        if (!esTablero(d)) throw new Error('el servidor devolvió algo que no es un tablero');
-        setDatos(saneaTablero(d));
-        setFallo(null);
-        ultimaLectura.current = Date.now();
-      })
-      .catch((e: Error) => setFallo(e.message))
-      .finally(() => {
-        pidiendo.current = false;
-        primeraLectura.current = false;
-        setRevalidando(false);
-        setAtenua(false);
-      });
+  /** Un fichero de `/datos/`: de qué publicación es y cómo meterlo en `datos`. */
+  const pide = useCallback(async (c: Carga, cache?: RequestCache): Promise<Lectura> => {
+    const r = await fetch(`/datos/${c}.json`, cache ? { cache } : undefined);
+    if (!r.ok) throw new Error(`el servidor respondió ${r.status}`);
+    const d = await r.json() as { generado?: string; sitios?: unknown; plazas?: unknown };
+    return {
+      generado: d.generado,
+      aplicar: (antes) => c === 'sitios'
+        ? { ...antes, sitios: saneaSitios(d.sitios as Datos['sitios']) }
+        : { ...antes, [c]: saneaPlazas(d.plazas) },
+    };
   }, []);
 
-  useEffect(() => { refresca(); }, [refresca]);
+  const marca = useCallback((cs: Carga[]) => {
+    cargadasRef.current = { ...cargadasRef.current, ...Object.fromEntries(cs.map((c) => [c, true])) };
+    setCargadas(cargadasRef.current);
+  }, []);
+  const quitaFallos = useCallback((cs: (Carga | 'meta')[]) => setFallos((antes) => {
+    if (!cs.some((c) => c in antes)) return antes;
+    const nuevo = { ...antes };
+    for (const c of cs) delete nuevo[c];
+    return nuevo;
+  }), []);
 
   /**
-   * Los días que quedan los calcula el servidor con la fecha de su respuesta,
-   * así que una pestaña abierta desde ayer miente: dice «Cierra mañana» de algo
-   * que cerró anoche. Al volver a la pestaña se piden datos otra vez si la
-   * copia ya tiene un rato.
+   * El callejero se pide una sola vez aunque lo necesiten varias listas a la
+   * vez. Si falla, se olvida la promesa para que el siguiente intento vuelva a
+   * pedirlo.
+   */
+  const sitiosEnCamino = useRef<Promise<Lectura> | null>(null);
+  const traeSitios = useCallback(() => {
+    sitiosEnCamino.current ??= pide('sitios').catch((e) => { sitiosEnCamino.current = null; throw e; });
+    return sitiosEnCamino.current;
+  }, [pide]);
+
+  // `asegura` y `refresca` se llaman la una a la otra.
+  const refrescaRef = useRef<(extra?: Grupo[]) => Promise<void>>(async () => {});
+  const aseguraRef = useRef<(grupos: Grupo[]) => void>(() => {});
+
+  /**
+   * Trae lo que falte de estas listas. Una lista no entra nunca sin el
+   * callejero entero: filtrada con el de las 24 primeras daba «0 plazas» en
+   * un enlace a una comarca, y como las plazas ya no cambiaban, nada volvía a
+   * calcularse al llegar el callejero. Lo que ya está o ya se está pidiendo no
+   * se vuelve a pedir.
+   */
+  const asegura = useCallback((grupos: Grupo[]) => {
+    for (const g of grupos) {
+      if (cargadasRef.current[g] || enCurso.current.has(g)) continue;
+      enCurso.current.add(g);
+      quitaFallos([g]);
+      const conSitios = !cargadasRef.current.sitios;
+      Promise.all([conSitios ? traeSitios() : null, pide(g)])
+        .then(([s, l]) => {
+          // Un fichero de otra publicación —la de esta mañana ha salido con la
+          // pestaña abierta— no se mezcla con lo que hay: se recarga todo junto.
+          const actual = datosRef.current.generado;
+          if ((s && s.generado !== actual) || l.generado !== actual) {
+            void refrescaRef.current([g]);
+            return;
+          }
+          setDatos((d) => l.aplicar(s ? s.aplicar(d) : d));
+          marca(s ? ['sitios', g] : [g]);
+        })
+        .catch((e: Error) => setFallos((antes) => ({ ...antes, [g]: e.message })))
+        .finally(() => enCurso.current.delete(g));
+    }
+  }, [pide, traeSitios, marca, quitaFallos]);
+
+  /**
+   * Sin nada que lo pida antes, las abiertas se traen cuando el navegador
+   * queda libre: la primera pintada no espera por ellas. Quien tiene
+   * guardadas necesita además las otras dos listas para contarlas.
+   */
+  useEffect(() => {
+    ultimaLectura.current = Date.now();
+    const trae = () => asegura(guardadasRef.current.size
+      ? ['abiertas', 'pendientes', 'cerradas'] : ['abiertas']);
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(trae, { timeout: 3000 });
+      return () => window.cancelIdleCallback(id);
+    }
+    // Safari no tiene `requestIdleCallback`.
+    const id = setTimeout(trae, 1200);
+    return () => clearTimeout(id);
+  }, [asegura]);
+
+  /**
+   * Lo que se está viendo decide qué hace falta ya: un filtro o un orden
+   * necesitan todas las abiertas; cada pestaña, su lista; las guardadas, las
+   * tres; un municipio de referencia, el callejero, que llega con las abiertas.
+   */
+  const necesita = necesitaTodas(f) || visibles > PAGINA || Boolean(f.desde);
+  useEffect(() => {
+    const grupos: Grupo[] = [];
+    if (necesita) grupos.push('abiertas');
+    if (f.pestana === 'pendientes' || f.pestana === 'cerradas') grupos.push(f.pestana);
+    if (f.pestana === 'guardadas') grupos.push('abiertas', 'pendientes', 'cerradas');
+    if (grupos.length) asegura(grupos);
+  }, [necesita, f.pestana, asegura]);
+
+  /**
+   * ¿Hay datos más nuevos publicados? Se mira `meta.json`, que son unos
+   * cientos de bytes, y solo si cambió se vuelve a pedir lo que ya estaba
+   * cargado, todo de una vez para no mezclar publicaciones. `extra` son las
+   * listas que alguien pidió y llegaron de otra publicación: se traen con las
+   * demás aunque `meta.json` diga que no hay nada nuevo.
+   */
+  const extraPendiente = useRef(new Set<Grupo>());
+  const refresca = useCallback(async (extra: Grupo[] = []) => {
+    for (const g of extra) extraPendiente.current.add(g);
+    if (pidiendo.current) return;
+    pidiendo.current = true;
+    const forzar = extraPendiente.current.size > 0;
+    try {
+      const r = await fetch('/datos/meta.json', { cache: 'no-cache' });
+      if (!r.ok) throw new Error(`el servidor respondió ${r.status}`);
+      const meta = await r.json() as Pick<Datos, 'generado' | 'hoy' | 'resumen' | 'errores'>;
+      ultimaLectura.current = Date.now();
+      quitaFallos(['meta']);
+      if (!forzar && meta.generado === datosRef.current.generado) return;
+
+      setRevalidando(true);
+      setAtenua(true);
+      // Las primeras 24 del HTML también caducan: se traen las abiertas
+      // enteras aunque todavía no se hubieran pedido.
+      const cargas = (['sitios', 'abiertas', 'pendientes', 'cerradas'] as Carga[]).filter((c) =>
+        c === 'sitios' || c === 'abiertas' || cargadasRef.current[c] || extraPendiente.current.has(c as Grupo));
+      const lecturas = await Promise.all(cargas.map((c) => pide(c, 'no-cache')));
+      if (lecturas.some((l) => l.generado !== meta.generado)) {
+        throw new Error('se están publicando datos nuevos; vuelve a intentarlo en un minuto');
+      }
+      setDatos((antes) => lecturas.reduce((d, l) => l.aplicar(d), {
+        ...antes, generado: meta.generado, hoy: meta.hoy, resumen: meta.resumen, errores: meta.errores ?? [],
+      }));
+      sitiosEnCamino.current = null;
+      marca(cargas);
+      quitaFallos(cargas);
+      extraPendiente.current.clear();
+    } catch (e) {
+      const mensaje = (e as Error).message;
+      const afectadas = [...extraPendiente.current];
+      setFallos((antes) => {
+        const nuevo = { ...antes, meta: mensaje };
+        for (const g of afectadas) nuevo[g] = mensaje;
+        return nuevo;
+      });
+      extraPendiente.current.clear();
+    } finally {
+      pidiendo.current = false;
+      setRevalidando(false);
+      setAtenua(false);
+      // Lo que se pidió mientras esta pasada ya estaba en marcha.
+      const quedan = [...extraPendiente.current].filter((g) => !cargadasRef.current[g]);
+      extraPendiente.current.clear();
+      if (quedan.length) aseguraRef.current(quedan);
+    }
+  }, [pide, marca, quitaFallos]);
+  useEffect(() => { refrescaRef.current = refresca; aseguraRef.current = asegura; }, [refresca, asegura]);
+
+  /**
+   * Los días que quedan se calculan con la fecha de los datos, así que una
+   * pestaña abierta desde ayer miente: dice «Cierra mañana» de algo que cerró
+   * anoche. Al volver a la pestaña, si la copia ya tiene un rato, se mira si
+   * se ha publicado otra.
    */
   useEffect(() => {
     const alVolver = () => {
       if (document.visibilityState !== 'visible') return;
-      if (Date.now() - ultimaLectura.current > FRESCURA) refresca();
+      if (Date.now() - ultimaLectura.current > FRESCURA) void refresca();
     };
     document.addEventListener('visibilitychange', alVolver);
     window.addEventListener('focus', alVolver);
@@ -220,7 +412,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
   useMemo(() => usaSitios(datos.sitios), [datos.sitios]);
 
   /** Los municipios y comarcas que aparecen de verdad, con su cuenta. */
-  const lugares = useMemo(() => catalogoDe(todas), [todas]);
+  const lugares = useMemo(() => catalogoDe(todas), [todas, datos.sitios]);
 
   /**
    * Todos los municipios de Cataluña, con cuántas convocatorias tiene cada uno,
@@ -264,7 +456,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
 
   const filtradas = useMemo(
     () => ordena(aplica(base, fCalculo), fCalculo.orden, fCalculo.desde),
-    [base, fCalculo],
+    [base, fCalculo, datos.sitios],
   );
 
   /**
@@ -274,7 +466,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
    * ver dónde había algo era adivinar. Es el mismo criterio que usan los
    * recuentos de cada faceta.
    */
-  const paraGrafico = useMemo(() => aplica(base, fCalculo, 'dia'), [base, fCalculo]);
+  const paraGrafico = useMemo(() => aplica(base, fCalculo, 'dia'), [base, fCalculo, datos.sitios]);
 
   const conteos = useMemo(() => ({
     niveles: cuenta(base, fCalculo, 'niveles', (p) => (p.nivelCodigo && NIVEL_CORTO[p.nivelCodigo] ? p.nivelCodigo : null)),
@@ -286,17 +478,44 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     lejos: fCalculo.desde
       ? aplica(base, fCalculo, 'cerca').filter((p) => !estaCerca(p, fCalculo.desde)).length
       : 0,
-  }), [base, fCalculo]);
+  }), [base, fCalculo, datos.sitios]);
 
-  const resumen = useMemo(() => ({
-    convocatorias: filtradas.length,
-    puestos: filtradas.reduce((s, p) => s + (p.plazas ?? 0), 0),
-    // Los días negativos son plazos vencidos: contarlos como «cierran esta
-    // semana» pintaba de rojo la pestaña entera de cerradas.
-    urgentes: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes >= 0 && p.diasRestantes <= 7).length,
-    reciencerradas: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes < 0 && p.diasRestantes >= -7).length,
-    fijas: filtradas.filter((p) => p.fijo).length,
-  }), [filtradas]);
+  /** Solo están las primeras abiertas del HTML; el resto viene de camino. */
+  const enParcial = !cargadas.abiertas;
+  /**
+   * Las listas sin las que lo que se está viendo sería mentira. Sin filtros,
+   * por fecha de cierre, las 24 del HTML bastan; «Ver más» tampoco cuenta,
+   * porque esas 24 siguen siendo verdad mientras llegan las demás.
+   */
+  const necesarias: Grupo[] = f.pestana === 'guardadas'
+    ? ['abiertas', 'pendientes', 'cerradas']
+    : f.pestana === 'abiertas'
+      ? (necesitaTodas(f) ? ['abiertas'] : [])
+      : [f.pestana];
+  /** Filtrar 24 de mil daría una lista y unas cifras falsas: mientras, se dice que se carga. */
+  const esperando = necesarias.some((g) => !cargadas[g]);
+  /** Por qué no ha llegado lo que hace falta, si es que falló. */
+  const falloVista = necesarias.map((g) => (cargadas[g] ? undefined : fallos[g])).find(Boolean) ?? null;
+  /** Para la píldora de la cabecera: cualquier cosa que haya fallado. */
+  const fallo = falloVista ?? fallos.meta ?? Object.values(fallos).find(Boolean) ?? null;
+  const reintenta = () => asegura(necesarias.length ? necesarias : ['abiertas']);
+
+  const resumen = useMemo(() => {
+    // Sin filtros, las cuentas de todas las abiertas vienen hechas del build.
+    if (enParcial && f.pestana === 'abiertas' && !necesitaTodas(f)) {
+      const r = datos.resumen;
+      return { convocatorias: r.abiertas, puestos: r.plazas, urgentes: r.cierranEn7Dias, reciencerradas: 0, fijas: r.fijas };
+    }
+    return {
+      convocatorias: filtradas.length,
+      puestos: filtradas.reduce((s, p) => s + (p.plazas ?? 0), 0),
+      // Los días negativos son plazos vencidos: contarlos como «cierran esta
+      // semana» pintaba de rojo la pestaña entera de cerradas.
+      urgentes: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes >= 0 && p.diasRestantes <= 7).length,
+      reciencerradas: filtradas.filter((p) => p.diasRestantes !== null && p.diasRestantes < 0 && p.diasRestantes >= -7).length,
+      fijas: filtradas.filter((p) => p.fijo).length,
+    };
+  }, [filtradas, enParcial, f, datos.resumen]);
 
   const pestanaActual = PESTANAS.find((p) => p.valor === f.pestana)!;
 
@@ -310,14 +529,19 @@ export function Tablero({ inicial }: { inicial: Datos }) {
     () => todas.filter((p) => guardadas.has(p.id)).length,
     [todas, guardadas],
   );
-  // El HTML del build solo trae las abiertas, así que hasta que llegan los
-  // datos frescos las otras dos pestañas se cuentan con el resumen.
-  const cuentaPestana = (v: Pestana) =>
-    v === 'guardadas' ? guardadasVivas : (datos[v].length || datos.resumen[v] || 0);
+  const todasCargadas = cargadas.abiertas && cargadas.pendientes && cargadas.cerradas;
+  // Hasta que llega una lista, su pestaña se cuenta con el resumen del build.
+  // Las guardadas se cuentan sobre las que existen solo cuando están las tres
+  // listas; antes, con lo que hay en el navegador.
+  // Lo guardado en el navegador puede incluir convocatorias retiradas: hasta
+  // tener las tres listas no se sabe cuántas siguen vivas, y se dice «…».
+  const cuentaPestana = (v: Pestana): number | string =>
+    v === 'guardadas'
+      ? (todasCargadas ? guardadasVivas : guardadas.size ? '…' : 0)
+      : (cargadas[v] ? datos[v].length : datos.resumen[v] ?? 0);
 
-  /** La pestaña dice que tiene convocatorias pero no han llegado. */
-  const faltanDatos = f.pestana !== 'guardadas' &&
-    datos[f.pestana].length === 0 && (datos.resumen[f.pestana] ?? 0) > 0;
+  /** La lista que se pide no ha llegado y la última petición falló. */
+  const faltanDatos = esperando && falloVista !== null;
 
   const generado = datos.generado ? new Date(datos.generado) : null;
 
@@ -483,27 +707,39 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         </nav>
 
         <div className="mb-4 flex flex-col gap-4">
-          <div className="no-imprimir">
-            <Filtros filtros={f} set={set} lugares={lugares} municipios={municipios} conteos={conteos} />
+          {/* Tocar los filtros es la señal de que van a hacer falta todas
+              las abiertas: los recuentos de cada menú salen de ellas. */}
+          <div
+            className="no-imprimir"
+            onPointerDownCapture={() => asegura(['abiertas'])}
+            onFocusCapture={() => asegura(['abiertas'])}
+          >
+            <Filtros
+              filtros={f} set={set} lugares={lugares} municipios={municipios} conteos={conteos}
+              cargando={esperando || (f.pestana === 'abiertas' && enParcial) || !cargadas.sitios}
+            />
           </div>
 
           {/* Las cifras y el gráfico describen lo que hay filtrado ahora
               mismo, no el total: si no, contarían otra película. */}
           <div className="grid grid-cols-2 gap-2.5 sm:grid-cols-4">
-            <Cifra valor={resumen.convocatorias} texto={f.pestana === 'cerradas' ? 'convocatorias cerradas' : 'convocatorias que estás viendo'} />
-            <Cifra valor={resumen.puestos} texto="puestos en juego" />
+            <Cifra valor={esperando ? null : resumen.convocatorias} texto={f.pestana === 'cerradas' ? 'convocatorias cerradas' : 'convocatorias que estás viendo'} />
+            <Cifra valor={esperando ? null : resumen.puestos} texto="puestos en juego" />
             {f.pestana === 'cerradas' ? (
-              <Cifra valor={resumen.reciencerradas} texto="cerraron esta semana" />
+              <Cifra valor={esperando ? null : resumen.reciencerradas} texto="cerraron esta semana" />
             ) : (
-              <Cifra valor={resumen.urgentes} texto="cierran esta semana" urgente={resumen.urgentes > 0} />
+              <Cifra valor={esperando ? null : resumen.urgentes} texto="cierran esta semana" urgente={!esperando && resumen.urgentes > 0} />
             )}
-            <Cifra valor={resumen.fijas} texto="son plaza fija" />
+            <Cifra valor={esperando ? null : resumen.fijas} texto="son plaza fija" />
           </div>
 
           {f.pestana !== 'cerradas' && (
             <div className="no-imprimir">
               <Calendario
-                plazas={paraGrafico}
+                cargando={esperando}
+                // Hasta que llegan todas las abiertas, el calendario se dibuja
+                // con lo mínimo que trae el HTML para eso.
+                plazas={enParcial && parcial && f.pestana === 'abiertas' ? parcial.calendario : paraGrafico}
                 hoy={datos.hoy}
                 diaElegido={f.dia}
                 onElegirDia={(dia) => set({ dia })}
@@ -549,7 +785,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         {/* Cuántas quedan, dicho en voz alta para quien no ve la cifra grande:
             sin esto, cambiar un filtro no anunciaba absolutamente nada. */}
         <p aria-live="polite" className="sr-only">
-          {plural(filtradas.length, 'convocatoria encontrada', 'convocatorias encontradas')}
+          {esperando && !falloVista
+            ? 'Cargando convocatorias…'
+            : plural(resumen.convocatorias, 'convocatoria encontrada', 'convocatorias encontradas')}
         </p>
 
         <div
@@ -560,7 +798,11 @@ export function Tablero({ inicial }: { inicial: Datos }) {
           className={atenua ? 'revalidando' : undefined}
         >
           <Limite>
-            {filtradas.length === 0 ? (
+            {esperando && !falloVista ? (
+              <div className="rounded-xl border border-dashed border-line py-16 text-center">
+                <p className="text-base text-ink-3">Cargando convocatorias…</p>
+              </div>
+            ) : filtradas.length === 0 || faltanDatos ? (
               <div className="rounded-xl border border-dashed border-line py-16 text-center">
                 {/* Sin datos ningún filtro sobra: decir "prueba a quitar algún
                     filtro" cuando lo que ha pasado es que la API no contesta
@@ -574,8 +816,8 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 </p>
                 <p className="mx-auto max-w-[52ch] text-base text-ink-3">
                   {todas.length === 0 || faltanDatos
-                    ? (fallo
-                        ? `El servidor de datos no ha contestado (${fallo}). Vuelve a intentarlo en un rato.`
+                    ? (falloVista
+                        ? `El servidor de datos no ha contestado (${falloVista}). Vuelve a intentarlo en un rato.`
                         : 'El servidor de datos no ha contestado. Vuelve a intentarlo en un rato.')
                     : f.pestana === 'guardadas' && guardadasVivas === 0
                       ? 'Pulsa la estrella de cualquier plaza y aparecerá aquí.'
@@ -584,7 +826,7 @@ export function Tablero({ inicial }: { inicial: Datos }) {
                 {(todas.length === 0 || faltanDatos) && (
                   <button
                     type="button"
-                    onClick={() => window.location.reload()}
+                    onClick={reintenta}
                     className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
                   >
                     Reintentar
@@ -631,13 +873,18 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             )}
           </Limite>
 
-          {visibles < filtradas.length && (
+          {!esperando && visibles < resumen.convocatorias && (
             <button
               type="button"
-              onClick={() => setVisibles((v) => v + PAGINA)}
-              className="no-imprimir hover:border-pine hover:text-pine mt-3 w-full rounded-xl border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 transition-colors"
+              onClick={() => (visibles > filtradas.length ? asegura(['abiertas']) : setVisibles((v) => v + PAGINA))}
+              disabled={visibles > filtradas.length && !fallos.abiertas}
+              className="no-imprimir hover:border-pine hover:text-pine mt-3 w-full rounded-xl border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 transition-colors disabled:cursor-wait disabled:opacity-60"
             >
-              Ver más — quedan {plural(filtradas.length - visibles, 'plaza', 'plazas')}
+              {/* En la portada recién abierta solo están las 24 primeras: al
+                  pedir más se traen las demás, y mientras tanto se dice. */}
+              {visibles > filtradas.length
+                ? (fallos.abiertas ? 'No se han podido cargar. Reintentar' : 'Cargando…')
+                : <>Ver más — quedan {plural(resumen.convocatorias - visibles, 'plaza', 'plazas')}</>}
             </button>
           )}
         </div>
@@ -645,10 +892,9 @@ export function Tablero({ inicial }: { inicial: Datos }) {
         <footer className="mt-10 border-t border-line pt-5 pb-12 text-base leading-relaxed text-ink-2">
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">De dónde salen los datos.</strong> Del portal CIDO de la
-            Diputació de Barcelona y de los portales Convoca de Badalona, El Masnou y Santa Coloma.
-            Entran los ayuntamientos de las cuatro provincias, los consejos comarcales, la
-            Generalitat y las diputaciones: unas mil convocatorias vivas repartidas por toda
-            Cataluña. Se actualiza solo varias veces al día.
+            Diputació de Barcelona. Entran los ayuntamientos de las cuatro provincias, los consejos
+            comarcales, la Generalitat y las diputaciones: unas mil convocatorias vivas repartidas
+            por toda Cataluña. Se actualiza cada mañana.
           </p>
           <p className="mb-2 max-w-[76ch]">
             <strong className="text-ink">Comprueba dos cosas antes de apuntarte.</strong> El lugar de
@@ -656,9 +902,17 @@ export function Tablero({ inicial }: { inicial: Datos }) {
             asterisco, y eso no es lo mismo —muchas bolsas cubren varios centros a la vez—; y el
             plazo exacto, que manda lo que diga la convocatoria oficial y no esta página.
           </p>
-          <p className="text-sm text-ink-3">
+          <p className="mb-2 text-sm text-ink-3">
             No se incluyen plazas de policía, guardia urbana ni mossos. Tampoco universidades,
             hospitales ni centros de investigación.
+          </p>
+          {/* Lo que pide la licencia: quién, con qué licencia, de cuándo y que
+              hay cambios. Es una web independiente: que no parezca oficial. */}
+          <p className="text-sm text-ink-3">
+            Fuente: CIDO – Diputació de Barcelona,{' '}
+            <a className="underline underline-offset-2 hover:text-ink" href="https://creativecommons.org/licenses/by/4.0/deed.es" rel="license noopener">CC BY 4.0</a>,
+            datos del {fechaDatos(datos.generado)}. Seleccionados, clasificados y con etiquetas en
+            castellano por Convocatorias, una web independiente y no oficial.
           </p>
         </footer>
       </main>

@@ -2,6 +2,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { aplica, deQuery } from "../_shared/filtros.ts";
 import { asuntoCorreo, correoHtml, correoTexto, type DatosCorreo } from "../_shared/correo.ts";
 import type { Plaza, Tablero } from "../_shared/tipos.ts";
+import { SITIO } from "../_shared/sitio.ts";
+import { esPublicable } from "../_shared/publicable.ts";
 
 // ============================================================================
 // convoca-correo — compone los avisos y los manda.
@@ -26,7 +28,6 @@ const DB = { apikey: SB_KEY, Authorization: `Bearer ${SB_KEY}`, "Content-Type": 
 
 /** Mientras no haya dominio propio, Resend solo entrega al titular de la cuenta. */
 const REMITENTE = "Convocatorias <onboarding@resend.dev>";
-const SITIO = "https://convocatorias-ten.vercel.app";
 
 /** Cuántas tarjetas caben antes de que el correo deje de leerse. */
 const TOPE_TARJETAS = 8;
@@ -71,9 +72,19 @@ async function pideJson(url: string, init: RequestInit = {}): Promise<unknown> {
   return res.json();
 }
 
-/** El tablero de hoy, una sola vez para todos los suscriptores. */
+/**
+ * El tablero de hoy, una sola vez para todos los suscriptores, con lo mismo
+ * que publica la web: un aviso no puede anunciar una plaza que la web no
+ * enseña (`_shared/publicable.ts`).
+ */
 async function leeTablero(): Promise<Tablero> {
-  return await pideJson(`${SB_URL}/functions/v1/convoca-board`) as Tablero;
+  const t = await pideJson(`${SB_URL}/functions/v1/convoca-board`) as Tablero;
+  return {
+    ...t,
+    abiertas: t.abiertas.filter(esPublicable),
+    pendientes: t.pendientes.filter(esPublicable),
+    cerradas: t.cerradas.filter(esPublicable),
+  };
 }
 
 /** El correo de la cuenta. Vive en auth.users y no se copia a ningún sitio. */

@@ -36,13 +36,18 @@ interface Dia {
 }
 
 interface Props {
-  plazas: Plaza[];
+  /** Solo se mira la fecha de cierre y los puestos: antes de que lleguen
+   * todas las abiertas, la portada trae solo eso (`paraCalendario()`). */
+  plazas: Pick<Plaza, 'fin' | 'plazas'>[];
+  /** Las plazas de lo que se está viendo aún no han llegado: se dibuja vacío
+   * y sin cifras, con la misma altura, en vez de contar lo que no es. */
+  cargando?: boolean;
   hoy: string;
   diaElegido: string | null;
   onElegirDia: (clave: string | null) => void;
 }
 
-export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
+export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = false }: Props) {
   const caja = useRef<HTMLDivElement>(null);
   const [ancho, setAncho] = useState(760);
   const [encima, setEncima] = useState<number | null>(null);
@@ -94,7 +99,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
       const f = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate() + i);
       cubos.set(claveDia(f), { clave: claveDia(f), fecha: f, n: 0, puestos: 0 });
     }
-    for (const p of plazas) {
+    for (const p of cargando ? [] : plazas) {
       if (!p.fin) continue;
       const cubo = cubos.get(p.fin.slice(0, 10));
       if (!cubo) continue;
@@ -102,7 +107,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
       cubo.puestos += p.plazas ?? 1;
     }
     return [...cubos.values()];
-  }, [plazas, hoy, DIAS]);
+  }, [plazas, hoy, DIAS, cargando]);
 
   const max = Math.max(1, ...dias.map((d) => d.n));
   const anchoPlot = Math.max(120, ancho - MARGEN_IZQ - MARGEN_DER);
@@ -130,7 +135,9 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia }: Props) {
             Cuándo se cierran los plazos
           </h2>
           <p className="mt-1 max-w-[78ch] text-sm text-ink-3">
-            {total > 0 ? (
+            {cargando ? (
+              'Cargando las fechas de cierre…'
+            ) : total > 0 ? (
               <>
                 {plural(total, 'convocatoria cierra', 'convocatorias cierran')} en los próximos {DIAS} días.
                 {/* La instrucción solo tiene sentido con las barras a la vista. */}

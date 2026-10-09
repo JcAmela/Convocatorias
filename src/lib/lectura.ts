@@ -1,5 +1,7 @@
 import { API, esTablero, saneaTablero } from './datos';
 import { CLAVE_PUBLICA, URL_SUPABASE } from './supabase-publico';
+import { SITIO } from '../../supabase/functions/_shared/sitio.ts';
+import { esPublicable, FUENTES_NO_PUBLICADAS } from '../../supabase/functions/_shared/publicable.ts';
 import type { Tablero } from './tipos';
 
 /**
@@ -32,17 +34,17 @@ export const UMBRALES = {
 } as const;
 
 /** Dónde está publicado el recuento del último build, para comparar. */
-export const META_PUBLICADA = 'https://convocatorias-ten.vercel.app/datos/meta.json';
+export const META_PUBLICADA = `${SITIO}/datos/meta.json`;
 
 /**
- * Las fuentes cuyo fallo no impide publicar. Los portales Convoca son tres
- * municipios y su continuidad está en estudio; `(archivo)` es la escritura
- * del historial en la base, que no cambia lo que se sirve hoy. Todo lo demás
- * —las siete consultas a CIDO y su callejero— es la web entera, y una fuente
- * que no se reconoce también cuenta como fallo: mejor parar de más que
- * publicar sin la Generalitat.
+ * Las fuentes cuyo fallo no impide publicar: los portales Convoca, que no se
+ * publican (`_shared/publicable.ts`), y `(archivo)`, la escritura del
+ * historial en la base, que no cambia lo que se sirve hoy. Todo lo demás —las
+ * siete consultas a CIDO y su callejero— es la web entera, y una fuente que no
+ * se reconoce también cuenta como fallo: mejor parar de más que publicar sin
+ * la Generalitat.
  */
-const NO_BLOQUEAN = new Set(['Badalona', 'El Masnou', 'Santa Coloma de Gramenet', '(archivo)']);
+export const NO_BLOQUEAN: ReadonlySet<string> = new Set([...FUENTES_NO_PUBLICADAS, '(archivo)']);
 
 /** El build se niega a publicar. El mensaje dice por qué. */
 export class BuildRechazado extends Error {
@@ -155,7 +157,10 @@ async function leeEnVivo(env: Entorno): Promise<Tablero> {
 
   const permitirBajada = env.PERMITIR_BAJADA === '1';
   const anteriores = await abiertasPublicadas(META_PUBLICADA, permitirBajada);
-  const motivos = motivosParaNoPublicar(cuerpo, { ahora: Date.now(), anteriores, permitirBajada });
+  // Se juzga lo que se va a publicar, no lo que llega: el recuento que se
+  // compara (`meta.json`) tampoco cuenta lo que no se publica.
+  const publicable = { ...cuerpo, abiertas: cuerpo.abiertas.filter(esPublicable) };
+  const motivos = motivosParaNoPublicar(publicable, { ahora: Date.now(), anteriores, permitirBajada });
   if (motivos.length) throw new BuildRechazado(`No se publica: ${motivos.join('; ')}.`);
   if (permitirBajada) console.warn('[datos] PERMITIR_BAJADA=1: este build se salta la comparación con el anterior. Quítalo después.');
   await latido();

@@ -21,6 +21,12 @@ interface Props {
     lugares: Conteos;
     lejos: number;
   };
+  /**
+   * Todavía no están todas las convocatorias ni el callejero: los números de
+   * cada opción saldrían de las 24 primeras. Se enseña «…» y no se desactiva
+   * nada, que una opción gris con un 0 falso es peor que esperar un momento.
+   */
+  cargando?: boolean;
 }
 
 const CONTRATOS: { valor: ClaseContrato; texto: string }[] = [
@@ -135,7 +141,7 @@ function Menu({
 
 function Opcion({
   marcada, texto, n, onClick,
-}: { marcada: boolean; texto: string; n: number; onClick: () => void }) {
+}: { marcada: boolean; texto: string; n: number | null; onClick: () => void }) {
   return (
     <button
       type="button"
@@ -155,7 +161,7 @@ function Opcion({
         )}
       </span>
       <span className="flex-1 leading-tight">{texto}</span>
-      <span className="font-mono text-2xs text-ink-3 tabular-nums">{n}</span>
+      <span className="font-mono text-2xs text-ink-3 tabular-nums">{n === null ? '…' : n}</span>
     </button>
   );
 }
@@ -195,7 +201,9 @@ function OpcionUnica({
 
 /* -------------------------------------------------------------------- barra */
 
-export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props) {
+export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargando = false }: Props) {
+  /** El número de una opción, o `null` mientras no están todos los datos. */
+  const cifra = (tabla: Conteos, k: string) => (cargando ? null : tabla[k] ?? 0);
   const [foco, setFoco] = useState(false);
   const [buscaLugar, setBuscaLugar] = useState('');
   const [buscaDesde, setBuscaDesde] = useState('');
@@ -366,7 +374,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
               key={n}
               marcada={f.niveles.includes(n)}
               texto={NIVEL_CORTO[n]}
-              n={conteos.niveles[n] ?? 0}
+              n={cifra(conteos.niveles, n)}
               onClick={() => set({ niveles: conmuta(f.niveles, n) })}
             />
           ))}
@@ -378,7 +386,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
               key={c.valor}
               marcada={f.contratos.includes(c.valor)}
               texto={c.texto}
-              n={conteos.contratos[c.valor] ?? 0}
+              n={cifra(conteos.contratos, c.valor)}
               onClick={() => set({ contratos: conmuta(f.contratos, c.valor) })}
             />
           ))}
@@ -390,7 +398,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
               key={k}
               marcada={f.ambitos.includes(k)}
               texto={texto}
-              n={conteos.ambitos[k] ?? 0}
+              n={cifra(conteos.ambitos, k)}
               onClick={() => set({ ambitos: conmuta(f.ambitos, k) })}
             />
           ))}
@@ -407,13 +415,16 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
               className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
             />
           </div>
-          {comarcasVisibles.map((g) => (
+          {cargando && (
+            <p className="px-2 py-3 text-sm text-ink-3">Cargando municipios…</p>
+          )}
+          {!cargando && comarcasVisibles.map((g) => (
             <div key={g.comarcaId} className="mb-1">
               {g.comarca ? (
                 <Opcion
                   marcada={f.lugares.includes(g.comarca.id)}
                   texto={g.comarca.nombre}
-                  n={conteos.lugares[g.comarca.id] ?? 0}
+                  n={cifra(conteos.lugares, g.comarca.id)}
                   onClick={() => set({ lugares: conmuta(f.lugares, g.comarca!.id) })}
                 />
               ) : (
@@ -427,24 +438,24 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
                     key={l.id}
                     marcada={f.lugares.includes(l.id)}
                     texto={l.nombre}
-                    n={conteos.lugares[l.id] ?? 0}
+                    n={cifra(conteos.lugares, l.id)}
                     onClick={() => set({ lugares: conmuta(f.lugares, l.id) })}
                   />
                 ))}
               </div>
             </div>
           ))}
-          {comarcasVisibles.length === 0 && (
+          {!cargando && comarcasVisibles.length === 0 && (
             <p className="px-2 py-3 text-sm text-ink-3">Ningún municipio se llama así.</p>
           )}
           {/* Ya casi no hay convocatorias sin ningún sitio, pero mientras
               queden en el archivo tienen que poder pedirse. */}
-          {(conteos.lugares[SIN_LUGAR] > 0 || f.lugares.includes(SIN_LUGAR)) && (
+          {!cargando && (conteos.lugares[SIN_LUGAR] > 0 || f.lugares.includes(SIN_LUGAR)) && (
             <div className="mt-1 border-t border-line-soft pt-1">
               <Opcion
                 marcada={f.lugares.includes(SIN_LUGAR)}
                 texto={TEXTO_SIN_LUGAR}
-                n={conteos.lugares[SIN_LUGAR] ?? 0}
+                n={cifra(conteos.lugares, SIN_LUGAR)}
                 onClick={() => set({ lugares: conmuta(f.lugares, SIN_LUGAR) })}
               />
             </div>
@@ -460,7 +471,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
                 key={u.valor}
                 marcada={f.urgencias.includes(u.valor)}
                 texto={u.texto}
-                n={conteos.urgencias[u.valor] ?? 0}
+                n={cifra(conteos.urgencias, u.valor)}
                 onClick={() => set({ urgencias: conmuta(f.urgencias, u.valor) })}
               />
             ))}
@@ -521,7 +532,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
                 <span className="flex-1 leading-tight">
                   Esconder lo que esté a más de {RADIO_CERCA_KM} km
                 </span>
-                {conteos.lejos > 0 && <span className="font-mono text-2xs text-ink-3">{conteos.lejos}</span>}
+                {!cargando && conteos.lejos > 0 && <span className="font-mono text-2xs text-ink-3">{conteos.lejos}</span>}
               </button>
               <p className="border-t border-line-soft px-2 pt-2 pb-1 text-2xs text-ink-3">
                 Midiendo desde {desde.nombre}. Cambia de municipio en la lista.
@@ -533,7 +544,10 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
             </p>
           )}
 
-          <div role="radiogroup" aria-label="Tu municipio">
+          {cargando && (
+            <p className="px-2 py-3 text-sm text-ink-3">Cargando municipios…</p>
+          )}
+          <div role="radiogroup" aria-label="Tu municipio" hidden={cargando}>
             {desdeVisibles.map((m) => (
               <OpcionUnica
                 key={m.id}
@@ -549,12 +563,12 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos }: Props
               />
             ))}
           </div>
-          {desdeEncontrados.length > desdeVisibles.length && (
+          {!cargando && desdeEncontrados.length > desdeVisibles.length && (
             <p className="border-t border-line-soft px-2 pt-2 pb-1 text-2xs text-ink-3">
               Y {desdeEncontrados.length - desdeVisibles.length} más. Escribe para afinar.
             </p>
           )}
-          {desdeVisibles.length === 0 && (
+          {!cargando && desdeVisibles.length === 0 && (
             <p className="px-2 py-3 text-sm text-ink-3">Ningún municipio se llama así.</p>
           )}
         </Menu>

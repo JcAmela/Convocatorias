@@ -92,6 +92,11 @@ export function saneaSitios(sitios: Record<string, Sitio> | undefined): Record<s
   return out;
 }
 
+/** Una lista suelta de plazas, como llega en `/datos/<grupo>.json`. */
+export function saneaPlazas(lista: unknown): Plaza[] {
+  return Array.isArray(lista) ? lista.map((p) => sanea(p as Partial<Plaza>)) : [];
+}
+
 /** Deja el tablero con el contrato que promete `tipos.ts`. */
 export function saneaTablero(d: Tablero): Tablero {
   return {
@@ -119,15 +124,4 @@ export function esTablero(d: unknown): d is Tablero {
     t && typeof t === 'object' &&
     Array.isArray(t.abiertas) && Array.isArray(t.pendientes) && Array.isArray(t.cerradas),
   );
-}
-
-/**
- * Lo que se empotra en el HTML del build: solo lo que se ve en la primera
- * pintada. Las otras dos pestañas están detrás de un clic y para entonces el
- * navegador ya ha traído los datos frescos, así que mandarlas de entrada solo
- * servía para engordar la página 500 KB. Las cuentas siguen en `resumen`, que
- * es lo que necesitan las pestañas para saber qué número enseñar.
- */
-export function soloLoVisible(t: Tablero): Tablero {
-  return { ...t, pendientes: [], cerradas: [] };
 }

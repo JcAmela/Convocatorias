@@ -1,18 +1,27 @@
 ---
 import Base from '../layouts/Base.astro';
 import { Tablero } from '../components/Tablero';
-import { soloLoVisible } from '../lib/datos';
-import { leeTableroEstricto } from '../lib/lectura';
+import { datosPublicos, paraCalendario, primeras, sitiosDe } from '../lib/publicos';
 
-// Se lee en el build para que la primera pintada ya lleve plazas de verdad.
-// Si los datos no son publicables, el build falla y sigue servida la versión
-// anterior (`lectura.ts`).
-const datos = soloLoVisible(await leeTableroEstricto());
+// El HTML solo lleva lo que se ve al abrir: el resumen, las primeras 24
+// abiertas con sus sitios y lo mínimo para el calendario. El resto lo pide la
+// isla a `/datos/` cuando le hace falta. Si los datos no son publicables, el
+// build falla y sigue servida la versión anterior (`lectura.ts`).
+const { tablero } = await datosPublicos();
+const visibles = primeras(tablero.abiertas);
+const inicial = {
+  ...tablero,
+  abiertas: visibles,
+  pendientes: [],
+  cerradas: [],
+  sitios: sitiosDe(visibles, tablero.sitios),
+};
+const parcial = { calendario: paraCalendario(tablero.abiertas, tablero.hoy) };
 ---
 
 <Base
   titulo="Convocatorias — empleo público en Cataluña"
   descripcion="Plazas de empleo público con el plazo abierto en toda Cataluña: ayuntamientos de las cuatro provincias, consejos comarcales, Generalitat y diputaciones. Filtra por municipio, comarca, distancia desde tu pueblo, estudios y días que quedan."
 >
-  <Tablero inicial={datos} client:load />
+  <Tablero inicial={inicial} parcial={parcial} client:load />
 </Base>

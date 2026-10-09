@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { esTablero, saneaTablero, soloLoVisible } from './datos';
+import { esTablero, saneaTablero } from './datos';
 import { plaza, tablero } from './pruebas';
 import type { Plaza, Tablero } from './tipos';
 
@@ -48,23 +48,5 @@ describe('saneaTablero', () => {
   it('aguanta un tablero sin catálogo de sitios', () => {
     const sinSitios = { ...tablero(), sitios: undefined } as unknown as Tablero;
     expect(saneaTablero(sinSitios).sitios).toEqual({});
-  });
-});
-
-describe('soloLoVisible', () => {
-  it('se queda con lo que se pinta en el primer frame', () => {
-    const t = soloLoVisible(tablero({
-      abiertas: [plaza()],
-      pendientes: [plaza({ id: 'p' })],
-      cerradas: [plaza({ id: 'c' })],
-    }));
-    expect(t.abiertas).toHaveLength(1);
-    expect(t.pendientes).toHaveLength(0);
-    expect(t.cerradas).toHaveLength(0);
-  });
-
-  it('conserva el resumen, que es de donde salen los números de las pestañas', () => {
-    const t = soloLoVisible(tablero({ resumen: { ...tablero().resumen, pendientes: 352 } }));
-    expect(t.resumen.pendientes).toBe(352);
   });
 });

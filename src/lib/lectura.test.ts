@@ -149,6 +149,15 @@ describe('leeTableroEstricto', () => {
     await expect(lee()).rejects.toThrow(/no es un tablero/);
   });
 
+  it('juzga lo que se publica: si todo lo que llega es de Convoca, son 0 abiertas', async () => {
+    const soloConvoca = tablero({
+      generado: RECIEN,
+      abiertas: Array.from({ length: 50 }, (_, i) => plaza({ id: `00000000-0000-4000-8000-${String(i).padStart(12, '0')}` })),
+    });
+    red({ 'convoca-board': json(soloConvoca) });
+    await expect(lee()).rejects.toThrow(/0 convocatorias abiertas/);
+  });
+
   it('compara con el último build publicado y para si faltan muchas', async () => {
     red({ 'convoca-board': json(conAbiertas(500)), '/datos/meta.json': json({ recuentos: { abiertas: 900 } }) });
     await expect(lee()).rejects.toThrow(/bajan de 900 a 500/);
