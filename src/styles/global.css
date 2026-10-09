@@ -10,6 +10,9 @@
    Paleta pino y ocre: el verde es lo institucional y lo neutro; el ocre y el
    óxido están reservados EXCLUSIVAMENTE a la urgencia del plazo, que es la
    única información de esta página que debe gritar.
+
+   Los contrastes de cada pareja de colores los comprueba
+   `pruebas/contraste.test.ts`, que lee este fichero.
    ========================================================================== */
 
 @theme inline {
@@ -19,6 +22,7 @@
   --color-surface-3: var(--surface-3);
   --color-line: var(--line);
   --color-line-soft: var(--line-soft);
+  --color-line-strong: var(--line-strong);
 
   --color-ink: var(--ink);
   --color-ink-2: var(--ink-2);
@@ -27,39 +31,56 @@
   --color-pine: var(--pine);
   --color-pine-ink: var(--pine-ink);
   --color-pine-soft: var(--pine-soft);
+  --color-on-pine: var(--on-pine);
 
   --color-ochre: var(--ochre);
   --color-ochre-soft: var(--ochre-soft);
   --color-rust: var(--rust);
   --color-rust-soft: var(--rust-soft);
 
-  --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
-  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', Menlo, monospace;
+  --color-material: var(--material);
+  --color-press: var(--press);
+  --color-scrim: var(--scrim);
 
-  /* Escala tipografica: nueve peldanos y ninguno mas.
-     Antes convivian diecisiete tamanos, varios separados por medio pixel
-     (13 y 13.5, 12 y 12.5, 10.5 y 11). Esa diferencia no se ve, pero deja
-     la pagina sin ritmo: nada parece decidido. Cada peldano de aqui se
-     distingue del anterior a simple vista y tiene un trabajo asignado. */
-  --text-2xs: 0.6875rem;              /* 11px - versalitas y contadores */
-  --text-2xs--line-height: 1.45;
-  --text-xs: 0.75rem;                 /* 12px - pildoras, pies de nota */
-  --text-xs--line-height: 1.5;
-  --text-sm: 0.8125rem;               /* 13px - metadatos y subtitulos */
-  --text-sm--line-height: 1.5;
-  --text-base: 0.875rem;              /* 14px - cuerpo */
-  --text-base--line-height: 1.55;
-  --text-md: 0.9375rem;               /* 15px - cuerpo destacado */
-  --text-md--line-height: 1.5;
-  --text-lg: 1.0625rem;               /* 17px - titular de tarjeta */
-  --text-lg--line-height: 1.35;
-  --text-xl: 1.25rem;                 /* 20px - titulo de panel */
+  /* La letra del sistema: San Francisco en el iPhone y el Mac, Segoe en
+     Windows, Roboto en Android. Ya trae el tamaño óptico y el espaciado de
+     cada cuerpo, y no se descarga nada: 0 KB de webfonts. */
+  --font-*: initial;
+  --font-sans: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', 'Noto Sans', Arial, sans-serif;
+
+  /* Escala tipográfica: siete peldaños y ninguno más (12, 14, 16, 17, 20, 24
+     y 32). Sin 13 ni 15: a esa distancia la diferencia no se ve y la página
+     se queda sin ritmo. El cuerpo y los campos van a 16, que por debajo el
+     iPhone amplía la página al tocar un campo.
+     El interletraje va con el tamaño: algo abierto en la letra pequeña,
+     cerrado en la grande, donde las letras parecen separarse. */
+  --text-*: initial;
+  --text-xs: 0.75rem;                 /* 12 · notas al pie, contadores */
+  --text-xs--line-height: 1.3333;
+  --text-xs--letter-spacing: 0.01em;
+  --text-sm: 0.875rem;                /* 14 · metadatos, organismo */
+  --text-sm--line-height: 1.4286;
+  --text-base: 1rem;                  /* 16 · cuerpo y campos */
+  --text-base--line-height: 1.5;
+  --text-lg: 1.0625rem;               /* 17 · título de tarjeta */
+  --text-lg--line-height: 1.2941;
+  --text-xl: 1.25rem;                 /* 20 · título de bloque */
   --text-xl--line-height: 1.25;
-  --text-2xl: 1.5625rem;              /* 25px - nombre del sitio */
-  --text-2xl--line-height: 1.1;
-  --text-3xl: 2.125rem;               /* 34px - cifras del resumen */
-  --text-3xl--line-height: 1;
+  --text-xl--letter-spacing: -0.006em;
+  --text-2xl: 1.5rem;                 /* 24 · título de la ficha */
+  --text-2xl--line-height: 1.25;
+  --text-2xl--letter-spacing: -0.012em;
+  --text-3xl: 2rem;                   /* 32 · cifras del resumen */
+  --text-3xl--line-height: 1.125;
+  --text-3xl--letter-spacing: -0.02em;
+
+  /* Radios: 20 la hoja, 16 la tarjeta y los paneles, 10 los botones y los
+     campos, 6 lo pequeño. Y `rounded-full` para las píldoras. */
+  --radius-*: initial;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.625rem;
+  --radius-lg: 1rem;
+  --radius-xl: 1.25rem;
 
   /* Elevacion: tres alturas y ninguna mas. Cada una es una variable, no un
      negro fijo, porque en oscuro una sombra negra sobre un fondo casi negro
@@ -78,6 +99,9 @@
   --surface-3: #e7e5da;
   --line: #dddbcf;
   --line-soft: #e9e7dd;
+  /* El borde de lo que se toca (campos, casillas): 3:1 o más contra el fondo,
+     que es lo que pide la norma para distinguir un control. */
+  --line-strong: #838985;
 
   --ink: #16181a;
   --ink-2: #4a504e;
@@ -86,11 +110,25 @@
   --pine: #12705e;
   --pine-ink: #0b4a3f;
   --pine-soft: #dfece7;
+  --on-pine: #ffffff;
 
   --ochre: #8a5a02;
   --ochre-soft: #f6eeda;
   --rust: #a6331c;
   --rust-soft: #f8e7e2;
+
+  /* Material: la superficie al 85 %, para las dos barras fijas que dejan ver
+     el contenido que pasa por debajo. Encima solo va texto ink o ink-2. */
+  --material: color-mix(in oklab, var(--surface) 85%, transparent);
+  /* Lo que se pone encima de algo mientras se pulsa. */
+  --press: color-mix(in oklab, var(--ink) 8%, transparent);
+  /* El velo detrás de lo que se abre encima de la página. */
+  --scrim: rgb(22 24 26 / 0.4);
+
+  /* El muelle para abrir y cerrar sin gesto (un toque, la X, Escape, Atrás):
+     sale rápido, frena suave y no rebota. Muestreado de un muelle
+     críticamente amortiguado; dura 500 ms. */
+  --muelle: linear(0, 0.051, 0.162, 0.293, 0.421, 0.536, 0.634, 0.715, 0.781, 0.833, 0.873, 0.905, 0.929, 0.947, 0.961, 0.971, 0.978, 0.984, 0.988, 0.992, 0.994, 0.996, 0.997, 0.998, 0.998, 1);
 
   /* Sombras del tema claro. El negro puro ensucia; se tira del verde de la
      tinta para que la sombra pertenezca a la misma paleta que todo lo demas.
@@ -107,6 +145,9 @@
   --viz-grid: #e2e0d5;
 }
 
+/* El tema oscuro va dos veces: una para quien lo tiene en el sistema y otra
+   para quien lo elige con el botón. Las dos listas tienen que ser iguales, y
+   el test de contraste falla si no lo son. */
 @media (prefers-color-scheme: dark) {
   :root:where(:not([data-theme='light'])) {
     color-scheme: dark;
@@ -117,6 +158,7 @@
     --surface-3: #232829;
     --line: #2a2f31;
     --line-soft: #212627;
+    --line-strong: #646d6a;
 
     --ink: #e8ece9;
     --ink-2: #aab2ae;
@@ -125,11 +167,15 @@
     --pine: #4fb79b;
     --pine-ink: #7fd3bb;
     --pine-soft: #16322c;
+    --on-pine: #07100d;
 
     --ochre: #dca648;
     --ochre-soft: #2d2517;
     --rust: #e58b72;
     --rust-soft: #331d17;
+
+    --press: color-mix(in oklab, var(--ink) 10%, transparent);
+    --scrim: rgb(0 0 0 / 0.6);
 
     /* En oscuro la sombra sola no basta: hay que hundirla mucho mas y
        rematar el canto con un filo claro, que es lo que de verdad despega
@@ -153,6 +199,7 @@
   --surface-3: #232829;
   --line: #2a2f31;
   --line-soft: #212627;
+  --line-strong: #646d6a;
 
   --ink: #e8ece9;
   --ink-2: #aab2ae;
@@ -161,11 +208,15 @@
   --pine: #4fb79b;
   --pine-ink: #7fd3bb;
   --pine-soft: #16322c;
+  --on-pine: #07100d;
 
   --ochre: #dca648;
   --ochre-soft: #2d2517;
   --rust: #e58b72;
   --rust-soft: #331d17;
+
+  --press: color-mix(in oklab, var(--ink) 10%, transparent);
+  --scrim: rgb(0 0 0 / 0.6);
 
   --alza-1: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 2px 4px rgba(0, 0, 0, 0.5), 0 12px 28px -12px rgba(0, 0, 0, 0.7);
   --alza-2: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 6px 14px rgba(0, 0, 0, 0.55), 0 20px 44px -12px rgba(0, 0, 0, 0.8);
@@ -176,35 +227,37 @@
   --viz-grid: #262b2d;
 }
 
+/* Quien pide menos transparencia ve las barras sólidas; quien pide más
+   contraste, bordes que se distinguen y ningún texto en el gris más claro.
+   `:root[data-theme]` iguala la especificidad del tema elegido a mano, y
+   estas reglas ganan por ir después. */
+@media (prefers-reduced-transparency: reduce) {
+  :root, :root[data-theme] {
+    --material: var(--surface);
+  }
+}
+@media (prefers-contrast: more) {
+  :root, :root[data-theme] {
+    --material: var(--surface);
+    --line: var(--line-strong);
+    --line-soft: var(--line-strong);
+    --ink-3: var(--ink-2);
+  }
+}
+
 html {
   scroll-behavior: smooth;
   -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
 }
 
 body {
   background: var(--ground);
   color: var(--ink);
   font-family: var(--font-sans);
+  line-height: 1.5;
   -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
-}
-
-/* Fraunces es variable y su eje `opsz` existe para esto: los remates se
-   afinan a medida que crece el tamaño. Fijar `opsz` 96 en todo lo serif
-   —como estaba— aplicaba a un titular de tarjeta de 17px la letra pensada
-   para un cartel: astas capilares que en una pantalla normal se rompen y
-   dejan de leerse. Cada peldaño lleva ahora la óptica de su tamaño real, y
-   el tracking acompaña: negativo solo donde la letra es grande. */
-.display {
-  font-family: var(--font-display);
-  font-variation-settings: 'opsz' 22, 'SOFT' 0, 'WONK' 0;
-  letter-spacing: -0.004em;
-}
-
-.display-lg {
-  font-family: var(--font-display);
-  font-variation-settings: 'opsz' 44, 'SOFT' 0, 'WONK' 0;
-  letter-spacing: -0.018em;
+  font-optical-sizing: auto;
 }
 
 /* El anillo de foco NO toca el radio del elemento. Lo tocaba: esta regla
@@ -238,6 +291,71 @@ body {
   color: var(--pine-ink);
 }
 
+/* Los iconos: un solo trazo de 1,75 px, se dibujen al tamaño que se dibujen.
+   Sin esto un icono de 12 px salía con un trazo la mitad de fino que uno de
+   24, y la página parecía hecha con dos juegos distintos. */
+.icono * {
+  vector-effect: non-scaling-stroke;
+}
+
+/* ----------------------------------------------------- respuesta al tocar
+
+   La respuesta llega al apretar, no al soltar: un botón que no cambia hasta
+   que levantas el dedo parece que no te ha oído. Se hunde un 3 % en 90 ms;
+   la tarjeta, que es grande, solo un 1,5 %; las filas de una lista no se
+   encogen, se oscurecen. Es `scale`, no `transform`, para no pisar los
+   desplazamientos que ya lleve el elemento. */
+
+a, button, summary, label, select, input, [role='button'] {
+  touch-action: manipulation;
+}
+
+.pulsa,
+.fila,
+.tarjeta {
+  -webkit-tap-highlight-color: transparent;
+}
+
+.pulsa {
+  transition-property: color, background-color, border-color, opacity, box-shadow, scale;
+  transition-duration: 150ms, 150ms, 150ms, 150ms, 150ms, 90ms;
+  transition-timing-function: ease-out;
+}
+.pulsa:active:not(:disabled) {
+  scale: 0.97;
+}
+
+.tarjeta {
+  transition-property: border-color, box-shadow, scale;
+  transition-duration: 150ms, 150ms, 90ms;
+  transition-timing-function: ease-out;
+}
+.tarjeta:has(.foco-en-capa:active) {
+  scale: 0.985;
+}
+
+.fila {
+  transition: background-color 150ms ease-out;
+}
+.fila:active:not(:disabled) {
+  background-color: var(--surface-3);
+}
+
+/* Con el dedo, la zona que vale pulsar mide 44 px como mínimo aunque el
+   dibujo sea más pequeño: apuntar a 30 px con el pulgar, en la esquina de
+   una tarjeta y con otras alrededor, se falla. Con ratón no hace falta. */
+@media (pointer: coarse) {
+  .toque-amplio::after {
+    content: '';
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    width: max(100%, 44px);
+    height: max(100%, 44px);
+    translate: -50% -50%;
+  }
+}
+
 /* Barras de scroll discretas dentro de los paneles largos. */
 .scroll-fino {
   scrollbar-width: thin;
@@ -266,42 +384,31 @@ body {
 /* La estrella de guardar se escondía hasta el hover. En un móvil no hay
    hover, así que la función era invisible: aquí solo desaparece donde
    existe un puntero de verdad que pueda revelarla. */
-/* Donde se pulsa con el dedo, la zona sensible de la estrella se estira
-   hasta los 44px sin que el icono crezca ni un punto: el dibujo mide 30 y
-   apuntar a 30 con el pulgar, en la esquina de una tarjeta y con otras
-   tarjetas alrededor, se falla. En pantallas con puntero fino no hace falta
-   y no se toca. */
-@media (pointer: coarse) {
-  .toque-amplio::after {
-    content: '';
-    position: absolute;
-    inset: -7px;
-  }
-}
-
-.estrella { opacity: 1; transition: opacity 0.15s ease; }
+.estrella { opacity: 1; } /* la transición la pone `.pulsa` */
 @media (hover: hover) and (pointer: fine) {
   .estrella { opacity: 0; }
   .group:hover .estrella,
   .estrella:focus-visible { opacity: 1; }
 }
 
-@keyframes entra {
-  from { opacity: 0; transform: translateY(6px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes entra-panel {
-  from { opacity: 0; transform: translateX(18px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes velo {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+/* ------------------------------------------------------------- movimiento
 
-.anima-entra { animation: entra 0.34s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anima-panel { animation: entra-panel 0.28s cubic-bezier(0.22, 1, 0.36, 1) both; }
-.anima-velo  { animation: velo 0.2s ease both; }
+   Solo transiciones, nunca `@keyframes`: una transición sale del valor que
+   hay en pantalla, así que si algo se cierra a medio abrir, vuelve desde
+   donde estaba en vez de saltar. Y solo sobre posición, escala, opacidad y
+   color, que el navegador mueve sin recalcular la página.
+   `@starting-style` da el punto de partida de lo que acaba de aparecer. */
+
+.anima-velo {
+  transition: opacity 200ms ease-out;
+}
+.anima-panel {
+  transition: translate 500ms var(--muelle), opacity 200ms ease-out;
+}
+@starting-style {
+  .anima-velo { opacity: 0; }
+  .anima-panel { opacity: 0; translate: 24px 0; }
+}
 
 /* Mientras se revalidan los datos la vista anterior se queda puesta y solo
    baja de opacidad: nada de esqueletos parpadeando ni saltos de maquetación. */
@@ -310,12 +417,13 @@ body {
   transition: opacity 0.2s ease;
 }
 
+/* Con movimiento reducido no desaparece la respuesta: lo que se desplazaba
+   aparece con un fundido corto, sin moverse. */
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  *, *::before, *::after {
-    animation-duration: 0.01ms !important;
-    animation-iteration-count: 1 !important;
-    transition-duration: 0.01ms !important;
+  .anima-panel { transition: opacity 180ms ease-out; }
+  @starting-style {
+    .anima-panel { translate: none; }
   }
 }
 

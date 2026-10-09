@@ -2,7 +2,7 @@ import type { Plaza } from '../lib/tipos';
 import { fechaCorta, partesEmpleador, tituloLimpio } from '../lib/formato';
 import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
-import { PildoraPlazo, PildoraContrato, IconoEstrella } from './piezas';
+import { PildoraPlazo, PildoraContrato, Icono } from './piezas';
 
 interface Props {
   plazas: Plaza[];
@@ -20,17 +20,17 @@ interface Props {
  */
 export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
   return (
-    <div className="overflow-x-auto rounded-xl border border-line bg-surface">
+    <div className="overflow-x-auto rounded-lg border border-line bg-surface">
       <table className="w-full min-w-[760px] border-collapse text-base">
         <caption className="sr-only">Plazas que cumplen los filtros</caption>
         <thead>
-          <tr className="border-b border-line bg-surface-2 text-left text-2xs tracking-[0.08em] text-ink-3 uppercase">
-            <th scope="col" className="px-3 py-2 font-bold">Plazo</th>
-            <th scope="col" className="px-3 py-2 font-bold">Puesto</th>
-            <th scope="col" className="px-3 py-2 font-bold">Quién convoca</th>
-            <th scope="col" className="px-3 py-2 font-bold">Dónde</th>
-            <th scope="col" className="px-3 py-2 text-right font-bold">Puestos</th>
-            <th scope="col" className="px-3 py-2 font-bold">Cierra</th>
+          <tr className="border-b border-line bg-surface-2 text-left text-xs text-ink-3">
+            <th scope="col" className="px-3 py-2 font-medium">Plazo</th>
+            <th scope="col" className="px-3 py-2 font-medium">Puesto</th>
+            <th scope="col" className="px-3 py-2 font-medium">Quién convoca</th>
+            <th scope="col" className="px-3 py-2 font-medium">Dónde</th>
+            <th scope="col" className="px-3 py-2 text-right font-medium">Puestos</th>
+            <th scope="col" className="px-3 py-2 font-medium">Cierra</th>
             <th scope="col" className="px-3 py-2">
               <span className="sr-only">Guardar</span>
             </th>
@@ -85,12 +85,12 @@ export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
                       <span className="sr-only">{AVISO_SEDE}</span>
                     </>
                   )}
-                  {km !== null && <span className="ml-1.5 font-mono text-2xs text-ink-3">{km} km</span>}
+                  {km !== null && <span className="ml-1.5 text-xs text-ink-3 tabular-nums">{km} km</span>}
                 </td>
-                <td className="px-3 py-2.5 text-right align-middle font-mono text-sm tabular-nums text-ink-2">
+                <td className="px-3 py-2.5 text-right align-middle text-sm tabular-nums text-ink-2">
                   {p.plazas ?? '—'}
                 </td>
-                <td className="px-3 py-2.5 align-middle font-mono text-sm whitespace-nowrap tabular-nums">
+                <td className="px-3 py-2.5 align-middle text-sm whitespace-nowrap tabular-nums">
                   {p.fin ? fechaCorta(p.fin) : '—'}
                 </td>
                 <td className="px-3 py-2.5 align-middle">
@@ -99,9 +99,9 @@ export function Tabla({ plazas, desde, guardadas, onGuardar, onAbrir }: Props) {
                     onClick={() => onGuardar(p.id)}
                     aria-pressed={guardada}
                     aria-label={guardada ? `Quitar ${tituloLimpio(p)} de guardadas` : `Guardar ${tituloLimpio(p)}`}
-                    className={`rounded p-0.5 transition-colors ${guardada ? 'text-ochre' : 'text-ink-3 hover:text-ink'}`}
+                    className={`toque-amplio relative rounded-sm p-0.5 pulsa ${guardada ? 'text-ochre' : 'text-ink-3 hover:text-ink'}`}
                   >
-                    <IconoEstrella activa={guardada} />
+                    <Icono nombre="estrella" relleno={guardada} className="size-[18px]" />
                   </button>
                 </td>
               </tr>

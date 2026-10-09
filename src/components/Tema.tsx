@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Icono } from './piezas';
 
 type Modo = 'claro' | 'oscuro' | 'sistema';
 
@@ -47,22 +48,14 @@ export function Tema() {
       onClick={() => cambia(siguiente[modo])}
       title={etiqueta[modo]}
       aria-label={`${etiqueta[modo]}. Pulsa para cambiar.`}
-      className="hover:border-pine hover:text-pine grid size-8 place-items-center rounded-lg border border-line text-ink-3 transition-colors"
+      className="toque-amplio hover:border-pine hover:text-pine relative grid size-8 place-items-center rounded-md border border-line text-ink-3 pulsa"
     >
       {modo === 'oscuro' ? (
-        <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <path d="M20 14.5A8.5 8.5 0 019.5 4a8.5 8.5 0 1010.5 10.5z" strokeLinejoin="round" />
-        </svg>
+        <Icono nombre="luna" />
       ) : modo === 'claro' ? (
-        <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <circle cx="12" cy="12" r="4" />
-          <path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5L19 19M19 5l-1.5 1.5M6.5 17.5L5 19" strokeLinecap="round" />
-        </svg>
+        <Icono nombre="sol" />
       ) : (
-        <svg viewBox="0 0 24 24" className="size-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <rect x="2.5" y="4.5" width="19" height="13" rx="2" />
-          <path d="M8 20.5h8" strokeLinecap="round" />
-        </svg>
+        <Icono nombre="pantalla" />
       )}
     </button>
   );

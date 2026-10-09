@@ -3,6 +3,7 @@ import type { Filtros as F, ClaseContrato, Orden, Vista } from '../lib/filtros';
 import { NIVEL_CORTO, ETIQUETA_AMBITO, ORDEN_NIVEL, URGENCIAS, normaliza } from '../lib/formato';
 import { SIN_LUGAR, TEXTO_SIN_LUGAR, type SitioContado } from '../lib/localizacion';
 import { RADIO_CERCA_KM } from '../lib/cercania';
+import { Icono } from './piezas';
 
 type Conteos = Record<string, number>;
 
@@ -100,7 +101,7 @@ function Menu({
       onToggle={(e) => { if ((e.currentTarget as HTMLDetailsElement).open) coloca(); }}
     >
       <summary
-        className={`hover:border-pine/50 flex min-w-0 max-w-[min(15rem,60vw)] cursor-pointer list-none items-center gap-1.5 rounded-lg border px-2.5 py-2 text-sm font-medium whitespace-nowrap transition-colors sm:px-3 ${
+        className={`hover:border-pine/50 flex min-w-0 max-w-[min(15rem,60vw)] cursor-pointer list-none items-center gap-1.5 rounded-md border px-2.5 py-2 text-sm font-medium whitespace-nowrap pulsa sm:px-3 ${
           activos > 0 ? 'border-pine/45 bg-pine-soft text-pine-ink' : 'border-line bg-surface text-ink-2'
         }`}
       >
@@ -120,18 +121,16 @@ function Menu({
           <span className="truncate">{titulo}</span>
         )}
         {activos > 0 && (
-          <span className="bg-pine rounded-full px-1.5 text-2xs font-bold text-white tabular-nums">
+          <span className="bg-pine rounded-full px-1.5 text-xs font-semibold text-on-pine tabular-nums">
             {activos}
           </span>
         )}
-        <svg viewBox="0 0 12 12" className="size-2.5 opacity-55" aria-hidden="true">
-          <path d="M2 4.5L6 8.5L10 4.5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
-        </svg>
+        <Icono nombre="abajo" className="size-3 opacity-60" />
       </summary>
       <div
         ref={panel}
         style={{ transform: desvio ? `translateX(${desvio}px)` : undefined }}
-        className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-xl border border-line bg-surface p-1.5 shadow-alza-2"
+        className="scroll-fino absolute top-[calc(100%+6px)] left-0 z-40 max-h-[min(60vh,380px)] w-[270px] max-w-[calc(100vw-1.5rem)] overflow-y-auto rounded-lg border border-line bg-surface p-1.5 shadow-alza-2"
       >
         {children}
       </div>
@@ -148,20 +147,20 @@ function Opcion({
       onClick={onClick}
       disabled={n === 0 && !marcada}
       aria-pressed={marcada}
-      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-base transition-colors disabled:opacity-40 disabled:hover:bg-transparent"
+      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-base fila disabled:opacity-40 disabled:hover:bg-transparent"
     >
       <span
         aria-hidden="true"
-        className={`grid size-4 shrink-0 place-items-center rounded-[4px] border transition-colors ${
-          marcada ? 'border-pine bg-pine text-white' : 'border-line-soft bg-surface-2'
+        className={`grid size-4 shrink-0 place-items-center rounded-sm border transition-colors ${
+          marcada ? 'border-pine bg-pine text-on-pine' : 'border-line-strong bg-surface'
         }`}
       >
         {marcada && (
-          <svg viewBox="0 0 12 12" className="size-2.5"><path d="M2 6.4L4.6 9L10 3.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+          <Icono nombre="marca" className="size-3" />
         )}
       </span>
       <span className="flex-1 leading-tight">{texto}</span>
-      <span className="font-mono text-2xs text-ink-3 tabular-nums">{n === null ? '…' : n}</span>
+      <span className="text-xs text-ink-3 tabular-nums">{n === null ? '…' : n}</span>
     </button>
   );
 }
@@ -183,7 +182,7 @@ function OpcionUnica({
       role="radio"
       aria-checked={marcada}
       onClick={onClick}
-      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-base transition-colors"
+      className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-base fila"
     >
       <span
         aria-hidden="true"
@@ -194,7 +193,7 @@ function OpcionUnica({
         {marcada && <span className="size-1.5 rounded-full bg-white" />}
       </span>
       <span lang="ca" className="flex-1 leading-tight">{texto}</span>
-      {pista ? <span className="font-mono text-2xs text-ink-3 tabular-nums">{pista}</span> : null}
+      {pista ? <span className="text-xs text-ink-3 tabular-nums">{pista}</span> : null}
     </button>
   );
 }
@@ -314,13 +313,11 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
             de arriba y abajo— no hacía nada. Siendo `label`, todo el
             recuadro lleva el foco al campo. */}
         <label
-          className={`flex w-full cursor-text items-center gap-2 rounded-lg border bg-surface px-3 py-2 transition-colors sm:w-auto sm:min-w-[220px] sm:flex-1 ${
-            foco ? 'border-pine' : 'border-line'
+          className={`flex w-full cursor-text items-center gap-2 rounded-md border bg-surface px-3 py-2 transition-colors sm:w-auto sm:min-w-[220px] sm:flex-1 ${
+            foco ? 'border-pine' : 'border-line-strong'
           }`}
         >
-          <svg viewBox="0 0 20 20" className="size-4 shrink-0 text-ink-3" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.9">
-            <circle cx="9" cy="9" r="6" /><path d="M13.5 13.5L17 17" strokeLinecap="round" />
-          </svg>
+          <Icono nombre="buscar" className="size-4 text-ink-3" />
           <input
             ref={busca}
             type="search"
@@ -333,11 +330,11 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
             className="w-full bg-transparent text-base outline-none placeholder:text-ink-3"
           />
           {!f.q && (
-            <kbd className="hidden shrink-0 rounded border border-line-soft bg-surface-2 px-1.5 font-mono text-2xs text-ink-3 sm:block">/</kbd>
+            <kbd className="hidden shrink-0 rounded-sm border border-line-soft bg-surface-2 px-1.5 text-xs text-ink-3 sm:block">/</kbd>
           )}
         </label>
 
-        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-lg border border-line bg-surface px-3 py-2 text-sm sm:flex-none">
+        <label className="flex min-w-0 flex-1 items-center gap-2 rounded-md border border-line-strong bg-surface px-3 py-2 text-base sm:flex-none">
           <span className="text-ink-3 max-sm:sr-only">Ordenar</span>
           <select
             value={f.orden}
@@ -350,14 +347,14 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
           </select>
         </label>
 
-        <div className="flex shrink-0 rounded-lg border border-line bg-surface p-0.5" role="group" aria-label="Forma de ver los resultados">
+        <div className="flex shrink-0 rounded-md border border-line bg-surface p-0.5" role="group" aria-label="Forma de ver los resultados">
           {(['tarjetas', 'tabla'] as Vista[]).map((v) => (
             <button
               key={v}
               type="button"
               onClick={() => set({ vista: v })}
               aria-pressed={f.vista === v}
-              className={`rounded-md px-3 py-1.5 text-xs font-semibold capitalize transition-colors ${
+              className={`rounded-sm px-3 py-1.5 text-xs font-semibold capitalize pulsa ${
                 f.vista === v ? 'bg-surface-3 text-ink' : 'text-ink-3 hover:text-ink'
               }`}
             >
@@ -412,7 +409,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
               onChange={(e) => setBuscaLugar(e.target.value)}
               placeholder="Buscar un municipio…"
               aria-label="Buscar un municipio dentro de la lista"
-              className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
+              className="w-full rounded-md border border-line-strong bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
             />
           </div>
           {cargando && (
@@ -428,7 +425,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
                   onClick={() => set({ lugares: conmuta(f.lugares, g.comarca!.id) })}
                 />
               ) : (
-                <p className="px-2 pt-1 text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">
+                <p className="px-2 pt-1 text-sm font-medium text-ink-3">
                   Sin comarca
                 </p>
               )}
@@ -497,7 +494,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
               onChange={(e) => setBuscaDesde(e.target.value)}
               placeholder="Tu municipio…"
               aria-label="Buscar tu municipio"
-              className="w-full rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
+              className="w-full rounded-md border border-line-strong bg-surface-2 px-2.5 py-1.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
             />
           </div>
 
@@ -517,24 +514,24 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
                 type="button"
                 onClick={() => set({ soloCerca: !f.soloCerca })}
                 aria-pressed={f.soloCerca}
-                className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-lg px-2 py-2 text-left text-base transition-colors"
+                className="hover:bg-surface-2 flex w-full items-center gap-2.5 rounded-md px-2 py-2 text-left text-base fila"
               >
                 <span
                   aria-hidden="true"
-                  className={`grid size-4 shrink-0 place-items-center rounded-[4px] border ${
-                    f.soloCerca ? 'border-pine bg-pine text-white' : 'border-line-soft bg-surface-2'
+                  className={`grid size-4 shrink-0 place-items-center rounded-sm border ${
+                    f.soloCerca ? 'border-pine bg-pine text-on-pine' : 'border-line-strong bg-surface'
                   }`}
                 >
                   {f.soloCerca && (
-                    <svg viewBox="0 0 12 12" className="size-2.5"><path d="M2 6.4L4.6 9L10 3.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" /></svg>
+                    <Icono nombre="marca" className="size-3" />
                   )}
                 </span>
                 <span className="flex-1 leading-tight">
                   Esconder lo que esté a más de {RADIO_CERCA_KM} km
                 </span>
-                {!cargando && conteos.lejos > 0 && <span className="font-mono text-2xs text-ink-3">{conteos.lejos}</span>}
+                {!cargando && conteos.lejos > 0 && <span className="text-xs text-ink-3 tabular-nums">{conteos.lejos}</span>}
               </button>
-              <p className="border-t border-line-soft px-2 pt-2 pb-1 text-2xs text-ink-3">
+              <p className="border-t border-line-soft px-2 pt-2 pb-1 text-xs text-ink-3">
                 Midiendo desde {desde.nombre}. Cambia de municipio en la lista.
               </p>
             </>
@@ -564,7 +561,7 @@ export function Filtros({ filtros: f, set, lugares, municipios, conteos, cargand
             ))}
           </div>
           {!cargando && desdeEncontrados.length > desdeVisibles.length && (
-            <p className="border-t border-line-soft px-2 pt-2 pb-1 text-2xs text-ink-3">
+            <p className="border-t border-line-soft px-2 pt-2 pb-1 text-xs text-ink-3">
               Y {desdeEncontrados.length - desdeVisibles.length} más. Escribe para afinar.
             </p>
           )}

@@ -5,7 +5,7 @@ import {
 } from '../lib/formato';
 import { sitio, sitioSede, sitioTrabajo, esSoloSede } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
-import { PildoraPlazo, IconoEstrella, IconoSalir } from './piezas';
+import { PildoraPlazo, Icono } from './piezas';
 
 interface Props {
   plaza: Plaza | null;
@@ -19,7 +19,7 @@ interface Props {
 function Fila({ termino, children }: { termino: string; children: React.ReactNode }) {
   return (
     <div className="border-t border-line-soft py-2.5">
-      <dt className="mb-1 text-2xs font-bold tracking-[0.08em] text-ink-3 uppercase">{termino}</dt>
+      <dt className="mb-1 text-sm font-medium text-ink-3">{termino}</dt>
       <dd className="text-base leading-relaxed text-ink-2">{children}</dd>
     </div>
   );
@@ -90,7 +90,7 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
         type="button"
         aria-label="Cerrar el detalle"
         onClick={onCerrar}
-        className="anima-velo absolute inset-0 bg-black/35 backdrop-blur-[2px]"
+        className="anima-velo absolute inset-0 bg-scrim"
       />
 
       <div
@@ -102,14 +102,14 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
           <div className="min-w-0 flex-1">
             <div className="mb-2 flex flex-wrap items-center gap-2">
               <PildoraPlazo dias={plaza.diasRestantes} />
-              <span className="rounded-full border border-line px-2 py-0.5 text-2xs font-semibold text-ink-3">
+              <span className="rounded-full border border-line px-2 py-0.5 text-xs font-semibold text-ink-3">
                 {ETIQUETA_AMBITO[plaza.ambito] ?? plaza.ambito}
               </span>
             </div>
             {/* El sitio está en español pero los títulos llegan en catalán:
                 marcarlos evita que un lector de pantalla los pronuncie con las
                 reglas equivocadas. */}
-            <h2 lang="ca" className="display-lg text-2xl font-semibold text-balance">
+            <h2 lang="ca" className="text-2xl font-semibold text-balance">
               {tituloLimpio(plaza)}
             </h2>
           </div>
@@ -121,30 +121,28 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
                un móvil ocupa la pantalla entera, y vive en la esquina, que es
                donde peor se apunta con el pulgar. El icono no crece: solo el
                sitio donde vale pulsar. */
-            className="hover:bg-surface-2 -mt-1.5 -mr-1.5 rounded-lg p-3 text-ink-3 transition-colors"
+            className="hover:bg-surface-2 -mt-1.5 -mr-1.5 rounded-md p-3 text-ink-3 pulsa"
           >
-            <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="2">
-              <path d="M5 5l10 10M15 5L5 15" strokeLinecap="round" />
-            </svg>
+            <Icono nombre="cerrar" className="size-5" />
           </button>
         </header>
 
         <div className="px-5 pb-5">
           <div className="py-3">
-            <p className="text-pine text-md font-semibold">{casa}</p>
+            <p className="text-pine text-base font-semibold">{casa}</p>
             {organismo && <p className="text-base text-ink-2">{organismo}</p>}
           </div>
 
           {nota && (
-            <p className="bg-ochre-soft text-ochre mb-3 rounded-lg px-3 py-2.5 text-base leading-relaxed">
-              <strong className="font-bold">Ojo con el plazo: </strong>
+            <p className="bg-ochre-soft text-ochre mb-3 rounded-md px-3 py-2.5 text-base leading-relaxed">
+              <strong className="font-semibold">Ojo con el plazo: </strong>
               <span lang={nota.traducida ? undefined : 'ca'}>{nota.texto}</span>. Confirma la
               fecha exacta en el enlace oficial.
             </p>
           )}
 
           {finDeSemana && (
-            <p className="bg-surface-2 mb-3 rounded-lg px-3 py-2.5 text-base leading-relaxed text-ink-2">
+            <p className="bg-surface-2 mb-3 rounded-md px-3 py-2.5 text-base leading-relaxed text-ink-2">
               El plazo termina en fin de semana, así que es probable que se corra al lunes siguiente.
               Aun así, no lo dejes para el final.
             </p>
@@ -244,10 +242,10 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
                    lado: sin él, este botón se quedaba en 42px mientras sus
                    dos vecinos con borde median 44, y los tres se apoyaban en
                    líneas distintas. */
-                className="bg-pine inline-flex items-center gap-2 rounded-lg border border-transparent px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
+                className="bg-pine inline-flex items-center gap-2 rounded-md border border-transparent px-4 py-2.5 text-base font-semibold text-on-pine pulsa hover:opacity-90"
               >
                 Ir a apuntarte
-                <IconoSalir />
+                <Icono nombre="salir" />
               </a>
             )}
             {plaza.fichaOficial && (
@@ -255,21 +253,21 @@ export function Detalle({ plaza, desde, guardada, onGuardar, onCerrar }: Props) 
                 href={plaza.fichaOficial}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="hover:border-pine hover:text-pine inline-flex items-center gap-2 rounded-lg border border-line px-4 py-2.5 text-base font-semibold text-ink-2 transition-colors"
+                className="hover:border-pine hover:text-pine inline-flex items-center gap-2 rounded-md border border-line px-4 py-2.5 text-base font-semibold text-ink-2 pulsa"
               >
                 Ficha oficial
-                <IconoSalir />
+                <Icono nombre="salir" />
               </a>
             )}
             <button
               type="button"
               onClick={() => onGuardar(plaza.id)}
               aria-pressed={guardada}
-              className={`hover:border-ochre ml-auto inline-flex items-center gap-1.5 rounded-lg border px-3 py-2.5 text-base font-semibold transition-colors ${
+              className={`hover:border-ochre ml-auto inline-flex items-center gap-1.5 rounded-md border px-3 py-2.5 text-base font-semibold pulsa ${
                 guardada ? 'border-ochre/50 text-ochre' : 'border-line text-ink-3'
               }`}
             >
-              <IconoEstrella activa={guardada} />
+              <Icono nombre="estrella" relleno={guardada} className="size-5" />
               {guardada ? 'Guardada' : 'Guardar'}
             </button>
           </div>

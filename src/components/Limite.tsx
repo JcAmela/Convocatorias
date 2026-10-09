@@ -26,8 +26,8 @@ export class Limite extends Component<{ children: ReactNode }, { fallo: Error | 
     if (!fallo) return this.props.children;
 
     return (
-      <div className="rounded-xl border border-dashed border-line py-16 text-center">
-        <p className="display mb-1.5 text-xl font-semibold">
+      <div className="rounded-lg border border-dashed border-line py-16 text-center">
+        <p className="mb-1.5 text-xl font-semibold">
           Algo se ha roto al pintar esta lista
         </p>
         <p className="mx-auto mb-4 max-w-[52ch] text-base text-ink-3">
@@ -37,7 +37,7 @@ export class Limite extends Component<{ children: ReactNode }, { fallo: Error | 
         <button
           type="button"
           onClick={() => window.location.reload()}
-          className="hover:border-pine hover:text-pine rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+          className="hover:border-pine hover:text-pine rounded-md border border-line px-4 py-2 text-base font-semibold text-ink-2 pulsa"
         >
           Volver a cargar
         </button>

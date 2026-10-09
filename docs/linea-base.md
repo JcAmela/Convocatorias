@@ -44,4 +44,4 @@ Las cifras de cada pasada están en `docs/linea-base/medidas.json`.
 - **Primera pantalla en el móvil**: a 375×812 no se ve ninguna tarjeta
   (cabecera, pestañas, buscador, seis filtros, cuatro cifras y el
   calendario). F5 quiere la primera tarjeta en y ≤ 260.
-- Las tres webfonts de Google bloquean el pintado: es lo primero que quita F2.
+- Las tres webfonts de Google bloqueaban el pintado: F2 las quitó.

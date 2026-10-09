@@ -127,11 +127,11 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
   return (
     <section
       aria-labelledby="cal-titulo"
-      className="rounded-xl border border-line bg-surface p-4 sm:p-5"
+      className="rounded-lg border border-line bg-surface p-4 sm:p-5"
     >
       <header className="mb-3 flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
         <div>
-          <h2 id="cal-titulo" className="display text-xl font-semibold">
+          <h2 id="cal-titulo" className="text-xl font-semibold">
             Cuándo se cierran los plazos
           </h2>
           <p className="mt-1 max-w-[78ch] text-sm text-ink-3">
@@ -153,7 +153,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
         <button
           type="button"
           onClick={() => setTabla((v) => !v)}
-          className={`hover:border-pine hover:text-pine shrink-0 rounded-md border border-line px-3 py-1.5 text-xs font-semibold text-ink-3 transition-colors ${
+          className={`hover:border-pine hover:text-pine shrink-0 rounded-sm border border-line px-3 py-1.5 text-xs font-semibold text-ink-3 pulsa ${
             desplegado ? '' : 'max-sm:hidden'
           }`}
           aria-pressed={tabla}
@@ -164,16 +164,16 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
 
       <div className={desplegado ? undefined : 'max-sm:hidden'}>
       {tabla ? (
-        <div className="scroll-fino max-h-64 overflow-y-auto rounded-lg border border-line-soft">
+        <div className="scroll-fino max-h-64 overflow-y-auto rounded-md border border-line-soft">
           <table className="w-full text-sm">
             <caption className="sr-only">
               Convocatorias que cierran cada día. Pulsa una fecha para quedarte solo con ese día.
             </caption>
             <thead className="sticky top-0 bg-surface-2 text-left">
-              <tr className="text-2xs tracking-[0.07em] text-ink-3 uppercase">
-                <th scope="col" className="px-3 py-1.5 font-bold">Día</th>
-                <th scope="col" className="px-3 py-1.5 text-right font-bold">Convocatorias</th>
-                <th scope="col" className="px-3 py-1.5 text-right font-bold">Puestos</th>
+              <tr className="text-xs text-ink-3">
+                <th scope="col" className="px-3 py-1.5 font-medium">Día</th>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">Convocatorias</th>
+                <th scope="col" className="px-3 py-1.5 text-right font-medium">Puestos</th>
               </tr>
             </thead>
             <tbody>
@@ -194,8 +194,8 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
                         {fechaLarga(d.clave)}
                       </button>
                     </th>
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums">{d.n}</td>
-                    <td className="px-3 py-1.5 text-right font-mono tabular-nums text-ink-2">{d.puestos}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums">{d.n}</td>
+                    <td className="px-3 py-1.5 text-right tabular-nums text-ink-2">{d.puestos}</td>
                   </tr>
                 );
               })}
@@ -228,7 +228,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
                 <text
                   x={MARGEN_IZQ - 8} y={ALTO_PLOT - escala(v)}
                   textAnchor="end" dominantBaseline="middle"
-                  className="fill-[var(--color-ink-3)] font-mono text-2xs tabular-nums"
+                  className="fill-[var(--color-ink-3)] text-xs tabular-nums"
                 >
                   {v}
                 </text>
@@ -288,7 +288,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
                   key={d.clave}
                   x={MARGEN_IZQ + i * paso} y={ALTO_PLOT + 16}
                   textAnchor={i === 0 ? 'start' : ultima ? 'end' : 'middle'}
-                  className="fill-[var(--color-ink-3)] font-mono text-2xs tabular-nums"
+                  className="fill-[var(--color-ink-3)] text-xs tabular-nums"
                 >
                   {/* Con el día y el mes la referencia no se pierde al cambiar
                       de mes, que es donde un "lu 5" a secas confunde. */}
@@ -300,7 +300,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
 
           {activo && (
             <div
-              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-lg border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-alza-2"
+              className="pointer-events-none absolute z-20 -translate-x-1/2 rounded-md border border-line bg-surface px-2.5 py-1.5 text-xs whitespace-nowrap shadow-alza-2"
               style={{ left: Math.min(Math.max(78, MARGEN_IZQ + encima! * paso), ancho - 78), top: -6 }}
               aria-hidden="true"
             >
@@ -322,7 +322,7 @@ export function Calendario({ plazas, hoy, diaElegido, onElegirDia, cargando = fa
         type="button"
         onClick={() => setDesplegado((v) => !v)}
         aria-expanded={desplegado}
-        className={`hover:border-pine hover:text-pine flex w-full items-center justify-center gap-2 rounded-lg border border-line py-2.5 text-sm font-semibold text-ink-2 transition-colors sm:hidden ${
+        className={`hover:border-pine hover:text-pine flex w-full items-center justify-center gap-2 rounded-md border border-line py-2.5 text-sm font-semibold text-ink-2 pulsa sm:hidden ${
           desplegado ? 'mt-3' : ''
         }`}
       >

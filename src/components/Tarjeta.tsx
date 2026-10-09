@@ -5,7 +5,7 @@ import {
 } from '../lib/formato';
 import { nombreLugar, esSoloSede, AVISO_SEDE } from '../lib/localizacion';
 import { kmDesde } from '../lib/cercania';
-import { PildoraPlazo, PildoraContrato, IconoEstrella, IconoPin, IconoSalir } from './piezas';
+import { PildoraPlazo, PildoraContrato, Icono } from './piezas';
 
 interface Props {
   plaza: Plaza;
@@ -28,7 +28,7 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
 
   return (
     <article
-      className="group focus-within:border-pine/40 hover:border-pine/40 relative flex flex-col gap-2.5 rounded-xl border border-line bg-surface p-4 transition-[border-color,box-shadow] hover:shadow-alza-1"
+      className="group focus-within:border-pine/40 hover:border-pine/40 tarjeta relative flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-4 hover:shadow-alza-1"
     >
       <div className="flex items-center gap-2">
         <PildoraPlazo dias={plaza.diasRestantes} />
@@ -38,16 +38,16 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
           onClick={() => onGuardar(plaza.id)}
           aria-pressed={guardada}
           aria-label={guardada ? 'Quitar de guardadas' : 'Guardar esta plaza'}
-          className={`toque-amplio relative z-10 -mt-1 -mr-1.5 ml-auto rounded-md p-1.5 transition-colors ${
+          className={`toque-amplio relative z-10 -mt-1 -mr-1.5 ml-auto rounded-sm p-1.5 pulsa ${
             guardada ? 'text-ochre' : 'estrella text-ink-3 hover:text-ink'
           }`}
         >
-          <IconoEstrella activa={guardada} />
+          <Icono nombre="estrella" relleno={guardada} className="size-5" />
         </button>
       </div>
 
       {esActualizacion(plaza) && (
-        <p className="bg-pine-soft text-pine-ink -mb-0.5 rounded-md px-2 py-1 text-xs font-semibold">
+        <p className="bg-pine-soft text-pine-ink -mb-0.5 rounded-sm px-2 py-1 text-xs font-semibold">
           Ya avisada antes: su plazo por fin se ha abierto
         </p>
       )}
@@ -55,14 +55,14 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
       {/* El título llega en catalán aunque la página esté en español; marcarlo
           evita que un lector de pantalla lo pronuncie con las reglas del
           castellano. */}
-      <h3 lang="ca" className="display text-lg font-semibold text-balance">
+      <h3 lang="ca" className="text-lg font-semibold text-balance">
         {/* La tarjeta entera es clicable, pero el enlace real está en el
             título para que el foco de teclado y el lector de pantalla lo
             encuentren donde se espera. */}
         <button
           type="button"
           onClick={() => onAbrir(plaza)}
-          className="foco-en-capa text-left before:absolute before:inset-0 before:rounded-xl before:content-['']"
+          className="foco-en-capa text-left before:absolute before:inset-0 before:rounded-lg before:content-['']"
         >
           {tituloLimpio(plaza)}
         </button>
@@ -76,7 +76,7 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
       <div className="mt-auto flex flex-wrap items-center gap-x-3 gap-y-1 pt-1 text-sm text-ink-3">
         {lugar && (
           <span className="inline-flex items-center gap-1">
-            <IconoPin />
+            <Icono nombre="pin" className="size-3.5" />
             <span lang="ca">{lugar}</span>
             {/* El asterisco solo lo ve quien ve. La frase va detrás, oculta a la
                       vista pero no al lector de pantalla, porque es justo la
@@ -101,11 +101,11 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
       <dl className="grid grid-cols-[4rem_1fr] items-baseline gap-x-3 gap-y-1.5 border-t border-line-soft pt-3 text-sm">
         {plaza.nivelEstudios && (
           <>
-            <dt className="text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">Estudios</dt>
+            <dt className="text-sm font-medium text-ink-3">Estudios</dt>
             <dd className="text-ink-2">{plaza.nivelEstudios}</dd>
           </>
         )}
-        <dt className="text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">
+        <dt className="text-sm font-medium text-ink-3">
           {plaza.fin ? 'Hasta' : 'Plazo'}
         </dt>
         <dd className="font-medium text-ink">
@@ -124,10 +124,10 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
           href={plaza.enlace}
           target="_blank"
           rel="noopener noreferrer"
-          className="text-pine hover:border-pine relative z-10 mt-1 inline-flex w-fit items-center gap-1.5 border-b-2 border-transparent pb-px text-base font-semibold transition-colors"
+          className="text-pine hover:border-pine relative z-10 mt-1 inline-flex w-fit items-center gap-1.5 border-b-2 border-transparent pb-px text-base font-semibold pulsa"
         >
           Ir a apuntarte
-          <IconoSalir />
+          <Icono nombre="salir" />
         </a>
       )}
     </article>

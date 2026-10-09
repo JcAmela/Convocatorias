@@ -64,11 +64,11 @@ const PESTANAS: { valor: Pestana; texto: string; pie: string }[] = [
 
 function Cifra({ valor, texto, urgente }: { valor: number | null; texto: string; urgente?: boolean }) {
   return (
-    <div className="rounded-xl border border-line bg-surface px-3.5 py-3 sm:px-4 sm:py-3.5">
+    <div className="rounded-lg border border-line bg-surface px-3.5 py-3 sm:px-4 sm:py-3.5">
       {/* Cifra grande: sans y cifras proporcionales, que a este tamaño las
           tabulares se ven sueltas. Sin valor, los datos vienen de camino: un
           número inventado sería peor que esperar. */}
-      <p className={`text-2xl font-semibold tracking-tight sm:text-3xl ${urgente ? 'text-rust' : ''}`}>
+      <p className={`text-2xl font-semibold sm:text-3xl ${urgente ? 'text-rust' : ''}`}>
         {valor === null
           ? <><span aria-hidden="true" className="text-ink-3">…</span><span className="sr-only">cargando</span></>
           : valor.toLocaleString('es-ES')}
@@ -587,7 +587,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
             debajo. Ahora el subtítulo se recorta con puntos suspensivos y
             el estado se reduce a la hora, que es lo único que cambia. */}
         <div className="mx-auto flex max-w-[1400px] items-center gap-3 px-4 py-3 sm:px-5 sm:py-4">
-          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-lg border border-line bg-surface-2">
+          <span aria-hidden="true" className="grid size-9 shrink-0 place-items-center rounded-md border border-line bg-surface-2">
             <svg viewBox="0 0 24 24" className="size-5">
               <rect x="3" y="4" width="18" height="4" rx="1.4" fill="var(--color-pine)" />
               <rect x="3" y="11" width="11" height="3" rx="1.4" fill="var(--color-ochre)" />
@@ -596,7 +596,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
           </span>
 
           <div className="min-w-0 flex-1">
-            <h1 className="display-lg truncate text-xl font-bold sm:text-2xl">Convocatorias</h1>
+            <h1 className="truncate text-xl font-bold sm:text-2xl">Convocatorias</h1>
             {/* En móvil la frase se acorta, pero las tres procedencias se
                 quedan: son lo que delimita qué hay aquí dentro. Dos líneas
                 como mucho —tres era lo que ahogaba la primera pantalla. */}
@@ -641,7 +641,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                       que debería cortarse de esta página. Ahí queda solo el
                       punto de color, y la hora sigue anunciándose para quien
                       use lector de pantalla. */}
-                  <span className="font-mono tabular-nums max-[359px]:sr-only">
+                  <span className="tabular-nums max-[359px]:sr-only">
                     {generado.toLocaleTimeString('es-ES', { hour: '2-digit', minute: '2-digit', timeZone: 'Europe/Madrid' })}
                   </span>
                 </>
@@ -656,8 +656,8 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
 
       <main className="mx-auto max-w-[1400px] px-4 py-4 sm:px-5 sm:py-5">
         {datos.errores.length > 0 && (
-          <p className="bg-ochre-soft text-ochre mb-4 rounded-lg px-3 py-2 text-base">
-            <strong className="font-bold">Aviso: </strong>
+          <p className="bg-ochre-soft text-ochre mb-4 rounded-md px-3 py-2 text-base">
+            <strong className="font-semibold">Aviso: </strong>
             {datos.errores.join('. ')}
           </p>
         )}
@@ -685,17 +685,15 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                 // circula con las flechas.
                 tabIndex={activa ? 0 : -1}
                 onClick={() => set({ pestana: p.valor, dia: null })}
-                className={`-mb-px flex shrink-0 items-center gap-2 border-b-[3px] px-3 py-2.5 text-base font-semibold whitespace-nowrap transition-colors ${
+                className={`-mb-px flex shrink-0 items-center gap-2 border-b-[3px] px-3 py-2.5 text-base font-semibold whitespace-nowrap pulsa ${
                   activa ? 'border-pine text-ink' : 'hover:text-ink border-transparent text-ink-3'
                 }`}
               >
                 {p.texto}
                 <span
-                  /* Peso explícito: el botón es `font-semibold` y el contador
-                     heredaba un 600 que la JetBrains Mono no tiene cargado, así
-                     que el navegador lo fingía engordando el 500. En
-                     monoespaciada a 11px ese falso negrita se ve emborronado. */
-                  className={`rounded-full px-1.5 py-px font-mono text-2xs font-medium tabular-nums ${
+                  /* Peso explícito: el contador es secundario y no hereda el
+                     600 de la pestaña. */
+                  className={`rounded-full px-1.5 py-px text-xs font-medium tabular-nums ${
                     activa ? 'bg-pine-soft text-pine-ink' : 'bg-surface-2 text-ink-3'
                   }`}
                 >
@@ -763,7 +761,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
               key={`${ficha.texto}-${i}`}
               type="button"
               onClick={ficha.quitar}
-              className="bg-pine-soft text-pine-ink hover:bg-pine hover:text-white inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors"
+              className="bg-pine-soft text-pine-ink hover:bg-pine hover:text-on-pine inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold pulsa"
             >
               {ficha.texto}
               <span aria-hidden="true">✕</span>
@@ -799,15 +797,15 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
         >
           <Limite>
             {esperando && !falloVista ? (
-              <div className="rounded-xl border border-dashed border-line py-16 text-center">
+              <div className="rounded-lg border border-dashed border-line py-16 text-center">
                 <p className="text-base text-ink-3">Cargando convocatorias…</p>
               </div>
             ) : filtradas.length === 0 || faltanDatos ? (
-              <div className="rounded-xl border border-dashed border-line py-16 text-center">
+              <div className="rounded-lg border border-dashed border-line py-16 text-center">
                 {/* Sin datos ningún filtro sobra: decir "prueba a quitar algún
                     filtro" cuando lo que ha pasado es que la API no contesta
                     manda a buscar en el sitio equivocado. */}
-                <p className="display mb-1.5 text-xl font-semibold">
+                <p className="mb-1.5 text-xl font-semibold">
                   {todas.length === 0 || faltanDatos
                     ? 'No se han podido cargar las convocatorias'
                     : f.pestana === 'guardadas' && guardadasVivas === 0
@@ -827,7 +825,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                   <button
                     type="button"
                     onClick={reintenta}
-                    className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+                    className="hover:border-pine hover:text-pine mt-4 rounded-md border border-line px-4 py-2 text-base font-semibold text-ink-2 pulsa"
                   >
                     Reintentar
                   </button>
@@ -840,7 +838,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
                   <button
                     type="button"
                     onClick={() => set({ ...FILTROS_INICIALES, pestana: f.pestana, orden: f.orden, vista: f.vista, desde: f.desde })}
-                    className="hover:border-pine hover:text-pine mt-4 rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+                    className="hover:border-pine hover:text-pine mt-4 rounded-md border border-line px-4 py-2 text-base font-semibold text-ink-2 pulsa"
                   >
                     Quitar todos los filtros
                   </button>
@@ -878,7 +876,7 @@ export function Tablero({ inicial, parcial }: { inicial: Datos; parcial?: Parcia
               type="button"
               onClick={() => (visibles > filtradas.length ? asegura(['abiertas']) : setVisibles((v) => v + PAGINA))}
               disabled={visibles > filtradas.length && !fallos.abiertas}
-              className="no-imprimir hover:border-pine hover:text-pine mt-3 w-full rounded-xl border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 transition-colors disabled:cursor-wait disabled:opacity-60"
+              className="no-imprimir hover:border-pine hover:text-pine mt-3 w-full rounded-lg border border-line bg-surface py-3.5 text-base font-semibold text-ink-2 pulsa disabled:cursor-wait disabled:opacity-60"
             >
               {/* En la portada recién abierta solo están las 24 primeras: al
                   pedir más se traen las demás, y mientras tanto se dice. */}

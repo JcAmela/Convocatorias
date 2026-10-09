@@ -45,7 +45,9 @@ build que publique la web vacía, incompleta o vieja.
 ## F2. Cimientos del diseño y tarjeta
 
 - [x] Línea base de rendimiento y capturas (`docs/linea-base.md`).
-- [ ] Sin webfonts, tipografía del sistema, tokens nuevos y test de contraste.
+- [x] Sin webfonts, tipografía del sistema, tokens nuevos y test de contraste
+      (`pruebas/contraste.test.ts`), un solo componente `Icono` y respuesta
+      al tocar. CSS: 7,0 KB gzip.
 - [ ] Tarjeta nueva.
 
 ## F3. Páginas para Google

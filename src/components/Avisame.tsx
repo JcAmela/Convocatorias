@@ -4,6 +4,7 @@ import {
   borraSuscripcion, cierraSesion, guardaSuscripcion, misSuscripciones,
   leePendiente, olvidaPendiente, pideEnlace, supabase,
 } from '../lib/cuenta';
+import { Icono } from './piezas';
 
 /**
  * «Avísame por email»: guarda la búsqueda que hay en pantalla.
@@ -128,7 +129,7 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
     }
   };
 
-  const campo = 'w-full rounded-lg border border-line bg-surface-2 px-2.5 py-2 text-base outline-none placeholder:text-ink-3 focus:border-pine';
+  const campo = 'w-full rounded-md border border-line-strong bg-surface-2 px-2.5 py-2 text-base outline-none placeholder:text-ink-3 focus:border-pine';
 
   return (
     <div className="relative">
@@ -136,23 +137,20 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
         type="button"
         onClick={() => setEstado(estado.fase === 'cerrado' ? { fase: 'formulario' } : { fase: 'cerrado' })}
         aria-expanded={estado.fase !== 'cerrado'}
-        className="hover:border-pine/50 flex items-center gap-1.5 rounded-lg border border-line bg-surface px-2.5 py-2 text-sm font-medium whitespace-nowrap text-ink-2 transition-colors sm:px-3"
+        className="hover:border-pine/50 flex items-center gap-1.5 rounded-md border border-line bg-surface px-2.5 py-2 text-sm font-medium whitespace-nowrap text-ink-2 pulsa sm:px-3"
       >
-        <svg viewBox="0 0 24 24" className="size-4 shrink-0" aria-hidden="true" fill="none" stroke="currentColor" strokeWidth="1.8">
-          <rect x="2.5" y="5" width="19" height="14" rx="2" />
-          <path d="M3 7l9 6 9-6" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
+        <Icono nombre="correo" />
         Avísame por email
       </button>
 
       {estado.fase !== 'cerrado' && (
         <div
           ref={panel}
-          className="scroll-fino absolute top-[calc(100%+6px)] right-0 z-40 max-h-[min(70vh,520px)] w-[min(320px,calc(100vw-1.5rem))] overflow-y-auto rounded-xl border border-line bg-surface p-3.5 shadow-alza-2"
+          className="scroll-fino absolute top-[calc(100%+6px)] right-0 z-40 max-h-[min(70vh,520px)] w-[min(320px,calc(100vw-1.5rem))] overflow-y-auto rounded-lg border border-line bg-surface p-3.5 shadow-alza-2"
         >
           {estado.fase === 'revisa-el-correo' ? (
             <>
-              <p className="display mb-1.5 text-base font-semibold">Mira tu correo</p>
+              <p className="mb-1.5 text-base font-semibold">Mira tu correo</p>
               <p className="text-sm leading-snug text-ink-3">
                 Te hemos mandado un enlace a <strong className="text-ink-2">{estado.email}</strong>.
                 Púlsalo y la búsqueda se guarda sola. Puedes cerrar esto.
@@ -160,7 +158,7 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
             </>
           ) : estado.fase === 'guardada' ? (
             <>
-              <p className="display mb-1.5 text-base font-semibold">Búsqueda guardada</p>
+              <p className="mb-1.5 text-base font-semibold">Búsqueda guardada</p>
               <p className="mb-3 text-sm leading-snug text-ink-3">
                 Te avisaremos cuando salga algo nuevo que encaje. Solo se manda si hay novedades.
               </p>
@@ -174,13 +172,13 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
             </>
           ) : (
             <form onSubmit={alEnviar}>
-              <p className="display mb-1 text-base font-semibold">Avísame de lo nuevo</p>
+              <p className="mb-1 text-base font-semibold">Avísame de lo nuevo</p>
               <p className="mb-3 text-sm leading-snug text-ink-3">
                 Guarda los filtros que tienes puestos ahora y te llegan por correo las
                 convocatorias nuevas que encajen.
               </p>
 
-              <label className="mb-1 block text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">
+              <label className="mb-1 block text-sm font-medium text-ink-3">
                 Cómo la llamas
               </label>
               <input
@@ -191,12 +189,12 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
                 className={`${campo} mb-3`}
               />
 
-              <label className="mb-1 block text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">
+              <label className="mb-1 block text-sm font-medium text-ink-3">
                 Cada cuánto
               </label>
               <div className="mb-3 flex flex-col gap-1">
                 {CADENCIAS.map((c) => (
-                  <label key={c.valor} className="hover:bg-surface-2 flex cursor-pointer items-center gap-2.5 rounded-lg px-2 py-1.5 text-base">
+                  <label key={c.valor} className="fila hover:bg-surface-2 flex cursor-pointer items-center gap-2.5 rounded-md px-2 py-1.5 text-base">
                     <input
                       type="radio"
                       name="avisame-cadencia"
@@ -211,7 +209,7 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
 
               {!sesion && (
                 <>
-                  <label htmlFor="avisame-email" className="mb-1 block text-2xs font-bold tracking-[0.07em] text-ink-3 uppercase">
+                  <label htmlFor="avisame-email" className="mb-1 block text-sm font-medium text-ink-3">
                     Tu correo
                   </label>
                   <input
@@ -223,27 +221,27 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
                     placeholder="tu@correo.com"
                     className={`${campo} mb-1.5`}
                   />
-                  <p className="mb-3 text-2xs leading-snug text-ink-3">
+                  <p className="mb-3 text-xs leading-snug text-ink-3">
                     Te mandamos un enlace para confirmar que es tuyo. Sin contraseñas.
                   </p>
                 </>
               )}
 
               {fallo && (
-                <p className="bg-rust-soft text-rust mb-3 rounded-lg px-2.5 py-2 text-sm">{fallo}</p>
+                <p className="bg-rust-soft text-rust mb-3 rounded-md px-2.5 py-2 text-sm">{fallo}</p>
               )}
 
               <button
                 type="submit"
                 disabled={estado.fase === 'enviando'}
-                className="bg-pine w-full rounded-lg py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90 disabled:opacity-60"
+                className="bg-pine w-full rounded-md py-2.5 text-base font-semibold text-on-pine pulsa hover:opacity-90 disabled:opacity-60"
               >
                 {estado.fase === 'enviando' ? 'Un momento…' : sesion ? 'Guardar la búsqueda' : 'Mandarme el enlace'}
               </button>
 
               {sesion && (
                 <div className="mt-3 border-t border-line-soft pt-3">
-                  <p className="mb-2 text-2xs text-ink-3">
+                  <p className="mb-2 text-xs text-ink-3">
                     Entraste como <strong className="text-ink-2">{sesion.email}</strong>
                   </p>
                   {misBusquedas?.length ? (
@@ -252,14 +250,14 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
                         <li key={s.id} className="flex items-start justify-between gap-2 text-sm">
                           <span className="min-w-0">
                             <span className="block truncate text-ink-2">{s.nombre}</span>
-                            <span className="text-2xs text-ink-3">
+                            <span className="text-xs text-ink-3">
                               {CADENCIAS.find((c) => c.valor === s.cadencia)?.texto}
                             </span>
                           </span>
                           <button
                             type="button"
                             onClick={async () => { await borraSuscripcion(s.id); await recarga(); }}
-                            className="hover:text-rust shrink-0 text-2xs text-ink-3 underline underline-offset-2"
+                            className="hover:text-rust shrink-0 text-xs text-ink-3 underline underline-offset-2"
                           >
                             Quitar
                           </button>
@@ -272,7 +270,7 @@ export function Avisame({ filtros, resumen }: { filtros: string; resumen: string
                   <button
                     type="button"
                     onClick={async () => { await cierraSesion(); setEstado({ fase: 'cerrado' }); }}
-                    className="hover:text-ink text-2xs text-ink-3 underline underline-offset-2"
+                    className="hover:text-ink text-xs text-ink-3 underline underline-offset-2"
                   >
                     Cerrar sesión
                   </button>

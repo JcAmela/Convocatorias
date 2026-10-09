@@ -35,12 +35,10 @@ const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
     <meta name="twitter:card" content="summary" />
     <meta name="robots" content={noindex ? 'noindex, follow' : 'index, follow'} />
 
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap"
-    />
+    {/* Sin webfonts: la letra es la del sistema (global.css). Las tres de
+        Google retrasaban el primer pintado de cada visita. */}
+    <meta name="theme-color" content="#f3f2ec" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#0e1112" media="(prefers-color-scheme: dark)" />
 
     {/* El tema elegido se aplica antes de pintar: sin esto, quien tiene el
         modo oscuro guardado vería un fogonazo blanco en cada carga. */}
@@ -55,7 +53,7 @@ const canonica = new URL(Astro.url.pathname, Astro.site ?? Astro.url).href;
   <body>
     <a
       href="#contenido"
-      class="bg-pine sr-only rounded-br-lg px-4 py-2 text-base font-semibold text-white focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50"
+      class="bg-pine sr-only rounded-br-md px-4 py-2 text-base font-semibold text-on-pine focus:not-sr-only focus:absolute focus:top-0 focus:left-0 focus:z-50"
     >
       Saltar a los resultados
     </a>

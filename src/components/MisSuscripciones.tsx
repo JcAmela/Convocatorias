@@ -88,7 +88,7 @@ export function MisSuscripciones() {
           Sin contraseñas.
         </p>
         {enviado ? (
-          <p className="bg-pine-soft text-pine-ink rounded-lg px-3 py-2.5 text-base">
+          <p className="bg-pine-soft text-pine-ink rounded-md px-3 py-2.5 text-base">
             Mira tu correo: te hemos mandado el enlace de acceso.
           </p>
         ) : (
@@ -109,17 +109,17 @@ export function MisSuscripciones() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               placeholder="tu@correo.com"
-              className="min-w-[14rem] flex-1 rounded-lg border border-line bg-surface px-3 py-2.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
+              className="min-w-[14rem] flex-1 rounded-md border border-line-strong bg-surface px-3 py-2.5 text-base outline-none placeholder:text-ink-3 focus:border-pine"
             />
             <button
               type="submit"
-              className="bg-pine rounded-lg px-4 py-2.5 text-base font-semibold text-white transition-opacity hover:opacity-90"
+              className="bg-pine rounded-md px-4 py-2.5 text-base font-semibold text-on-pine pulsa hover:opacity-90"
             >
               Mandarme el enlace
             </button>
           </form>
         )}
-        {fallo && <p className="bg-rust-soft text-rust mt-3 rounded-lg px-3 py-2 text-base">{fallo}</p>}
+        {fallo && <p className="bg-rust-soft text-rust mt-3 rounded-md px-3 py-2 text-base">{fallo}</p>}
       </div>
     );
   }
@@ -137,18 +137,18 @@ export function MisSuscripciones() {
         </button>
       </p>
 
-      {fallo && <p className="bg-rust-soft text-rust mb-4 rounded-lg px-3 py-2 text-base">{fallo}</p>}
+      {fallo && <p className="bg-rust-soft text-rust mb-4 rounded-md px-3 py-2 text-base">{fallo}</p>}
 
       {lista.length === 0 ? (
-        <div className="rounded-xl border border-dashed border-line py-14 text-center">
-          <p className="display mb-1.5 text-xl font-semibold">No tienes ninguna búsqueda guardada</p>
+        <div className="rounded-lg border border-dashed border-line py-14 text-center">
+          <p className="mb-1.5 text-xl font-semibold">No tienes ninguna búsqueda guardada</p>
           <p className="mx-auto mb-4 max-w-[46ch] text-base text-ink-3">
             Ve al tablero, pon los filtros que te interesen y pulsa «Avísame por email».
             Si no pones ninguno, recibirás todo lo que salga en Cataluña.
           </p>
           <a
             href="/"
-            className="hover:border-pine hover:text-pine inline-block rounded-lg border border-line px-4 py-2 text-base font-semibold text-ink-2 transition-colors"
+            className="hover:border-pine hover:text-pine inline-block rounded-md border border-line px-4 py-2 text-base font-semibold text-ink-2 pulsa"
           >
             Ir al tablero
           </a>
@@ -158,11 +158,11 @@ export function MisSuscripciones() {
           {lista.map((s) => {
             const palabras = enPalabras(s.filtros);
             return (
-              <li key={s.id} className="rounded-xl border border-line bg-surface p-4">
+              <li key={s.id} className="rounded-lg border border-line bg-surface p-4">
                 <div className="mb-2 flex flex-wrap items-baseline justify-between gap-2">
-                  <h2 className="display text-lg font-semibold">{s.nombre}</h2>
+                  <h2 className="text-lg font-semibold">{s.nombre}</h2>
                   {!s.activa && (
-                    <span className="bg-surface-2 rounded-full px-2 py-0.5 text-2xs font-semibold text-ink-3">
+                    <span className="bg-surface-2 rounded-full px-2 py-0.5 text-xs font-semibold text-ink-3">
                       En pausa
                     </span>
                   )}
@@ -180,7 +180,7 @@ export function MisSuscripciones() {
                     id={`cadencia-${s.id}`}
                     value={s.cadencia}
                     onChange={(e) => cambiaCadencia(s.id, e.target.value as Cadencia)}
-                    className="rounded-lg border border-line bg-surface-2 px-2.5 py-1.5 text-base"
+                    className="rounded-md border border-line-strong bg-surface-2 px-2.5 py-1.5 text-base"
                   >
                     {CADENCIAS.map((c) => (
                       <option key={c.valor} value={c.valor}>{c.texto}</option>
@@ -189,7 +189,7 @@ export function MisSuscripciones() {
 
                   <a
                     href={`/?${s.filtros}`}
-                    className="hover:border-pine hover:text-pine rounded-lg border border-line px-2.5 py-1.5 text-base text-ink-2 transition-colors"
+                    className="hover:border-pine hover:text-pine rounded-md border border-line px-2.5 py-1.5 text-base text-ink-2 pulsa"
                   >
                     Ver y cambiar los filtros
                   </a>
