@@ -104,7 +104,7 @@ function TarjetaBase({ plaza, desde, guardada, onGuardar, onAbrir }: Props) {
         </p>
       )}
 
-      <p className="order-3 mt-1 line-clamp-2 text-sm text-ink-2">
+      <p className="order-3 mt-1 truncate text-sm text-ink-2">
         {casa}
         {organismo && <> · {organismo}</>}
       </p>
