@@ -5,12 +5,14 @@
 # construye y el build se niega a publicar si los datos no son buenos. Si
 # cualquiera de ellos falla, la web sigue sirviendo lo de ayer y nadie se
 # entera. Este workflow mira el resultado al final de la cadena: si `generado`
-# en `/datos/meta.json` tiene más de 12 h, falla, y GitHub manda un correo.
+# en `/datos/meta.json` tiene 25 h o más, falla, y GitHub manda un correo.
 #
-# 12 h y a las 06:23 UTC: detecta un solo día fallido, y deja hora y media
-# de margen al rebuild de las 04:40. No en punto: a las 06:00 GitHub se
-# saltó la primera ejecución (9-10-2026); las horas en punto son las de
-# más cola y ahí descarta programados.
+# Programado a las 06:23 UTC, pero GitHub retrasa los programados: del 10 al
+# 12-10-2026 se ejecutó a las 12:40, 13:01 y 15:39. Por eso 25 h y no 12: un
+# día sin datos nuevos deja la copia con 26 h o más a cualquier hora del día
+# siguiente, y un día normal no llega a 25 h aunque el aviso se lance a
+# medianoche. No en punto: a las 06:00 GitHub se saltó la primera ejecución
+# (9-10-2026); las horas en punto son las de más cola.
 #
 # Ojo: en un repositorio público GitHub desactiva los workflows programados
 # tras 60 días sin actividad. Si pasa, se reactiva desde la pestaña Actions.
@@ -26,10 +28,10 @@ jobs:
   frescura:
     runs-on: ubuntu-latest
     steps:
-      - name: generado tiene menos de 12 h
+      - name: generado tiene menos de 25 h
         env:
           META: https://convocatorias-ten.vercel.app/datos/meta.json
-          HORAS_MAXIMAS: '12'
+          HORAS_MAXIMAS: '25'
         run: |
           meta="$(curl -fsS --retry 3 --retry-delay 10 "$META")"
           generado="$(printf '%s' "$meta" | jq -r '.generado')"

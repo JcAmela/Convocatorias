@@ -28,7 +28,8 @@ build que publique la web vacía, incompleta o vieja.
 - [x] Infraestructura reproducible: migración de línea base de las tablas del
       tablero y repositorio privado de copias semanales.
 - [ ] Copias: falta el secreto de conexión en el repositorio privado.
-- [ ] El workflow de frescura sale en verde dos días seguidos.
+- [x] El workflow de frescura sale en verde dos días seguidos (10, 11 y
+      12-10; umbral a 25 h porque GitHub lo lanza horas tarde).
 
 ## F1. Decisiones que fijan las URL
 

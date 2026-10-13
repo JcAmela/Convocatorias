@@ -88,7 +88,7 @@ Todo pasa de madrugada y en este orden (UTC):
 | 04:00 | `convoca-board?refresh=1` rasca las fuentes y guarda la copia | pg_cron → Edge Function |
 | 04:40 | El deploy hook de Vercel reconstruye la web con la copia nueva | pg_cron → Vercel |
 | 05:30 | `convoca-correo` manda los avisos con lo de hoy, enlazando a las fichas ya publicadas | pg_cron → Edge Function |
-| 06:23 | Se comprueba que lo publicado es de hoy (`generado` < 12 h) | GitHub Actions (`frescura.yml`) |
+| 06:23 | Se comprueba que lo publicado es de hoy (`generado` < 25 h; GitHub suele lanzarlo horas tarde) | GitHub Actions (`frescura.yml`) |
 
 Los tres trabajos de pg_cron están en `supabase/migraciones/2026-10-08-cron.sql`.
 Los tres secretos que usan (`board_token`, `correo_token` y `deploy_hook`)
